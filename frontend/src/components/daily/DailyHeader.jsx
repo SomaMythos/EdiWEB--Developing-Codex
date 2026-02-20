@@ -21,7 +21,7 @@ export default function DailyHeader({
   return (
     <div className="daily-header">
       <div className="daily-header__left">
-        <h2 className="daily-header__title">Agenda do Dia</h2>
+        <h2 className="daily-header__title">Visão do dia</h2>
         <div className={`daily-header__badge ${dayType === "work" ? "work" : "off"}`}>
           {dayType === "work" ? "WORK DAY" : "OFF DAY"}
         </div>
@@ -53,13 +53,15 @@ export default function DailyHeader({
 
       <div className="daily-header__controls">
         <input type="date" value={selectedDate} onChange={e => onDateChange(e.target.value)} className="daily-input" />
-        <button onClick={onGenerate} className="daily-button daily-button--primary" disabled={generating}>
-          {generating ? "Gerando..." : "Gerar Dia"}
-        </button>
-        <button onClick={onToggleDay} className="daily-button daily-button--secondary">Alternar Dia</button>
-        <button onClick={onOpenConfig} className="daily-button daily-button--secondary">⚙ Configurar Dia</button>
-        <button onClick={onOpenRoutines} className="daily-button daily-button--secondary">🧩 Rotinas</button>
-        <button onClick={onOpenActivities} className="daily-button daily-button--secondary">📚 Activities</button>
+        <div className="daily-header__actions">
+          <button onClick={onGenerate} className="daily-button daily-button--primary" disabled={generating}>
+            {generating ? "Gerando..." : "Gerar dia"}
+          </button>
+          <button onClick={onToggleDay} className="daily-button daily-button--secondary">Alternar tipo de dia</button>
+          <button onClick={onOpenConfig} className="daily-button daily-button--tertiary">Configuração</button>
+          <button onClick={onOpenRoutines} className="daily-button daily-button--tertiary">Rotinas</button>
+          <button onClick={onOpenActivities} className="daily-button daily-button--tertiary">Atividades</button>
+        </div>
       </div>
 
       {actionState?.status === "error" && <div className="daily-status daily-status--error">{actionState.error}</div>}

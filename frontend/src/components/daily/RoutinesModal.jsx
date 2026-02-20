@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useRef } from "react";
 import "./RoutinesModal.css";
+import AccessibleModal from "./AccessibleModal";
 
 export default function RoutinesModal({
   show,
@@ -14,17 +15,22 @@ export default function RoutinesModal({
   onRemoveBlock,
   onClose
 }) {
+  const createRoutineButtonRef = useRef(null);
   if (!show) return null;
 
   return (
-    <div className="daily-modal-overlay">
-      <div className="daily-modal daily-modal--wide">
-        <h3>Rotina ({dayType})</h3>
+    <AccessibleModal
+      show={show}
+      title={`Rotina (${dayType})`}
+      onClose={onClose}
+      initialFocusRef={createRoutineButtonRef}
+      size="wide"
+    >
 
         {!activeRoutine && (
           <div className="daily-empty-state">
             <div className="daily-empty-text">Nenhuma rotina configurada para este tipo de dia.</div>
-            <button className="daily-button daily-button--primary" onClick={onCreateRoutine}>
+            <button ref={createRoutineButtonRef} className="daily-button daily-button--primary" onClick={onCreateRoutine}>
               Criar rotina {dayType === "work" ? "Work" : "Off"}
             </button>
           </div>
@@ -60,7 +66,6 @@ export default function RoutinesModal({
         <div className="daily-modal-actions">
           <button className="daily-button daily-button--secondary" onClick={onClose}>Fechar</button>
         </div>
-      </div>
-    </div>
+    </AccessibleModal>
   );
 }

@@ -1,14 +1,37 @@
-.daily-timeline { display:flex; flex-direction:column; gap:14px; margin-top:30px; }
-.daily-loading { opacity: .7; }
-.daily-empty { opacity:.5; font-style:italic; }
-.daily-block { padding:16px; border-radius:10px; border:1px solid #2a2a35; display:flex; justify-content:space-between; align-items:center; background:#1a1a22; }
-.daily-block.completed { background:linear-gradient(135deg,#102d18,#0f1f16); border-color:#00c853; opacity:.7; }
+.daily-timeline { display:flex; flex-direction:column; gap:14px; }
+.daily-loading { opacity: .8; }
+.daily-empty { opacity:.8; font-style:italic; color:#c6d3eb; }
+.daily-block {
+  padding:16px;
+  border-radius:10px;
+  border:1px solid #495d7c;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 12px;
+  background:#172336;
+}
+.daily-block.completed { background:linear-gradient(135deg,#0f3b24,#0e2b1b); border-color:#3cce79; }
 .daily-block__left { display:flex; gap:14px; align-items:center; }
 .daily-block__right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
-.daily-block__checkbox { width:18px; height:18px; accent-color:#00c853; cursor:pointer; }
-.daily-block__time { font-weight:600; }
-.daily-block__duration { font-size:13px; opacity:.7; }
-.daily-block__name { font-weight:500; opacity:.85; text-align:right; }
-.daily-block__edit { border:1px solid #385579; background:#1d2b3f; color:#d6e6ff; border-radius:6px; padding:6px 10px; cursor:pointer; }
+.daily-block__checkbox { width:20px; height:20px; accent-color:#36db7b; cursor:pointer; }
+.daily-block__time { font-weight:700; }
+.daily-block__duration { font-size:13px; color:#c9d6ed; }
+.daily-block__name { font-weight:600; color:#eff4ff; text-align:right; }
+.daily-block__edit {
+  border:1px solid #6988b8;
+  background:#24406c;
+  color:#f4f8ff;
+  border-radius:8px;
+  padding:9px 12px;
+  min-height: 42px;
+  cursor:pointer;
+}
 .daily-status { padding:10px 12px; border-radius:8px; }
-.daily-status--error { border:1px solid #5a2a2a; background:#2a1212; color:#ffbdbd; }
+.daily-status--error { border:1px solid #a05e63; background:#3a1d21; color:#ffd7d7; }
+
+@media (max-width: 640px) {
+  .daily-block { flex-direction: column; align-items: stretch; }
+  .daily-block__right { align-items: flex-start; }
+  .daily-block__name { text-align: left; }
+}

@@ -1,18 +1,18 @@
-import React from "react";
+import React, { useRef } from "react";
 import "./DayConfigModal.css";
 import { parseIntegerOrFallback } from "../../hooks/daily/utils";
+import AccessibleModal from "./AccessibleModal";
 
 export default function DayConfigModal({ show, config, setConfig, onClose, onSave, state }) {
+  const firstInputRef = useRef(null);
   if (!show || !config) return null;
 
   return (
-    <div className="daily-modal-overlay">
-      <div className="daily-modal">
-        <h3>Configuração do Dia</h3>
+    <AccessibleModal show={show} title="Configuração do Dia" onClose={onClose} initialFocusRef={firstInputRef}>
         {[ ["Sono Início", "sleep_start"], ["Sono Fim", "sleep_end"], ["Work Início", "work_start"], ["Work Fim", "work_end"] ].map(([label, key]) => (
           <div key={key} className="daily-form-row">
             <label>{label}</label>
-            <input type="time" value={config[key]} onChange={e => setConfig({ ...config, [key]: e.target.value })} />
+            <input ref={key === "sleep_start" ? firstInputRef : undefined} type="time" value={config[key]} onChange={e => setConfig({ ...config, [key]: e.target.value })} />
           </div>
         ))}
         <div className="daily-form-row">
@@ -45,7 +45,6 @@ export default function DayConfigModal({ show, config, setConfig, onClose, onSav
           <button className="daily-button daily-button--secondary" onClick={onClose}>Cancelar</button>
           <button className="daily-button daily-button--primary" onClick={onSave} disabled={state.status === "loading"}>Salvar</button>
         </div>
-      </div>
-    </div>
+    </AccessibleModal>
   );
 }

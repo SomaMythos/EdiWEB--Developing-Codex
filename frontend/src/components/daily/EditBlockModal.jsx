@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./RoutinesModal.css";
+import AccessibleModal from "./AccessibleModal";
 
 export default function EditBlockModal({ show, block, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -9,6 +10,7 @@ export default function EditBlockModal({ show, block, onClose, onSave }) {
     block_category: "",
     updated_source: "manual"
   });
+  const startTimeRef = useRef(null);
 
   useEffect(() => {
     if (!block) return;
@@ -33,57 +35,54 @@ export default function EditBlockModal({ show, block, onClose, onSave }) {
   };
 
   return (
-    <div className="daily-modal-overlay" onClick={onClose}>
-      <div className="daily-modal" onClick={e => e.stopPropagation()}>
-        <div className="daily-modal-header">
-          <h3>Editar bloco</h3>
-          <button type="button" onClick={onClose}>✕</button>
+    <AccessibleModal show={show} title="Editar bloco" onClose={onClose} initialFocusRef={startTimeRef}>
+      <form className="daily-modal-form" onSubmit={handleSubmit}>
+        <label>
+          Início
+          <input
+            ref={startTimeRef}
+            type="time"
+            value={form.start_time}
+            onChange={e => setForm(prev => ({ ...prev, start_time: e.target.value }))}
+            required
+          />
+        </label>
+
+        <label>
+          Duração (min)
+          <input
+            type="number"
+            min="1"
+            value={form.duration}
+            onChange={e => setForm(prev => ({ ...prev, duration: e.target.value }))}
+            required
+          />
+        </label>
+
+        <label>
+          Nome
+          <input
+            type="text"
+            value={form.block_name}
+            onChange={e => setForm(prev => ({ ...prev, block_name: e.target.value }))}
+          />
+        </label>
+
+        <label>
+          Categoria
+          <input
+            type="text"
+            value={form.block_category}
+            onChange={e => setForm(prev => ({ ...prev, block_category: e.target.value }))}
+            placeholder="Opcional"
+          />
+        </label>
+
+        <div className="daily-modal-actions">
+          <button type="button" className="daily-button daily-button--secondary" onClick={onClose}>Cancelar</button>
+          <button type="submit" className="daily-button daily-button--primary">Salvar</button>
         </div>
-
-        <form className="daily-modal-form" onSubmit={handleSubmit}>
-          <label>
-            Início
-            <input
-              type="time"
-              value={form.start_time}
-              onChange={e => setForm(prev => ({ ...prev, start_time: e.target.value }))}
-              required
-            />
-          </label>
-
-          <label>
-            Duração (min)
-            <input
-              type="number"
-              min="1"
-              value={form.duration}
-              onChange={e => setForm(prev => ({ ...prev, duration: e.target.value }))}
-              required
-            />
-          </label>
-
-          <label>
-            Nome
-            <input
-              type="text"
-              value={form.block_name}
-              onChange={e => setForm(prev => ({ ...prev, block_name: e.target.value }))}
-            />
-          </label>
-
-          <label>
-            Categoria
-            <input
-              type="text"
-              value={form.block_category}
-              onChange={e => setForm(prev => ({ ...prev, block_category: e.target.value }))}
-              placeholder="Opcional"
-            />
-          </label>
-
-          <button type="submit">Salvar</button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </AccessibleModal>
   );
 }
