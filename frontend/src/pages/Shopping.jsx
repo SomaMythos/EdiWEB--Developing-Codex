@@ -21,6 +21,7 @@ const Shopping = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [editingId, setEditingId] = useState(null);
   const [sortBy, setSortBy] = useState('alphabetical');
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
 
   const load = async () => {
     const res = await shoppingApi.listWishlist();
@@ -79,6 +80,7 @@ const Shopping = () => {
 
     setFormData(initialFormData);
     setEditingId(null);
+    setIsFormModalOpen(false);
     load();
   };
 
@@ -91,6 +93,19 @@ const Shopping = () => {
       photo_url: item.photo_url || '',
       item_type: item.item_type === 'necessidade' ? 'necessidade' : 'desejo',
     });
+    setIsFormModalOpen(true);
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingId(null);
+    setFormData(initialFormData);
+    setIsFormModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsFormModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormData);
   };
 
   const handleDelete = async (itemId) => {
@@ -113,64 +128,11 @@ const Shopping = () => {
         </div>
       </header>
 
-      <section className="card shopping-form-card">
-        <h2>{editingId ? 'Editar cadastro' : 'Novo cadastro'}</h2>
-        <form onSubmit={handleSubmit} className="shopping-form">
-          <input
-            className="input"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Nome do item"
-            required
-          />
-          <input
-            className="input"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            placeholder="Preço"
-            required
-          />
-          <input
-            className="input"
-            type="url"
-            value={formData.link}
-            onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-            placeholder="Link de compra"
-          />
-          <input
-            className="input"
-            type="url"
-            value={formData.photo_url}
-            onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
-            placeholder="Foto (URL opcional)"
-          />
-          <select
-            className="input"
-            value={formData.item_type}
-            onChange={(e) => setFormData({ ...formData, item_type: e.target.value })}
-          >
-            <option value="necessidade">Necessidade</option>
-            <option value="desejo">Desejo</option>
-          </select>
-
-          <div className="shopping-form-actions">
-            {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={() => { setEditingId(null); setFormData(initialFormData); }}>
-                Cancelar
-              </button>
-            )}
-            <button className="btn btn-primary" type="submit">
-              <Plus size={16} />
-              {editingId ? 'Salvar alterações' : 'Cadastrar'}
-            </button>
-          </div>
-        </form>
-      </section>
-
       <section className="card shopping-toolbar">
+        <button type="button" className="btn btn-primary" onClick={handleOpenCreateModal}>
+          <Plus size={16} />
+          Novo cadastro
+        </button>
         <label className="label">Organizar por</label>
         <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="alphabetical">Ordem alfabética</option>
@@ -230,6 +192,65 @@ const Shopping = () => {
           Orçamento: R$ {totalMarked.toFixed(2)}
         </button>
       </footer>
+
+      {isFormModalOpen && (
+        <div className="shopping-modal-overlay" onClick={handleCloseModal}>
+          <section className="card shopping-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h2>{editingId ? 'Editar cadastro' : 'Novo cadastro'}</h2>
+            <form onSubmit={handleSubmit} className="shopping-form">
+              <input
+                className="input"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nome do item"
+                required
+              />
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="Preço"
+                required
+              />
+              <input
+                className="input"
+                type="url"
+                value={formData.link}
+                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                placeholder="Link de compra"
+              />
+              <input
+                className="input"
+                type="url"
+                value={formData.photo_url}
+                onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
+                placeholder="Foto (URL opcional)"
+              />
+              <select
+                className="input"
+                value={formData.item_type}
+                onChange={(e) => setFormData({ ...formData, item_type: e.target.value })}
+              >
+                <option value="necessidade">Necessidade</option>
+                <option value="desejo">Desejo</option>
+              </select>
+
+              <div className="shopping-form-actions">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button className="btn btn-primary" type="submit">
+                  <Plus size={16} />
+                  {editingId ? 'Salvar alterações' : 'Cadastrar'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

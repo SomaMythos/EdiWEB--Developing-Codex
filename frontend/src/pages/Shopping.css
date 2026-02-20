@@ -17,9 +17,24 @@
 
 .shopping-toolbar {
   display: grid;
-  grid-template-columns: auto minmax(180px, 250px) 1fr;
+  grid-template-columns: auto auto minmax(180px, 250px) 1fr;
   align-items: center;
   gap: 0.75rem;
+}
+
+.shopping-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.shopping-modal-card {
+  width: min(560px, 100%);
 }
 
 .shopping-total-box {
