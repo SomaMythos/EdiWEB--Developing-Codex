@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import StaggerList from './StaggerList';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const formatDateTime = (value) => {
@@ -10,6 +12,16 @@ const formatDateTime = (value) => {
 
 const ArtworkGalleryModal = ({ artwork, open, onClose }) => {
   const [zoomedImage, setZoomedImage] = useState(null);
+  const reduceMotion = useReducedMotion();
+
+  const modalMotionProps = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 8, scale: 0.98 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, y: 8, scale: 0.98 },
+        transition: { duration: 0.2 },
+      };
 
   const galleryItems = useMemo(() => {
     if (!artwork) return [];
@@ -35,14 +47,16 @@ const ArtworkGalleryModal = ({ artwork, open, onClose }) => {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card modal-gallery" onClick={(e) => e.stopPropagation()}>
+      <motion.div className="modal-card modal-gallery" onClick={(e) => e.stopPropagation()} {...modalMotionProps}>
         <h2>Galeria cronológica • {artwork.title}</h2>
 
         {galleryItems.length ? (
-          <div className="gallery-list">
-            {galleryItems.map((item) => {
-              return (
-              <div key={item.id} className="gallery-item">
+          <StaggerList
+            items={galleryItems}
+            className="gallery-list"
+            getKey={(item) => item.id}
+            renderItem={(item) => (
+              <div className="gallery-item">
                 {item.imageUrl && (
                   <img
                     src={item.imageUrl}
@@ -59,9 +73,8 @@ const ArtworkGalleryModal = ({ artwork, open, onClose }) => {
                   <p>{formatDateTime(item.date)}</p>
                 </div>
               </div>
-              );
-            })}
-          </div>
+            )}
+          />
         ) : (
           <p>Nenhuma atualização registrada.</p>
         )}
@@ -69,7 +82,7 @@ const ArtworkGalleryModal = ({ artwork, open, onClose }) => {
         <div className="modal-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Fechar</button>
         </div>
-      </div>
+      </motion.div>
 
       {zoomedImage && (
         <div className="modal-backdrop modal-image-viewer" onClick={() => setZoomedImage(null)}>
