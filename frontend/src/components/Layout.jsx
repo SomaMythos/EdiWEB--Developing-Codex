@@ -32,8 +32,9 @@ const Layout = ({ children }) => {
   const navItems = [
     { path: '/', icon: Calendar, label: 'Daily' },
     { path: '/goals', icon: Target, label: 'Metas' },
+	{ path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-    { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
+
 	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
     { path: '/reminders', icon: Bell, label: 'Lembretes' },
     { path: '/settings', icon: Settings, label: 'Configurações' },
@@ -66,60 +67,67 @@ const Layout = ({ children }) => {
           </button>
         </div>
 
-        <nav className="sidebar-nav">
-          {navItems.slice(0, 6).map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? 'active' : ''}`
-              }
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+<nav className="sidebar-nav">
+  {/* Daily + Metas */}
+  {navItems.slice(0, 2).map((item) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      className={({ isActive }) =>
+        `nav-item ${isActive ? 'active' : ''}`
+      }
+    >
+      <item.icon size={20} />
+      <span>{item.label}</span>
+    </NavLink>
+  ))}
 
-          <div className="nav-group">
-            <button
-              type="button"
-              className={`nav-item nav-parent ${isHobbyActive ? 'active' : ''}`}
-              onClick={() => setIsHobbyOpen((prev) => !prev)}
-            >
-              <Heart size={20} />
-              <span>Hobby</span>
-              {isHobbyOpen ? <ChevronDown size={16} className="nav-chevron" /> : <ChevronRight size={16} className="nav-chevron" />}
-            </button>
+  {/* Hobby */}
+  <div className="nav-group">
+    <button
+      type="button"
+      className={`nav-item nav-parent ${isHobbyActive ? 'active' : ''}`}
+      onClick={() => setIsHobbyOpen((prev) => !prev)}
+    >
+      <Heart size={20} />
+      <span>Hobby</span>
+      {isHobbyOpen ? (
+        <ChevronDown size={16} className="nav-chevron" />
+      ) : (
+        <ChevronRight size={16} className="nav-chevron" />
+      )}
+    </button>
 
-            <div className={`nav-subitems ${isHobbyOpen ? 'expanded' : ''}`}>
-              {hobbyItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `nav-item nav-subitem ${isActive ? 'active' : ''}`
-                  }
-                >
-                  <item.icon size={18} />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-          </div>
+    <div className={`nav-subitems ${isHobbyOpen ? 'expanded' : ''}`}>
+      {hobbyItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }) =>
+            `nav-item nav-subitem ${isActive ? 'active' : ''}`
+          }
+        >
+          <item.icon size={18} />
+          <span>{item.label}</span>
+        </NavLink>
+      ))}
+    </div>
+  </div>
 
-          {navItems.slice(6).map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? 'active' : ''}`
-              }
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+  {/* Restante do menu */}
+  {navItems.slice(2).map((item) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      className={({ isActive }) =>
+        `nav-item ${isActive ? 'active' : ''}`
+      }
+    >
+      <item.icon size={20} />
+      <span>{item.label}</span>
+    </NavLink>
+  ))}
+</nav>
 
         <div className="sidebar-footer">
           <Notifications />
