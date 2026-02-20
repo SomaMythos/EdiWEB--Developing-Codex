@@ -1,20 +1,9 @@
 import React, { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 
 const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit, isSubmitting = false }) => {
   const [title, setTitle] = useState('');
   const [file, setFile] = useState(null);
   const [markCompleted, setMarkCompleted] = useState(false);
-  const reduceMotion = useReducedMotion();
-
-  const modalMotionProps = reduceMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 8, scale: 0.98 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, y: 8, scale: 0.98 },
-        transition: { duration: 0.2 },
-      };
 
   if (!open || !artwork) return null;
 
@@ -37,7 +26,7 @@ const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit, isSubmitting = f
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <motion.div className="modal-card" onClick={(e) => e.stopPropagation()} {...modalMotionProps}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <h2>Atualizar: {artwork.title}</h2>
         <form className="modal-form" onSubmit={handleSubmit}>
           <label className="label" htmlFor="update-title">Título da atualização</label>
@@ -70,7 +59,7 @@ const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit, isSubmitting = f
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar atualização'}</button>
           </div>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 };

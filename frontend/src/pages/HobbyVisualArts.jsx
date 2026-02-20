@@ -1,7 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import AnimatedCard from '../components/AnimatedCard';
-import StaggerList from '../components/StaggerList';
 import ArtworkCard from '../components/ArtworkCard';
 import ArtworkUpdateModal from '../components/ArtworkUpdateModal';
 import ArtworkGalleryModal from '../components/ArtworkGalleryModal';
@@ -47,16 +44,6 @@ const HobbyVisualArts = () => {
 
   const currentTab = useMemo(() => tabs.find((tab) => tab.key === activeTab), [activeTab]);
   const usesCardFlow = !!currentTab && sharedArtworkFlow.has(currentTab.key);
-  const reduceMotion = useReducedMotion();
-
-  const modalMotionProps = reduceMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 8, scale: 0.98 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, y: 8, scale: 0.98 },
-        transition: { duration: 0.2 },
-      };
 
   const load = async (category) => {
     setIsLoading(true);
@@ -229,7 +216,7 @@ const HobbyVisualArts = () => {
 
 {createModalOpen && (
   <div className="modal-backdrop">
-    <motion.div className="modal-card" {...modalMotionProps}>
+    <div className="modal-card">
       <h2>Nova obra • {currentTab.label}</h2>
 
       <form onSubmit={handleCreateArtwork} className="modal-form">
@@ -278,32 +265,28 @@ const HobbyVisualArts = () => {
           </button>
         </div>
       </form>
-    </motion.div>
+    </div>
   </div>
 )}
 
           {isLoading && <p className="visual-arts-loading">Carregando obras...</p>}
 
-          <StaggerList
-            items={artworks}
-            className="visual-arts-grid"
-            getKey={(artwork) => artwork.id}
-            renderItem={(artwork) => (
-              <AnimatedCard>
-                <ArtworkCard
-                  artwork={artwork}
-                  onOpenUpdate={(selected) => {
-                    setSelectedArtwork(selected);
-                    setUpdateModalOpen(true);
-                  }}
-                  onOpenGallery={openGallery}
-                  onSaveCompletionDate={saveCompletionDate}
-                  onDelete={setPendingDeleteArtwork}
-                  isSavingCompletion={isSavingCompletionId === artwork.id}
-                />
-              </AnimatedCard>
-            )}
-          />
+          <section className="visual-arts-grid">
+            {artworks.map((artwork) => (
+<ArtworkCard
+  key={artwork.id}
+  artwork={artwork}
+  onOpenUpdate={(selected) => {
+    setSelectedArtwork(selected);
+    setUpdateModalOpen(true);
+  }}
+  onOpenGallery={openGallery}
+  onSaveCompletionDate={saveCompletionDate}
+  onDelete={setPendingDeleteArtwork}
+  isSavingCompletion={isSavingCompletionId === artwork.id}
+/>
+            ))}
+          </section>
 
           {!isLoading && !artworks.length && (
             <p className="visual-arts-empty">Nenhuma obra cadastrada ainda para {currentTab.label.toLowerCase()}.</p>
@@ -328,7 +311,7 @@ const HobbyVisualArts = () => {
 
           {pendingDeleteArtwork && (
             <div className="modal-backdrop" onClick={() => !isDeleting && setPendingDeleteArtwork(null)}>
-              <motion.div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-artwork-title" onClick={(e) => e.stopPropagation()} {...modalMotionProps}>
+              <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-artwork-title" onClick={(e) => e.stopPropagation()}>
                 <h2 id="delete-artwork-title">Excluir obra</h2>
                 <p>Tem certeza que deseja excluir a obra "{pendingDeleteArtwork.title}"?</p>
                 <div className="modal-actions">
@@ -339,7 +322,7 @@ const HobbyVisualArts = () => {
                     {isDeleting ? 'Excluindo...' : 'Excluir'}
                   </button>
                 </div>
-              </motion.div>
+              </div>
             </div>
           )}
         </>
