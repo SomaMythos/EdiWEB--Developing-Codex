@@ -22,6 +22,7 @@ const ArtworkCard = ({
   onOpenUpdate,
   onSaveCompletionDate,
   onDelete,
+  isSavingCompletion,
 }) => {
 const [completionDate, setCompletionDate] = useState(
   artwork.finished_at ? artwork.finished_at.slice(0, 10) : ''
@@ -81,17 +82,7 @@ const thumbnailUrl = imageList.length
   
 
 const handleDelete = () => {
-  console.log("CLIQUEI EM EXCLUIR");
-
-  const confirmed = window.confirm(
-    `Tem certeza que deseja excluir a obra "${artwork.title}"?`
-  );
-
-  console.log("CONFIRMADO?", confirmed);
-  console.log("onDelete existe?", !!onDelete);
-
-  if (confirmed && onDelete) {
-    console.log("VOU CHAMAR onDelete");
+  if (onDelete) {
     onDelete(artwork);
   }
 };
@@ -173,11 +164,12 @@ const handleDelete = () => {
         <button
           type="button"
           className="btn btn-sm btn-primary"
+          disabled={isSavingCompletion}
           onClick={() =>
             onSaveCompletionDate(artwork, completionDate)
           }
         >
-          Salvar conclusão
+          {isSavingCompletion ? 'Salvando...' : 'Salvar conclusão'}
         </button>
       </div>
     </>

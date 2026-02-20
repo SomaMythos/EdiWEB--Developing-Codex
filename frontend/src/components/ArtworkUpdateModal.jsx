@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit }) => {
+const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit, isSubmitting = false }) => {
   const [title, setTitle] = useState('');
   const [file, setFile] = useState(null);
   const [markCompleted, setMarkCompleted] = useState(false);
@@ -11,6 +11,8 @@ const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit }) => {
     e.preventDefault();
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
+
+    if (isSubmitting) return;
 
     onSubmit({
       update_title: trimmedTitle,
@@ -53,8 +55,8 @@ const ArtworkUpdateModal = ({ artwork, open, onClose, onSubmit }) => {
           </label>
 
           <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Salvar atualização</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar atualização'}</button>
           </div>
         </form>
       </div>

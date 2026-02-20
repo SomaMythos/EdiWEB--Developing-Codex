@@ -1,5 +1,5 @@
 // src/pages/Goals.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Star as StarIcon } from 'lucide-react';
 import { goalsApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -40,6 +40,20 @@ const Goals = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadFeedback, setUploadFeedback] = useState({ type: '', message: '' });
   const [isSubmittingGoal, setIsSubmittingGoal] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [isSubmittingCategoryEdit, setIsSubmittingCategoryEdit] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState(null);
+  const [deleteCategoryConfirmationName, setDeleteCategoryConfirmationName] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [pendingDeleteGoalId, setPendingDeleteGoalId] = useState(null);
+  const [isDeletingGoal, setIsDeletingGoal] = useState(false);
+  const [isConcludingGoalId, setIsConcludingGoalId] = useState(null);
+  const categoryEditInputRef = useRef(null);
+  const deleteCategoryCancelRef = useRef(null);
+  const deleteGoalCancelRef = useRef(null);
 
   useEffect(() => {
     loadSummary();
@@ -63,6 +77,7 @@ const Goals = () => {
       console.error('Erro carregando summary:', err);
       setHome({ total_stars: 0, recent_achievements: [], categories_overview: [] });
       setCategories([]);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar o resumo de metas.' });
     } finally {
       setLoading(false);
     }
@@ -76,50 +91,95 @@ const Goals = () => {
     } catch (err) {
       console.error('Erro carregando metas por categoria', err);
       setGoals([]);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar as metas da categoria.' });
     } finally {
       setLoading(false);
     }
   };
 
-const handleCreateCategory = async () => {
-  if (!newCategoryName.trim()) return alert('Nome da categoria é obrigatório');
+  useEffect(() => {
+    if (editingCategory && categoryEditInputRef.current) {
+      categoryEditInputRef.current.focus();
+    }
+  }, [editingCategory]);
 
+  useEffect(() => {
+    if (pendingDeleteCategory && deleteCategoryCancelRef.current) {
+      deleteCategoryCancelRef.current.focus();
+    }
+  }, [pendingDeleteCategory]);
+
+  useEffect(() => {
+    if (pendingDeleteGoalId && deleteGoalCancelRef.current) {
+      deleteGoalCancelRef.current.focus();
+    }
+  }, [pendingDeleteGoalId]);
+
+const handleCreateCategory = async () => {
+  if (!newCategoryName.trim()) {
+    setFeedback({ type: 'error', message: 'Nome da categoria é obrigatório.' });
+    return;
+  }
+
+  setIsSubmittingCategory(true);
+  setFeedback({ type: '', message: '' });
   try {
     await goalsApi.createCategory({ name: newCategoryName.trim() });
     setNewCategoryName('');
+    setFeedback({ type: 'success', message: 'Categoria criada com sucesso.' });
     await loadSummary();
   } catch (err) {
     console.error('Erro ao criar categoria', err);
     const msg = err?.response?.data?.detail || 'Erro ao criar categoria';
-    alert(msg);
+    setFeedback({ type: 'error', message: msg });
+  } finally {
+    setIsSubmittingCategory(false);
   }
 };
 
 const handleEditCategory = async (category) => {
-  const newName = prompt('Novo nome da categoria:', category.name);
-  if (!newName || !newName.trim()) return;
+  if (!category) return;
+  setEditingCategory(category);
+  setEditingCategoryName(category.name || '');
+};
 
+const handleSubmitEditCategory = async (e) => {
+  e.preventDefault();
+  if (!editingCategory) return;
+  if (!editingCategoryName.trim()) {
+    setFeedback({ type: 'error', message: 'Informe um nome válido para a categoria.' });
+    return;
+  }
+
+  setIsSubmittingCategoryEdit(true);
+  setFeedback({ type: '', message: '' });
   try {
-    await goalsApi.updateCategory(category.id, { name: newName.trim() });
+    await goalsApi.updateCategory(editingCategory.id, { name: editingCategoryName.trim() });
 
     const catResp = await goalsApi.listCategories();
     const updatedCategories = catResp?.data?.data || [];
     setCategories(updatedCategories);
 
-    if (selectedCategory?.id === category.id) {
-      const updated = updatedCategories.find(c => c.id === category.id);
+    if (selectedCategory?.id === editingCategory.id) {
+      const updated = updatedCategories.find(c => c.id === editingCategory.id);
       setSelectedCategory(updated || null);
     }
 
+    setEditingCategory(null);
+    setEditingCategoryName('');
+    setFeedback({ type: 'success', message: 'Categoria editada com sucesso.' });
+
   } catch (err) {
     console.error('Erro ao editar categoria', err);
-    alert('Erro ao editar categoria');
+    setFeedback({ type: 'error', message: 'Erro ao editar categoria.' });
+  } finally {
+    setIsSubmittingCategoryEdit(false);
   }
 };
 
 const handleDeleteCategory = async (categoryId) => {
-  if (!window.confirm('Deseja realmente excluir esta categoria?')) return;
-
+  setIsDeletingCategory(true);
+  setFeedback({ type: '', message: '' });
   try {
     await goalsApi.removeCategory(categoryId);
 
@@ -132,9 +192,15 @@ const handleDeleteCategory = async (categoryId) => {
       setMode('summary');
     }
 
+    setPendingDeleteCategory(null);
+    setDeleteCategoryConfirmationName('');
+    setFeedback({ type: 'success', message: 'Categoria excluída com sucesso.' });
+
   } catch (err) {
     console.error('Erro ao excluir categoria', err);
-    alert('Erro ao excluir categoria');
+    setFeedback({ type: 'error', message: 'Erro ao excluir categoria.' });
+  } finally {
+    setIsDeletingCategory(false);
   }
 };
 
@@ -197,7 +263,7 @@ const handleDeleteCategory = async (categoryId) => {
       console.error('Erro salvando meta:', err);
       const msg = err?.response?.data?.detail || 'Erro ao salvar meta';
       setUploadFeedback({ type: 'error', message: photoFile ? `Falha no upload: ${msg}` : msg });
-      alert(msg);
+      setFeedback({ type: 'error', message: msg });
     } finally {
       setIsSubmittingGoal(false);
     }
@@ -219,25 +285,35 @@ const handleDeleteCategory = async (categoryId) => {
   };
 
   const handleDeleteGoal = async (goalId) => {
-    if (!window.confirm('Tem certeza que deseja deletar esta meta?')) return;
+    setIsDeletingGoal(true);
+    setFeedback({ type: '', message: '' });
     try {
       await goalsApi.remove(goalId);
       if (selectedCategory) await loadGoalsByCategory(selectedCategory.id);
       else await loadSummary();
+      setFeedback({ type: 'success', message: 'Meta excluída com sucesso.' });
+      setPendingDeleteGoalId(null);
     } catch (err) {
       console.error('Erro ao deletar meta', err);
-      alert('Erro ao deletar meta');
+      setFeedback({ type: 'error', message: 'Erro ao deletar meta.' });
+    } finally {
+      setIsDeletingGoal(false);
     }
   };
 
   const handleConcludeGoal = async (goalId) => {
+    setIsConcludingGoalId(goalId);
+    setFeedback({ type: '', message: '' });
     try {
       await goalsApi.updateStatus(goalId, 'concluida');
       if (mode === 'category' && selectedCategory) await loadGoalsByCategory(selectedCategory.id);
       else await loadSummary();
+      setFeedback({ type: 'success', message: 'Meta concluída com sucesso.' });
     } catch (err) {
       console.error('Erro ao concluir meta', err);
-      alert('Erro ao concluir meta');
+      setFeedback({ type: 'error', message: 'Erro ao concluir meta.' });
+    } finally {
+      setIsConcludingGoalId(null);
     }
   };
 
@@ -275,6 +351,7 @@ const handleDeleteCategory = async (categoryId) => {
       </div>
 
       <div className="goals-main">
+        {feedback.message ? <div className={`upload-feedback ${feedback.type}`}>{feedback.message}</div> : null}
         <div className="goals-header-wrapper">
           <div className="goals-header-centered">
             <h1 className="goals-title">Metas</h1>
@@ -293,8 +370,8 @@ const handleDeleteCategory = async (categoryId) => {
         onChange={(e) => setNewCategoryName(e.target.value)}
         placeholder="Nova categoria"
       />
-      <button className="btn" onClick={handleCreateCategory}>
-        Criar categoria
+      <button className="btn" onClick={handleCreateCategory} disabled={isSubmittingCategory}>
+        {isSubmittingCategory ? 'Criando...' : 'Criar categoria'}
       </button>
     </div>
   ) : (
@@ -313,6 +390,7 @@ const handleDeleteCategory = async (categoryId) => {
       <button
   className="btn btn-secondary"
   onClick={() => handleEditCategory(selectedCategory)}
+  disabled={isSubmittingCategoryEdit}
 >
   Editar Categoria
 </button>
@@ -320,18 +398,8 @@ const handleDeleteCategory = async (categoryId) => {
 
       <button
         className="btn btn-danger"
-        onClick={() => {
-          const confirmation = prompt(
-            `Digite o nome da categoria "${selectedCategory.name}" para confirmar exclusão:`
-          );
-
-          if (confirmation !== selectedCategory.name) {
-            alert('Nome incorreto. Exclusão cancelada.');
-            return;
-          }
-
-          handleDeleteCategory(selectedCategory.id);
-        }}
+        onClick={() => setPendingDeleteCategory(selectedCategory)}
+        disabled={isDeletingCategory}
       >
         Excluir Categoria
       </button>
@@ -511,7 +579,7 @@ const handleDeleteCategory = async (categoryId) => {
 <div className="goal-actions">
   {goal.status !== 'concluida' && (
     <>
-      <button className="goal-icon-btn" onClick={() => handleConcludeGoal(goal.id)}>
+      <button className="goal-icon-btn" onClick={() => handleConcludeGoal(goal.id)} disabled={isConcludingGoalId === goal.id}>
         ✅
       </button>
 
@@ -521,7 +589,7 @@ const handleDeleteCategory = async (categoryId) => {
     </>
   )}
 
-  <button className="goal-icon-btn delete-btn" onClick={() => handleDeleteGoal(goal.id)}>
+  <button className="goal-icon-btn delete-btn" onClick={() => setPendingDeleteGoalId(goal.id)} disabled={isDeletingGoal}>
     ❌
   </button>
 </div>
@@ -535,6 +603,59 @@ const handleDeleteCategory = async (categoryId) => {
           </>
         )}
       </div>
+
+      {editingCategory && (
+        <div className="modal-backdrop" onClick={() => !isSubmittingCategoryEdit && setEditingCategory(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-category-title" onClick={(e) => e.stopPropagation()}>
+            <h2 id="edit-category-title">Editar categoria</h2>
+            <form onSubmit={handleSubmitEditCategory} className="modal-form">
+              <input ref={categoryEditInputRef} className="input" value={editingCategoryName} onChange={(e) => setEditingCategoryName(e.target.value)} required />
+              <div className="modal-actions">
+                <button type="button" className="btn" onClick={() => setEditingCategory(null)} disabled={isSubmittingCategoryEdit}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmittingCategoryEdit}>
+                  {isSubmittingCategoryEdit ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {pendingDeleteCategory && (
+        <div className="modal-backdrop" onClick={() => !isDeletingCategory && setPendingDeleteCategory(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-category-title" onClick={(e) => e.stopPropagation()}>
+            <h2 id="delete-category-title">Excluir categoria</h2>
+            <p>Digite o nome da categoria <strong>{pendingDeleteCategory.name}</strong> para confirmar:</p>
+            <input className="input" value={deleteCategoryConfirmationName} onChange={(e) => setDeleteCategoryConfirmationName(e.target.value)} />
+            <div className="modal-actions">
+              <button ref={deleteCategoryCancelRef} type="button" className="btn" onClick={() => setPendingDeleteCategory(null)} disabled={isDeletingCategory}>Cancelar</button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={isDeletingCategory || deleteCategoryConfirmationName !== pendingDeleteCategory.name}
+                onClick={() => handleDeleteCategory(pendingDeleteCategory.id)}
+              >
+                {isDeletingCategory ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingDeleteGoalId && (
+        <div className="modal-backdrop" onClick={() => !isDeletingGoal && setPendingDeleteGoalId(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-goal-title" onClick={(e) => e.stopPropagation()}>
+            <h2 id="delete-goal-title">Excluir meta</h2>
+            <p>Tem certeza que deseja deletar esta meta?</p>
+            <div className="modal-actions">
+              <button ref={deleteGoalCancelRef} type="button" className="btn" onClick={() => setPendingDeleteGoalId(null)} disabled={isDeletingGoal}>Cancelar</button>
+              <button type="button" className="btn btn-danger" onClick={() => handleDeleteGoal(pendingDeleteGoalId)} disabled={isDeletingGoal}>
+                {isDeletingGoal ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

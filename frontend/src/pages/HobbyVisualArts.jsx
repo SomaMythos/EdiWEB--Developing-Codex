@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ArtworkCard from '../components/ArtworkCard';
 import ArtworkUpdateModal from '../components/ArtworkUpdateModal';
 import ArtworkGalleryModal from '../components/ArtworkGalleryModal';
@@ -34,6 +34,13 @@ const HobbyVisualArts = () => {
   const [galleryArtwork, setGalleryArtwork] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [isSubmittingUpdate, setIsSubmittingUpdate] = useState(false);
+  const [isSavingCompletionId, setIsSavingCompletionId] = useState(null);
+  const [pendingDeleteArtwork, setPendingDeleteArtwork] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const cancelDeleteRef = useRef(null);
 
   const currentTab = useMemo(() => tabs.find((tab) => tab.key === activeTab), [activeTab]);
   const usesCardFlow = !!currentTab && sharedArtworkFlow.has(currentTab.key);
@@ -48,10 +55,19 @@ const HobbyVisualArts = () => {
         progress_photo_paths: artwork.progress_photo_paths || [],
       }));
       setArtworks(items);
+    } catch (err) {
+      console.error('Erro ao carregar obras', err);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar as obras.' });
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (pendingDeleteArtwork && cancelDeleteRef.current) {
+      cancelDeleteRef.current.focus();
+    }
+  }, [pendingDeleteArtwork]);
 
   useEffect(() => {
     if (!usesCardFlow || !currentTab) {
@@ -67,58 +83,104 @@ const HobbyVisualArts = () => {
     if (!currentTab) return;
     if (sharedArtworkFlow.has(currentTab.key) && !form.referenceFile) return;
 
-    await paintingsApi.create({
-      title: form.title,
-      size: form.size,
-      started_at: form.started_at,
-      category: currentTab.key,
-      reference_image: form.referenceFile,
-    });
+    setIsSubmittingCreate(true);
+    setFeedback({ type: '', message: '' });
+    try {
+      await paintingsApi.create({
+        title: form.title,
+        size: form.size,
+        started_at: form.started_at,
+        category: currentTab.key,
+        reference_image: form.referenceFile,
+      });
 
-    setForm(initialForm);
-	setCreateModalOpen(false);
-    await load(currentTab.key);
-	
+      setForm(initialForm);
+      setCreateModalOpen(false);
+      setFeedback({ type: 'success', message: 'Obra criada com sucesso.' });
+      await load(currentTab.key);
+    } catch (err) {
+      console.error('Erro ao criar obra', err);
+      setFeedback({ type: 'error', message: 'Não foi possível criar a obra.' });
+    } finally {
+      setIsSubmittingCreate(false);
+    }
   };
 
   const handleSubmitUpdate = async ({ update_title, photo, mark_completed }) => {
     if (!selectedArtwork || !currentTab) return;
 
-    await paintingsApi.createUpdate(selectedArtwork.id, {
-      update_title,
-      photo,
-      mark_completed,
-    });
+    setIsSubmittingUpdate(true);
+    setFeedback({ type: '', message: '' });
+    try {
+      await paintingsApi.createUpdate(selectedArtwork.id, {
+        update_title,
+        photo,
+        mark_completed,
+      });
 
-    setUpdateModalOpen(false);
-    setSelectedArtwork(null);
-    await load(currentTab.key);
+      setUpdateModalOpen(false);
+      setSelectedArtwork(null);
+      setFeedback({ type: 'success', message: 'Atualização salva com sucesso.' });
+      await load(currentTab.key);
+    } catch (err) {
+      console.error('Erro ao enviar atualização', err);
+      setFeedback({ type: 'error', message: 'Não foi possível salvar a atualização.' });
+    } finally {
+      setIsSubmittingUpdate(false);
+    }
   };
   
   const saveCompletionDate = async (artwork, date) => {
-  if (!currentTab) return;
+    if (!currentTab || isSavingCompletionId) return;
 
-  await paintingsApi.updateCompletionDate(artwork.id, {
-    finished_at: date || null,
-  });
+    setIsSavingCompletionId(artwork.id);
+    setFeedback({ type: '', message: '' });
+    try {
+      await paintingsApi.updateCompletionDate(artwork.id, {
+        finished_at: date || null,
+      });
 
-  await load(currentTab.key);
-};
+      setFeedback({ type: 'success', message: 'Data de conclusão salva.' });
+      await load(currentTab.key);
+    } catch (err) {
+      console.error('Erro ao salvar data de conclusão', err);
+      setFeedback({ type: 'error', message: 'Não foi possível salvar a data de conclusão.' });
+    } finally {
+      setIsSavingCompletionId(null);
+    }
+  };
 
-const handleDeleteArtwork = async (artwork) => {
-  if (!currentTab) return;
+  const handleDeleteArtwork = async () => {
+    if (!currentTab || !pendingDeleteArtwork) return;
 
-  await paintingsApi.deleteArtwork(artwork.id);
-  await load(currentTab.key);
-};
+    setIsDeleting(true);
+    setFeedback({ type: '', message: '' });
+    try {
+      await paintingsApi.deleteArtwork(pendingDeleteArtwork.id);
+      setPendingDeleteArtwork(null);
+      setFeedback({ type: 'success', message: 'Obra excluída com sucesso.' });
+      await load(currentTab.key);
+    } catch (err) {
+      console.error('Erro ao excluir obra', err);
+      setFeedback({ type: 'error', message: 'Não foi possível excluir a obra.' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const openGallery = async (selected) => {
     if (!selected) return;
-    const res = await paintingsApi.listUpdates(selected.id);
-    setGalleryArtwork({
-      ...selected,
-      updates: res?.data?.data || [],
-    });
+    setFeedback({ type: '', message: '' });
+    try {
+      const res = await paintingsApi.listUpdates(selected.id);
+      setGalleryArtwork({
+        ...selected,
+        updates: res?.data?.data || [],
+      });
+    } catch (err) {
+      console.error('Erro ao abrir galeria', err);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar a galeria da obra.' });
+    }
   };
 
   return (
@@ -137,6 +199,8 @@ const handleDeleteArtwork = async (artwork) => {
           </button>
         ))}
       </div>
+
+      {feedback.message ? <div className={`upload-feedback ${feedback.type}`}>{feedback.message}</div> : null}
 
       {usesCardFlow ? (
         <>
@@ -196,8 +260,8 @@ const handleDeleteArtwork = async (artwork) => {
             Cancelar
           </button>
 
-          <button className="btn btn-primary" type="submit">
-            Criar obra
+          <button className="btn btn-primary" type="submit" disabled={isSubmittingCreate}>
+            {isSubmittingCreate ? 'Criando...' : 'Criar obra'}
           </button>
         </div>
       </form>
@@ -218,7 +282,8 @@ const handleDeleteArtwork = async (artwork) => {
   }}
   onOpenGallery={openGallery}
   onSaveCompletionDate={saveCompletionDate}
-  onDelete={handleDeleteArtwork}
+  onDelete={setPendingDeleteArtwork}
+  isSavingCompletion={isSavingCompletionId === artwork.id}
 />
             ))}
           </section>
@@ -235,6 +300,7 @@ const handleDeleteArtwork = async (artwork) => {
               setSelectedArtwork(null);
             }}
             onSubmit={handleSubmitUpdate}
+            isSubmitting={isSubmittingUpdate}
           />
 
           <ArtworkGalleryModal
@@ -242,6 +308,23 @@ const handleDeleteArtwork = async (artwork) => {
             open={!!galleryArtwork}
             onClose={() => setGalleryArtwork(null)}
           />
+
+          {pendingDeleteArtwork && (
+            <div className="modal-backdrop" onClick={() => !isDeleting && setPendingDeleteArtwork(null)}>
+              <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-artwork-title" onClick={(e) => e.stopPropagation()}>
+                <h2 id="delete-artwork-title">Excluir obra</h2>
+                <p>Tem certeza que deseja excluir a obra "{pendingDeleteArtwork.title}"?</p>
+                <div className="modal-actions">
+                  <button ref={cancelDeleteRef} type="button" className="btn" onClick={() => setPendingDeleteArtwork(null)} disabled={isDeleting}>
+                    Cancelar
+                  </button>
+                  <button type="button" className="btn btn-danger" onClick={handleDeleteArtwork} disabled={isDeleting}>
+                    {isDeleting ? 'Excluindo...' : 'Excluir'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <MediaFolderSection
