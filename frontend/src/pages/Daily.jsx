@@ -217,15 +217,17 @@ async function fetchActivities() {
   }
 
   async function toggleCompletion(blockId, currentState) {
+    const nextState = !Boolean(currentState);
+
     await axios.patch(
       `${API_URL}/daily/block/${blockId}/complete`,
-      { completed: !currentState }
+      { completed: nextState }
     );
 
     setBlocks(prev =>
       prev.map(b =>
         b.id === blockId
-          ? { ...b, completed: !currentState }
+          ? { ...b, completed: nextState }
           : b
       )
     );
@@ -253,41 +255,8 @@ function parseIntegerOrFallback(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function mergeSequentialBlocks(blocks) {
-  if (!blocks || blocks.length === 0) return [];
-
-  const sorted = [...blocks].sort((a, b) =>
-    a.start_time.localeCompare(b.start_time)
-  );
-
-  const merged = [];
-
-  for (let block of sorted) {
-    const last = merged[merged.length - 1];
-
-    const lastEnd =
-      last &&
-      addMinutesToTime(last.start_time, last.duration);
-
-    const isMidnightContinuation =
-      last &&
-      last.activity_title === block.activity_title &&
-      lastEnd === "23:59" &&
-      block.start_time === "00:00";
-
-    const isNormalContinuation =
-      last &&
-      last.activity_title === block.activity_title &&
-      lastEnd === block.start_time;
-
-    if (isNormalContinuation || isMidnightContinuation) {
-      last.duration += block.duration;
-    } else {
-      merged.push({ ...block });
-    }
-  }
-
-  return merged;
+function isBlockCompleted(value) {
+  return value === true || value === 1;
 }
 
 
@@ -344,7 +313,7 @@ function mergeSequentialBlocks(blocks) {
                 <div style={styles.summaryValue}>
                   {formatDuration(
                     blocks
-                      .filter(b => b.completed === 1)
+                      .filter(b => isBlockCompleted(b.completed))
                       .reduce((sum, b) => sum + b.duration, 0)
                   )}
                 </div>
@@ -1035,7 +1004,7 @@ setNewActivity({
             </div>
           )}
 
- {mergeSequentialBlocks(blocks).map(block => {
+ {blocks.map(block => {
   const endTime = addMinutesToTime(
     block.start_time,
     block.duration
@@ -1058,9 +1027,9 @@ setNewActivity({
       <div style={styles.left}>
         <input
           type="checkbox"
-          checked={block.completed === 1}
+          checked={isBlockCompleted(block.completed)}
           onChange={() =>
-            toggleCompletion(block.id, block.completed)
+            toggleCompletion(block.id, isBlockCompleted(block.completed))
           }
           style={styles.checkbox}
         />
