@@ -47,22 +47,89 @@ export default function Daily() {
 
   return (
     <div className="daily-page">
-      <DailyHeader
-        dayType={dailyPlan.dayType}
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        summary={dailyPlan.summary}
-        blocks={dailyPlan.blocks}
-        completedDuration={dailyPlan.completedDuration}
-        totalDuration={dailyPlan.totalDuration}
-        generating={dailyPlan.generating}
-        onGenerate={dailyPlan.generateDaily}
-        onToggleDay={dailyPlan.toggleDayType}
-        onOpenConfig={dailyConfig.fetchConfig}
-        onOpenRoutines={dailyRoutines.fetchActiveRoutine}
-        onOpenActivities={activities.fetchActivities}
-        actionState={dailyPlan.actionState}
-      />
+      <section className="daily-section">
+        <DailyHeader
+          dayType={dailyPlan.dayType}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          summary={dailyPlan.summary}
+          blocks={dailyPlan.blocks}
+          completedDuration={dailyPlan.completedDuration}
+          totalDuration={dailyPlan.totalDuration}
+          generating={dailyPlan.generating}
+          onGenerate={dailyPlan.generateDaily}
+          onToggleDay={dailyPlan.toggleDayType}
+          onOpenConfig={dailyConfig.fetchConfig}
+          onOpenRoutines={dailyRoutines.fetchActiveRoutine}
+          onOpenActivities={activities.fetchActivities}
+          actionState={dailyPlan.actionState}
+        />
+      </section>
+
+      <section className="daily-section daily-section--quick-actions">
+        <h3>Ações rápidas</h3>
+        <div className="daily-chip-grid">
+          <button className="daily-chip" onClick={dailyPlan.generateDaily}>Gerar plano agora</button>
+          <button className="daily-chip" onClick={dailyRoutines.fetchActiveRoutine}>Revisar rotina ativa</button>
+          <button className="daily-chip" onClick={activities.fetchActivities}>Ativar/desativar atividades</button>
+          <button className="daily-chip" onClick={dailyConfig.fetchConfig}>Ajustar regras do dia</button>
+        </div>
+      </section>
+
+      <section className="daily-section">
+        <h3>Timeline</h3>
+        <DailyTimeline
+          blocks={dailyPlan.blocks}
+          loadState={dailyPlan.loadState}
+          onToggleCompletion={dailyPlan.toggleCompletion}
+          onEditBlock={setEditingBlock}
+        />
+      </section>
+
+      <section className="daily-section daily-generation-panel">
+        <h3>Insights</h3>
+        {!dailyPlan.generationResult && (
+          <p className="daily-generation-panel__empty">Gere o dia para visualizar atividades não alocadas e diagnósticos.</p>
+        )}
+
+        {dailyPlan.generationResult && (notScheduled.length === 0 ? (
+          <p className="daily-generation-panel__empty">Todas as atividades foram alocadas.</p>
+        ) : (
+          <ul className="daily-generation-panel__list">
+            {notScheduled.map((item, index) => {
+              const reason = item?.reason;
+              return (
+                <li key={`${item?.activity_id || item?.id || index}-${reason || "unknown"}`}>
+                  <div><strong>{getActivityLabel(item)}</strong></div>
+                  <div>Motivo: {getReasonLabel(reason)} ({reason || "unknown"})</div>
+                  <div>Sugestão: {getSuggestion(reason)}</div>
+                </li>
+              );
+            })}
+          </ul>
+        ))}
+
+        {diagnostics && (
+          <div className="daily-generation-panel__diagnostics">
+            <h4>Diagnósticos</h4>
+            <pre>{JSON.stringify(diagnostics, null, 2)}</pre>
+          </div>
+        )}
+      </section>
+
+      <section className="daily-section daily-onboarding">
+        <h3>Onboarding contextual</h3>
+        <div className="daily-onboarding__grid">
+          <article>
+            <h4>Como funciona a geração</h4>
+            <p>O gerador cruza rotina, atividades fixas/flexíveis, pesos de disciplina/diversão e janelas livres para montar um plano equilibrado.</p>
+          </article>
+          <article>
+            <h4>Como resolver conflitos</h4>
+            <p>Se uma tarefa não entrar, reduza duração, altere horário fixo, revise a rotina e regenere o dia para validar o novo encaixe.</p>
+          </article>
+        </div>
+      </section>
 
       <DayConfigModal
         show={dailyConfig.showConfig}
@@ -101,48 +168,12 @@ export default function Daily() {
         onClose={() => activities.setShowActivitiesModal(false)}
       />
 
-      <DailyTimeline
-        blocks={dailyPlan.blocks}
-        loadState={dailyPlan.loadState}
-        onToggleCompletion={dailyPlan.toggleCompletion}
-        onEditBlock={setEditingBlock}
-      />
-
       <EditBlockModal
         show={Boolean(editingBlock)}
         block={editingBlock}
         onClose={() => setEditingBlock(null)}
         onSave={dailyPlan.updateBlock}
       />
-
-      {dailyPlan.generationResult && (
-        <section className="daily-generation-panel">
-          <h3>Resultado da geração</h3>
-          {notScheduled.length === 0 ? (
-            <p className="daily-generation-panel__empty">Todas as atividades foram alocadas.</p>
-          ) : (
-            <ul className="daily-generation-panel__list">
-              {notScheduled.map((item, index) => {
-                const reason = item?.reason;
-                return (
-                  <li key={`${item?.activity_id || item?.id || index}-${reason || "unknown"}`}>
-                    <div><strong>{getActivityLabel(item)}</strong></div>
-                    <div>Motivo: {getReasonLabel(reason)} ({reason || "unknown"})</div>
-                    <div>Sugestão: {getSuggestion(reason)}</div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-
-          {diagnostics && (
-            <div className="daily-generation-panel__diagnostics">
-              <h4>Diagnósticos</h4>
-              <pre>{JSON.stringify(diagnostics, null, 2)}</pre>
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 }

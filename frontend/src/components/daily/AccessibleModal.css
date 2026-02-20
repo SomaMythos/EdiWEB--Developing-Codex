@@ -1,0 +1,32 @@
+.daily-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.daily-modal {
+  background: #11151d;
+  border: 1px solid #3b475f;
+  color: #f5f8ff;
+  padding: 24px;
+  border-radius: 12px;
+  width: min(480px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.daily-modal--wide {
+  width: min(700px, 100%);
+}
+
+.daily-modal h3 {
+  margin: 0;
+}
