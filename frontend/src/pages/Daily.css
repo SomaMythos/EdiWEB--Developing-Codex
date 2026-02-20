@@ -4,3 +4,45 @@
   min-height: 100vh;
   background: #0f0f14;
 }
+
+.daily-generation-panel {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #2f3340;
+  background: #171923;
+}
+
+.daily-generation-panel h3,
+.daily-generation-panel h4 {
+  margin: 0 0 10px;
+}
+
+.daily-generation-panel__empty {
+  margin: 0;
+  color: #8fda9e;
+}
+
+.daily-generation-panel__list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.daily-generation-panel__list li {
+  line-height: 1.45;
+}
+
+.daily-generation-panel__diagnostics {
+  margin-top: 14px;
+}
+
+.daily-generation-panel__diagnostics pre {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #10131a;
+  color: #d9deed;
+  overflow: auto;
+}
