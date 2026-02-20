@@ -13,10 +13,32 @@
   --secondary: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
+
+  /* Semantic accents */
+  --accent-primary: var(--primary);
+  --accent-primary-soft: rgba(99, 102, 241, 0.14);
+  --accent-success: var(--secondary);
+  --accent-success-soft: rgba(16, 185, 129, 0.14);
+  --accent-warning: var(--warning);
+  --accent-warning-soft: rgba(245, 158, 11, 0.16);
+  --accent-info: #0ea5e9;
+  --accent-info-soft: rgba(14, 165, 233, 0.16);
+
+  /* States */
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.16);
+  --error: #dc2626;
+  --error-soft: rgba(220, 38, 38, 0.16);
+  --warning-state: #d97706;
+  --warning-soft: rgba(217, 119, 6, 0.18);
+  --info: #0284c7;
+  --info-soft: rgba(2, 132, 199, 0.16);
   
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(2, 6, 23, 0.58);
   
   --text-primary: #111827;
   --text-secondary: #6b7280;
@@ -24,12 +46,14 @@
   
   --border: #e5e7eb;
   --border-hover: #d1d5db;
+  --border-strong: #c1cad8;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.2);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -59,6 +83,26 @@
 
   --border: #374151;
   --border-hover: #4b5563;
+
+
+  --surface-elevated: #1b2432;
+  --surface-overlay: rgba(2, 6, 23, 0.74);
+
+  --accent-primary-soft: rgba(129, 140, 248, 0.22);
+  --accent-success-soft: rgba(16, 185, 129, 0.24);
+  --accent-warning-soft: rgba(245, 158, 11, 0.28);
+  --accent-info-soft: rgba(56, 189, 248, 0.24);
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.24);
+  --error: #f87171;
+  --error-soft: rgba(248, 113, 113, 0.24);
+  --warning-state: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.26);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.22);
+  --border-strong: #64748b;
+  --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.35);
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.45), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -198,7 +242,7 @@ body {
 .input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--focus-ring);
 }
 
 .input:disabled {
@@ -225,22 +269,22 @@ body {
 }
 
 .badge-primary {
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: var(--accent-primary-soft);
   color: var(--primary);
 }
 
 .badge-success {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: var(--accent-success-soft);
   color: var(--secondary);
 }
 
 .badge-warning {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: var(--accent-warning-soft);
   color: var(--warning);
 }
 
 .badge-danger {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--error-soft);
   color: var(--danger);
 }
 

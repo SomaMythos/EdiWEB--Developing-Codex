@@ -1,0 +1,9 @@
+.reminders-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.reminders-card {
+  padding: var(--spacing-md);
+}

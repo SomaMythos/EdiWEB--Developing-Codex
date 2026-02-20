@@ -105,7 +105,7 @@
 
 .goal-overview-card.stalled {
   border-color: var(--warning);
-  background-color: rgba(245, 158, 11, 0.05);
+  background-color: var(--accent-warning-soft);
 }
 
 .goal-overview-card:hover {
@@ -216,7 +216,7 @@
 
 .completion-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--secondary), #34d399);
+  background: linear-gradient(90deg, var(--accent-success), var(--success));
   transition: width 0.3s ease;
 }
 
@@ -253,4 +253,32 @@
   .activity-bar {
     grid-column: 1 / -1;
   }
+}
+
+
+.dashboard-title-icon {
+  margin-right: var(--spacing-sm);
+  vertical-align: middle;
+}
+
+.dashboard-profile-form {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.dashboard-quick-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md);
+}
+
+.dashboard-period-grid {
+  margin-bottom: var(--spacing-md);
+}
+
+.dashboard-loading {
+  opacity: 0.7;
+  margin-top: var(--spacing-md);
+  color: var(--text-secondary);
 }

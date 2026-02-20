@@ -116,7 +116,7 @@ const Dashboard = () => {
       <header className="stats-header">
         <div>
           <h1>
-            <Home size={28} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+            <Home size={28} className="dashboard-title-icon" />
             Dashboard + Estatísticas
           </h1>
           <p>Tudo em um só lugar: desempenho, visão geral e atalhos dos outros menus.</p>
@@ -134,7 +134,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <form onSubmit={saveProfile} className="card" style={{ marginBottom: 16, padding: 16 }}>
+      <form onSubmit={saveProfile} className="card dashboard-profile-form">
         <h3>Perfil</h3>
         <input
           className="input"
@@ -190,7 +190,7 @@ const Dashboard = () => {
           <div className="stat-card"><div className="stat-icon success"><Activity size={24} /></div><div className="stat-content"><p className="stat-label">Itens faltando no Shopping</p><p className="stat-value">{moduleSummary.shoppingPending}</p></div></div>
           <div className="stat-card"><div className="stat-icon primary"><Clock size={24} /></div><div className="stat-content"><p className="stat-label">Gastos fixos cadastrados</p><p className="stat-value">{moduleSummary.financeFixedExpenses}</p></div></div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+        <div className="dashboard-quick-actions">
           {quickActions.map((item) => (
             <Link key={item.path} to={item.path} className="btn btn-secondary btn-sm">
               Abrir {item.label}
@@ -201,7 +201,7 @@ const Dashboard = () => {
 
       <div className="top-activities-section card">
         <h2>Últimos {selectedPeriod} dias</h2>
-        <div className="overview-grid" style={{ marginBottom: 12 }}>
+        <div className="overview-grid dashboard-period-grid">
           <div className="stat-card"><div className="stat-content"><p className="stat-label">Taxa média</p><p className="stat-value">{averageCompletionRate}%</p></div></div>
           <div className="stat-card"><div className="stat-content"><p className="stat-label">Tempo total</p><p className="stat-value">{formatMinutes(totalPeriodActivityTime)}</p></div></div>
           <div className="stat-card"><div className="stat-content"><p className="stat-label">Dias ativos</p><p className="stat-value">{lastDaysData.filter((d) => (d.total || 0) > 0).length}</p></div></div>
@@ -238,7 +238,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {loading && <p style={{ opacity: 0.7, marginTop: 12 }}>Atualizando dados...</p>}
+      {loading && <p className="dashboard-loading">Atualizando dados...</p>}
     </div>
   );
 };
