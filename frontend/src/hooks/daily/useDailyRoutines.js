@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
-import { API_URL, DEFAULT_ROUTINE_BLOCK } from "./constants";
+import { dailyApi, routinesApi } from "../../services/api";
+import { DEFAULT_ROUTINE_BLOCK } from "./constants";
 import { createUiState } from "./utils";
 
 export function useDailyRoutines(selectedDate, dayType) {
@@ -13,7 +13,7 @@ export function useDailyRoutines(selectedDate, dayType) {
   const fetchActiveRoutine = async () => {
     setState(createUiState("loading"));
     try {
-      const res = await axios.get(`${API_URL}/daily/routine`, { params: { date: selectedDate } });
+      const res = await dailyApi.getRoutine(selectedDate);
       if (res.data.success && res.data.data) {
         setActiveRoutine(res.data.data.routine);
         setRoutineBlocks(res.data.data.blocks || []);
@@ -34,10 +34,7 @@ export function useDailyRoutines(selectedDate, dayType) {
   const createRoutine = async () => {
     setState(createUiState("loading"));
     try {
-      await axios.post(`${API_URL}/daily/routines`, {
-        name: `Rotina ${dayType === "work" ? "Work" : "Off"}`,
-        day_type: dayType
-      });
+      await routinesApi.create(`Rotina ${dayType === "work" ? "Work" : "Off"}`, dayType);
       await fetchActiveRoutine();
       setState(createUiState("success", null, "Rotina criada com sucesso."));
     } catch (error) {
@@ -63,7 +60,7 @@ export function useDailyRoutines(selectedDate, dayType) {
 
     setState(createUiState("loading"));
     try {
-      await axios.post(`${API_URL}/daily/routines/blocks`, {
+      await routinesApi.addBlock({
         routine_id: activeRoutine.id,
         ...newBlock,
         name: blockName
@@ -80,7 +77,7 @@ export function useDailyRoutines(selectedDate, dayType) {
   const removeRoutineBlock = async blockId => {
     setState(createUiState("loading"));
     try {
-      await axios.delete(`${API_URL}/daily/routines/blocks/${blockId}`);
+      await routinesApi.removeBlock(blockId);
       await fetchActiveRoutine();
       setState(createUiState("success", null, "Bloco removido da rotina."));
     } catch (error) {

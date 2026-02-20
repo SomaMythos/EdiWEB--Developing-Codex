@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
-import { API_URL, DEFAULT_ACTIVITY } from "./constants";
+import { activitiesApi } from "../../services/api";
+import { DEFAULT_ACTIVITY } from "./constants";
 import { createUiState } from "./utils";
 
 export function useActivities() {
@@ -50,7 +50,7 @@ export function useActivities() {
   const fetchActivities = async () => {
     setState(createUiState("loading"));
     try {
-      const res = await axios.get(`${API_URL}/activities`);
+      const res = await activitiesApi.list();
       if (res.data.success) {
         setActivities(res.data.data);
         setShowActivitiesModal(true);
@@ -79,7 +79,7 @@ export function useActivities() {
         fixed_time: newActivity.frequency_type === "flex" ? null : newActivity.fixed_time || null,
         fixed_duration: newActivity.frequency_type === "flex" ? null : newActivity.fixed_duration
       };
-      await axios.post(`${API_URL}/activities`, payload);
+      await activitiesApi.create(payload);
       setNewActivity(DEFAULT_ACTIVITY);
       setValidationErrors({});
       await fetchActivities();
@@ -94,7 +94,7 @@ export function useActivities() {
   const toggleActivity = async id => {
     setState(createUiState("loading"));
     try {
-      await axios.patch(`${API_URL}/activities/${id}/toggle`);
+      await activitiesApi.toggle(id);
       await fetchActivities();
       setState(createUiState("success", null, "Status da atividade atualizado."));
     } catch (error) {
@@ -106,7 +106,7 @@ export function useActivities() {
   const deleteActivity = async id => {
     setState(createUiState("loading"));
     try {
-      await axios.delete(`${API_URL}/activities/${id}`);
+      await activitiesApi.remove(id);
       await fetchActivities();
       setState(createUiState("success", null, "Atividade excluída com sucesso."));
     } catch (error) {

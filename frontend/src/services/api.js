@@ -1,5 +1,10 @@
 import axios from 'axios';
-const API_URL = 'http://localhost:8000/api';
+
+const DEFAULT_DEV_API_URL = 'http://localhost:8000/api';
+const DEFAULT_PROD_API_URL = '/api';
+
+const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+export const API_URL = envApiUrl || (import.meta.env.DEV ? DEFAULT_DEV_API_URL : DEFAULT_PROD_API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,7 +20,24 @@ const api = axios.create({
 export const activitiesApi = {
   list: () => api.get('/activities'),
   create: (data) => api.post('/activities', data),
-  toggle: (id) => api.patch(`/activities/${id}/toggle`)
+  toggle: (id) => api.patch(`/activities/${id}/toggle`),
+  remove: (id) => api.delete(`/activities/${id}`),
+};
+
+export const dailyApi = {
+  getByDate: (date) => api.get(`/daily/${date}`),
+  getSummary: (date) => api.get('/daily/summary', { params: { date } }),
+  getDayType: (date) => api.get('/daily/type', { params: { date } }),
+  getRoutine: (date) => api.get('/daily/routine', { params: { date } }),
+  overrideDayType: (date, isOff) => api.post('/daily/override', { date, is_off: isOff }),
+  generate: (date) => api.post('/daily/generate', null, { params: { date } }),
+  completeBlock: (blockId, completed) => api.patch(`/daily/block/${blockId}/complete`, { completed }),
+};
+
+export const routinesApi = {
+  create: (name, dayType) => api.post('/daily/routines', { name, day_type: dayType }),
+  addBlock: (payload) => api.post('/daily/routines/blocks', payload),
+  removeBlock: (blockId) => api.delete(`/daily/routines/blocks/${blockId}`),
 };
 
 // Daily Log
