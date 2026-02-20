@@ -550,10 +550,35 @@ async def get_goal_progress(goal_id: int):
 async def update_goal_status(goal_id: int, status: str):
     """Update goal status"""
     try:
-        GoalEngine.update_status(goal_id, status)
+        updated = GoalEngine.update_status(goal_id, status)
+        if not updated:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "GOAL_NOT_FOUND",
+                    "message": "Meta não encontrada para atualização de status.",
+                },
+            )
         return {"success": True, "message": "Goal status updated"}
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "INVALID_GOAL_STATUS",
+                "message": "Status inválido. Use: ativa, concluida ou cancelada.",
+            },
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "GOAL_STATUS_UPDATE_ERROR",
+                "message": "Erro inesperado ao atualizar status da meta.",
+                "error": str(e),
+            },
+        )
 
 
 # ============================================================================
