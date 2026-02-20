@@ -216,18 +216,6 @@ async def create_activity(activity: ActivityCreate):
             return
 
         frequency = (payload.frequency_type or "flex").strip().lower()
-        allowed_frequencies = {"flex", "everyday", "workday", "offday"}
-        if frequency not in allowed_frequencies:
-            raise HTTPException(status_code=400, detail="frequency_type inválido")
-
-        if payload.fixed_duration is None or payload.fixed_duration <= 0:
-            raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero quando fixed_time for informado")
-
-        try:
-            datetime.strptime(payload.fixed_time, "%H:%M")
-        except ValueError:
-            raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
-
         fixed_end = add_minutes(payload.fixed_time, payload.fixed_duration)
 
         day_types = []
@@ -297,19 +285,49 @@ async def create_activity(activity: ActivityCreate):
                     )
 
     try:
-        if activity.min_duration <= 0 or activity.max_duration <= 0:
-            raise HTTPException(status_code=400, detail="Duração inválida")
+        title = (activity.title or "").strip()
+        frequency = (activity.frequency_type or "flex").strip().lower()
+        allowed_frequencies = {"flex", "everyday", "workday", "offday"}
+
+        if not title:
+            raise HTTPException(status_code=400, detail="title é obrigatório")
+
+        if activity.min_duration <= 0:
+            raise HTTPException(status_code=400, detail="min_duration deve ser maior que zero")
+
+        if activity.max_duration <= 0:
+            raise HTTPException(status_code=400, detail="max_duration deve ser maior que zero")
 
         if activity.max_duration < activity.min_duration:
-            raise HTTPException(status_code=400, detail="max_duration não pode ser menor que min_duration")
+            raise HTTPException(status_code=400, detail="max_duration deve ser maior ou igual a min_duration")
+
+        if frequency not in allowed_frequencies:
+            raise HTTPException(status_code=400, detail="frequency_type inválido")
+
+        if frequency != "flex":
+            if not activity.fixed_time:
+                raise HTTPException(status_code=400, detail="fixed_time é obrigatório para frequência fixa")
+            if activity.fixed_duration is None or activity.fixed_duration <= 0:
+                raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero para frequência fixa")
+        elif activity.fixed_duration is not None and activity.fixed_duration <= 0:
+            raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero")
+
+        if activity.fixed_time:
+            try:
+                datetime.strptime(activity.fixed_time, "%H:%M")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
+
+        if not activity.is_disc and not activity.is_fun:
+            raise HTTPException(status_code=400, detail="Selecione ao menos uma categoria: is_disc ou is_fun")
 
         _validate_fixed_activity_conflicts(activity)
 
         ActivityEngine.create_activity(
-            title=activity.title,
+            title=title,
             min_duration=activity.min_duration,
             max_duration=activity.max_duration,
-            frequency_type=activity.frequency_type,
+            frequency_type=frequency,
             fixed_time=activity.fixed_time,
             fixed_duration=activity.fixed_duration,
             is_disc=activity.is_disc,
