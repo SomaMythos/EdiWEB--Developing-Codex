@@ -20,7 +20,7 @@ from datetime import datetime
 
 from core.activity_engine import ActivityEngine
 from core.daily_log_engine import DailyLogEngine
-from core.goal_engine import GoalEngine
+from core.goal_engine import GoalEngine, GoalActivityValidationError
 from core.finance_engine import FinanceEngine
 from core.routine_engine import RoutineEngine
 from core.analytics_engine import AnalyticsEngine
@@ -508,8 +508,14 @@ async def get_goals_stars_total():
 async def link_goal_activity(link: GoalActivityLink):
     """Link an activity to a goal"""
     try:
-        GoalEngine.link_activity(link.goal_id, link.activity_id)
+        linked = GoalEngine.link_activity(link.goal_id, link.activity_id)
+        if not linked:
+            raise HTTPException(status_code=409, detail="Atividade já vinculada à meta")
         return {"success": True, "message": "Activity linked to goal"}
+    except GoalActivityValidationError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -518,8 +524,14 @@ async def link_goal_activity(link: GoalActivityLink):
 async def unlink_goal_activity(goal_id: int, activity_id: int):
     """Unlink an activity from a goal"""
     try:
-        GoalEngine.unlink_activity(goal_id, activity_id)
+        unlinked = GoalEngine.unlink_activity(goal_id, activity_id)
+        if not unlinked:
+            raise HTTPException(status_code=404, detail="Vínculo entre meta e atividade não encontrado")
         return {"success": True, "message": "Activity unlinked from goal"}
+    except GoalActivityValidationError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
