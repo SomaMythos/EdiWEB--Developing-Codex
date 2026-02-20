@@ -18,6 +18,29 @@
   margin: 0 0 12px;
 }
 
+
+.daily-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.daily-section__header h3 {
+  margin: 0;
+}
+
+.daily-section__collapse {
+  border: 1px solid #4f6790;
+  background: #142237;
+  color: #dfe9ff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .daily-section--quick-actions .daily-chip-grid {
   display: grid;
   gap: 10px;

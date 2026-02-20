@@ -11,6 +11,29 @@
 .activities-form-row { display:flex; gap:10px; }
 .activities-frequency { display:flex; gap:20px; flex-wrap:wrap; }
 .activities-flags { display:flex; gap:25px; flex-wrap:wrap; }
+
+.activities-frequency label,
+.activities-flags label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.activities-frequency input[type="radio"],
+.activities-flags input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  transform: none;
+  accent-color: #dfe9ff;
+  -webkit-appearance: auto;
+  appearance: auto;
+}
+
+
 .daily-modal-actions { display:flex; justify-content:flex-end; width:100%; }
 .daily-button { padding:10px 14px; border-radius:8px; cursor:pointer; min-height:44px; }
 .daily-button--primary { background:linear-gradient(135deg,#1fcb66,#0f9c48); border:none; color:#fff; font-weight:600; }

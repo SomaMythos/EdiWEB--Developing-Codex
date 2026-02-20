@@ -21,13 +21,13 @@ export default function DailyTimeline({ blocks, loadState, onToggleCompletion, o
                 onChange={() => onToggleCompletion(block.id, completed)}
                 className="daily-block__checkbox"
               />
-              <div>
+              <div className="daily-block__meta">
                 <div className="daily-block__time">{block.start_time} - {endTime}</div>
                 <div className="daily-block__duration">{formatDuration(block.duration)}</div>
               </div>
             </div>
+            <div className="daily-block__name">{block.activity_title || "Bloco fixo"}</div>
             <div className="daily-block__right">
-              <div className="daily-block__name">{block.activity_title || "Bloco fixo"}</div>
               <button type="button" className="daily-block__edit" onClick={() => onEditBlock(block)}>
                 Editar
               </button>
