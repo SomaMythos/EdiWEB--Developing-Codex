@@ -1,7 +1,7 @@
 // src/pages/Goals.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Star as StarIcon, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
-import { goalsApi, activitiesApi } from '../services/api';
+import { Star as StarIcon } from 'lucide-react';
+import { goalsApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import './Goals.css';
 
@@ -29,7 +29,6 @@ const Goals = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [goals, setGoals] = useState([]);
-  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -44,7 +43,6 @@ const Goals = () => {
 
   useEffect(() => {
     loadSummary();
-    loadActivities();
   }, []);
 
   useEffect(() => {
@@ -67,15 +65,6 @@ const Goals = () => {
       setCategories([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadActivities = async () => {
-    try {
-      const r = await activitiesApi.list();
-      setActivities(r.data.data || []);
-    } catch (err) {
-      console.error('Erro carregando atividades', err);
     }
   };
 
@@ -249,16 +238,6 @@ const handleDeleteCategory = async (categoryId) => {
     } catch (err) {
       console.error('Erro ao concluir meta', err);
       alert('Erro ao concluir meta');
-    }
-  };
-
-  const handleLinkActivity = async (goalId, activityId) => {
-    try {
-      await goalsApi.linkActivity({ goal_id: goalId, activity_id: activityId });
-      alert('Atividade vinculada');
-    } catch (err) {
-      console.error('Erro ao vincular atividade:', err);
-      alert('Erro ao vincular atividade');
     }
   };
 
