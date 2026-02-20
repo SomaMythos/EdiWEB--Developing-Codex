@@ -73,9 +73,7 @@ class DayEngine:
         self.buffer = max(0, int(buffer_between))
         self.gran = max(1, int(granularity_min))
         self.avoid_cat = bool(avoid_category_adjacent)
-
-        if seed is not None:
-            random.seed(seed)
+        self.rng = random.Random(seed)
 
     # ==========================================
     # FREE INTERVALS (CORRETO)
@@ -171,16 +169,33 @@ class DayEngine:
         not_scheduled = []
 
         for t in tasks:
+            min_dur = max(1, int(t.min_duration))
+            max_dur = max(min_dur, int(t.max_duration))
 
-            dur = t.min_duration
+            valid_durations = list(range(min_dur, max_dur + 1, self.gran))
+            if valid_durations[-1] != max_dur:
+                valid_durations.append(max_dur)
+
+            sampled_dur = self.rng.choice(valid_durations)
+            sampled_idx = valid_durations.index(sampled_dur)
+            durations_to_try = (
+                list(reversed(valid_durations[sampled_idx:]))
+                + list(reversed(valid_durations[:sampled_idx]))
+            )
 
             placed = False
 
             for interval in free:
-                if self._fits(interval, dur):
+                chosen_dur = None
+                for dur in durations_to_try:
+                    if self._fits(interval, dur):
+                        chosen_dur = dur
+                        break
+
+                if chosen_dur is not None:
 
                     start = interval[0]
-                    end = start + dur
+                    end = start + chosen_dur
 
                     scheduled.append(
                         ScheduledItem(
