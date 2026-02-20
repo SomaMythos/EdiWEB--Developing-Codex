@@ -17,3 +17,7 @@
 .daily-status { width:100%; padding:10px 12px; border-radius:8px; }
 .daily-status--error { border:1px solid #5a2a2a; background:#2a1212; color:#ffbdbd; }
 .daily-status--success { border:1px solid #1f5a2a; background:#0f2a15; color:#bdf9cc; }
+
+.activities-field { flex:1; display:flex; flex-direction:column; gap:6px; }
+.activities-input--error { border-color:#c44 !important; }
+.activities-error { color:#ff9f9f; font-size:12px; text-align:left; }

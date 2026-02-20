@@ -7,6 +7,7 @@ export default function ActivitiesModal({
   activities,
   newActivity,
   setNewActivity,
+  validationErrors = {},
   state,
   onFrequencyChange,
   onToggleActivity,
@@ -44,10 +45,34 @@ export default function ActivitiesModal({
 
         <h4>Nova Atividade</h4>
         <div className="activities-form">
-          <input placeholder="Título" value={newActivity.title} onChange={e => setNewActivity({ ...newActivity, title: e.target.value })} />
+          <input
+            className={validationErrors.title ? "activities-input--error" : ""}
+            placeholder="Título"
+            value={newActivity.title}
+            onChange={e => setNewActivity({ ...newActivity, title: e.target.value })}
+          />
+          {validationErrors.title && <span className="activities-error">{validationErrors.title}</span>}
           <div className="activities-form-row">
-            <input type="number" placeholder="Mín (min)" value={newActivity.min_duration} onChange={e => setNewActivity({ ...newActivity, min_duration: parseIntegerOrFallback(e.target.value, 0) })} />
-            <input type="number" placeholder="Máx (min)" value={newActivity.max_duration} onChange={e => setNewActivity({ ...newActivity, max_duration: parseIntegerOrFallback(e.target.value, 0) })} />
+            <div className="activities-field">
+              <input
+                className={validationErrors.min_duration ? "activities-input--error" : ""}
+                type="number"
+                placeholder="Mín (min)"
+                value={newActivity.min_duration}
+                onChange={e => setNewActivity({ ...newActivity, min_duration: parseIntegerOrFallback(e.target.value, 0) })}
+              />
+              {validationErrors.min_duration && <span className="activities-error">{validationErrors.min_duration}</span>}
+            </div>
+            <div className="activities-field">
+              <input
+                className={validationErrors.max_duration ? "activities-input--error" : ""}
+                type="number"
+                placeholder="Máx (min)"
+                value={newActivity.max_duration}
+                onChange={e => setNewActivity({ ...newActivity, max_duration: parseIntegerOrFallback(e.target.value, 0) })}
+              />
+              {validationErrors.max_duration && <span className="activities-error">{validationErrors.max_duration}</span>}
+            </div>
           </div>
           <div className="activities-frequency">
             {[
@@ -62,15 +87,33 @@ export default function ActivitiesModal({
 
           {newActivity.frequency_type !== "flex" && (
             <div className="activities-form-row">
-              <input type="time" value={newActivity.fixed_time} onChange={e => setNewActivity({ ...newActivity, fixed_time: e.target.value })} />
-              <input type="number" placeholder="Duração (min)" value={newActivity.fixed_duration} onChange={e => setNewActivity({ ...newActivity, fixed_duration: parseIntegerOrFallback(e.target.value, 0) })} />
+              <div className="activities-field">
+                <input
+                  className={validationErrors.fixed_time ? "activities-input--error" : ""}
+                  type="time"
+                  value={newActivity.fixed_time}
+                  onChange={e => setNewActivity({ ...newActivity, fixed_time: e.target.value })}
+                />
+                {validationErrors.fixed_time && <span className="activities-error">{validationErrors.fixed_time}</span>}
+              </div>
+              <div className="activities-field">
+                <input
+                  className={validationErrors.fixed_duration ? "activities-input--error" : ""}
+                  type="number"
+                  placeholder="Duração (min)"
+                  value={newActivity.fixed_duration}
+                  onChange={e => setNewActivity({ ...newActivity, fixed_duration: parseIntegerOrFallback(e.target.value, 0) })}
+                />
+                {validationErrors.fixed_duration && <span className="activities-error">{validationErrors.fixed_duration}</span>}
+              </div>
             </div>
           )}
 
           <div className="activities-flags">
-            <label><input type="checkbox" checked={newActivity.is_disc} onChange={e => setNewActivity({ ...newActivity, is_disc: e.target.checked, is_fun: false })} /> Disciplina</label>
-            <label><input type="checkbox" checked={newActivity.is_fun} onChange={e => setNewActivity({ ...newActivity, is_fun: e.target.checked, is_disc: false })} /> Diversão</label>
+            <label><input type="checkbox" checked={newActivity.is_disc} onChange={e => setNewActivity({ ...newActivity, is_disc: e.target.checked })} /> Disciplina</label>
+            <label><input type="checkbox" checked={newActivity.is_fun} onChange={e => setNewActivity({ ...newActivity, is_fun: e.target.checked })} /> Diversão</label>
           </div>
+          {validationErrors.category && <span className="activities-error">{validationErrors.category}</span>}
           <button className="daily-button daily-button--primary" onClick={onCreateActivity}>Criar</button>
         </div>
 

@@ -90,6 +90,7 @@ export default function Daily() {
         activities={activities.activities}
         newActivity={activities.newActivity}
         setNewActivity={activities.setNewActivity}
+        validationErrors={activities.validationErrors}
         state={activities.state}
         onFrequencyChange={activities.handleFrequencyChange}
         onToggleActivity={activities.toggleActivity}
