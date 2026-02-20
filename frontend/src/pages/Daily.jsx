@@ -17,6 +17,7 @@ export default function Daily() {
 
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
 const [showConfig, setShowConfig] = useState(false);
 const [config, setConfig] = useState(null);
@@ -136,16 +137,30 @@ function handleFrequencyChange(frequencyType) {
   }
 
 async function fetchConfig() {
-  const res = await axios.get(`${API_URL}/day-config`);
-  if (res.data.success) {
+  const res = await runUiRequest(
+    () => axios.get(`${API_URL}/day-config`),
+    "Não foi possível carregar as configurações do dia."
+  );
+
+  if (res?.data?.success) {
     setConfig(res.data.data);
+    return true;
   }
+
+  return false;
 }
 
 async function fetchActiveRoutine(date) {
-  const res = await axios.get(`${API_URL}/daily/routine`, {
-    params: { date }
-  });
+  const res = await runUiRequest(
+    () => axios.get(`${API_URL}/daily/routine`, { params: { date } }),
+    "Não foi possível carregar a rotina deste dia."
+  );
+
+  if (!res) {
+    setActiveRoutine(null);
+    setRoutineBlocks([]);
+    return false;
+  }
 
   console.log("Routine fetch response:", res.data);
 
@@ -156,17 +171,22 @@ async function fetchActiveRoutine(date) {
     setActiveRoutine(null);
     setRoutineBlocks([]);
   }
+
+  return true;
 }
 
 async function fetchActivities() {
-  try {
-    const res = await axios.get(`${API_URL}/activities`);
-    if (res.data.success) {
-      setActivities(res.data.data);
-    }
-  } catch (err) {
-    console.error("Erro ao buscar activities:", err);
+  const res = await runUiRequest(
+    () => axios.get(`${API_URL}/activities`),
+    "Não foi possível carregar as atividades."
+  );
+
+  if (res?.data?.success) {
+    setActivities(res.data.data);
+    return true;
   }
+
+  return false;
 }
 
 // activity types removido
@@ -175,17 +195,22 @@ async function fetchActivities() {
 
 
   async function saveConfig() {
-    await axios.post(`${API_URL}/day-config`, {
-      sleep_start: config.sleep_start,
-      sleep_end: config.sleep_end,
-      work_start: config.work_start,
-      work_end: config.work_end,
-      buffer_between: parseIntegerOrFallback(config.buffer_between, 0),
-      granularity_min: parseIntegerOrFallback(config.granularity_min, 1),
-      avoid_category_adjacent: config.avoid_category_adjacent ? true : false,
-      discipline_weight: parseIntegerOrFallback(config.discipline_weight, 1),
-      fun_weight: parseIntegerOrFallback(config.fun_weight, 1)
-    });
+    const res = await runUiRequest(
+      () => axios.post(`${API_URL}/day-config`, {
+        sleep_start: config.sleep_start,
+        sleep_end: config.sleep_end,
+        work_start: config.work_start,
+        work_end: config.work_end,
+        buffer_between: parseIntegerOrFallback(config.buffer_between, 0),
+        granularity_min: parseIntegerOrFallback(config.granularity_min, 1),
+        avoid_category_adjacent: config.avoid_category_adjacent ? true : false,
+        discipline_weight: parseIntegerOrFallback(config.discipline_weight, 1),
+        fun_weight: parseIntegerOrFallback(config.fun_weight, 1)
+      }),
+      "Não foi possível salvar a configuração do dia."
+    );
+
+    if (!res) return;
 
     setShowConfig(false);
   }
@@ -193,10 +218,15 @@ async function fetchActivities() {
   async function toggleDayType() {
     const isOff = dayType === "work";
 
-    await axios.post(`${API_URL}/daily/override`, {
-      date: selectedDate,
-      is_off: isOff
-    });
+    const res = await runUiRequest(
+      () => axios.post(`${API_URL}/daily/override`, {
+        date: selectedDate,
+        is_off: isOff
+      }),
+      "Não foi possível alternar o tipo de dia."
+    );
+
+    if (!res) return;
 
     await fetchDayType(selectedDate);
     await fetchDaily(selectedDate);
@@ -206,23 +236,32 @@ async function fetchActivities() {
   async function generateDaily() {
     setGenerating(true);
 
-    await axios.post(`${API_URL}/daily/generate`, null, {
-      params: { date: selectedDate }
-    });
+    try {
+      const res = await runUiRequest(
+        () => axios.post(`${API_URL}/daily/generate`, null, {
+          params: { date: selectedDate }
+        }),
+        "Não foi possível gerar o planejamento do dia."
+      );
 
-    await fetchDaily(selectedDate);
-    await fetchSummary(selectedDate);
+      if (!res) return;
 
-    setGenerating(false);
+      await fetchDaily(selectedDate);
+      await fetchSummary(selectedDate);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function toggleCompletion(blockId, currentState) {
     const nextState = !Boolean(currentState);
 
-    await axios.patch(
-      `${API_URL}/daily/block/${blockId}/complete`,
-      { completed: nextState }
+    const res = await runUiRequest(
+      () => axios.patch(`${API_URL}/daily/block/${blockId}/complete`, { completed: nextState }),
+      "Não foi possível atualizar o status do bloco."
     );
+
+    if (!res) return;
 
     setBlocks(prev =>
       prev.map(b =>
@@ -257,6 +296,24 @@ function parseIntegerOrFallback(value, fallback = 0) {
 
 function isBlockCompleted(value) {
   return value === true || value === 1;
+}
+
+function showError(message) {
+  setFeedback({ type: "error", message });
+}
+
+function clearFeedback() {
+  setFeedback(null);
+}
+
+async function runUiRequest(requestFn, friendlyMessage) {
+  try {
+    return await requestFn();
+  } catch (err) {
+    console.error(err);
+    showError(friendlyMessage);
+    return null;
+  }
 }
 
 
@@ -354,8 +411,11 @@ function isBlockCompleted(value) {
 
           <button
   onClick={async () => {
-    await fetchConfig();
-    setShowConfig(true);
+    const loaded = await fetchConfig();
+    if (loaded) {
+      clearFeedback();
+      setShowConfig(true);
+    }
   }}
   style={styles.secondaryButton}
 >
@@ -364,8 +424,11 @@ function isBlockCompleted(value) {
 
 <button
   onClick={async () => {
-    await fetchActiveRoutine(selectedDate);
-    setShowRoutineModal(true);
+    const loaded = await fetchActiveRoutine(selectedDate);
+    if (loaded) {
+      clearFeedback();
+      setShowRoutineModal(true);
+    }
   }}
   style={styles.secondaryButton}
 >
@@ -373,8 +436,11 @@ function isBlockCompleted(value) {
 </button>
 <button
   onClick={async () => {
-    await fetchActivities();
-    setShowActivitiesModal(true);
+    const loaded = await fetchActivities();
+    if (loaded) {
+      clearFeedback();
+      setShowActivitiesModal(true);
+    }
   }}
   style={styles.secondaryButton}
 >
@@ -383,6 +449,19 @@ function isBlockCompleted(value) {
 
         </div>
       </div>
+
+      {feedback && (
+        <div style={styles.feedbackBanner}>
+          <span>{feedback.message}</span>
+          <button
+            type="button"
+            onClick={clearFeedback}
+            style={styles.feedbackCloseButton}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* MODAL */}
       {showConfig && config && (
@@ -507,21 +586,21 @@ function isBlockCompleted(value) {
     <button
   style={styles.primaryButton}
   onClick={async () => {
-    try {
-      console.log("Criando rotina para:", dayType);
+    console.log("Criando rotina para:", dayType);
 
-      const res = await axios.post(`${API_URL}/daily/routines`, {
+    const res = await runUiRequest(
+      () => axios.post(`${API_URL}/daily/routines`, {
         name: `Rotina ${dayType === "work" ? "Work" : "Off"}`,
         day_type: dayType
-      });
+      }),
+      "Não foi possível criar uma rotina para este tipo de dia."
+    );
 
-      console.log("Resposta backend:", res.data);
+    if (!res) return;
 
-      await fetchActiveRoutine(selectedDate);
-    } catch (err) {
-      console.error("Erro ao criar rotina:", err);
-      alert("Erro ao criar rotina. Veja o console.");
-    }
+    console.log("Resposta backend:", res.data);
+
+    await fetchActiveRoutine(selectedDate);
   }}
 >
   Criar rotina {dayType === "work" ? "Work" : "Off"}
@@ -551,9 +630,13 @@ function isBlockCompleted(value) {
           <button
             style={styles.secondaryButton}
             onClick={async () => {
-              await axios.delete(
-                `${API_URL}/daily/routines/blocks/${block.id}`
+              const res = await runUiRequest(
+                () => axios.delete(`${API_URL}/daily/routines/blocks/${block.id}`),
+                "Não foi possível remover o bloco da rotina."
               );
+
+              if (!res) return;
+
               await fetchActiveRoutine(selectedDate);
             }}
           >
@@ -599,28 +682,30 @@ function isBlockCompleted(value) {
             onClick={async () => {
               const blockName = newBlock.name.trim();
               if (!blockName) {
-                alert("Nome do bloco é obrigatório.");
+                showError("Nome do bloco é obrigatório.");
                 return;
               }
 
               if (!newBlock.start_time || !newBlock.end_time) {
-                alert("Preencha os horários de início e fim.");
+                showError("Preencha os horários de início e fim.");
                 return;
               }
 
               if (newBlock.start_time === newBlock.end_time) {
-                alert("Horário de fim deve ser diferente do início.");
+                showError("Horário de fim deve ser diferente do início.");
                 return;
               }
 
-              await axios.post(
-                `${API_URL}/daily/routines/blocks`,
-                {
+              const res = await runUiRequest(
+                () => axios.post(`${API_URL}/daily/routines/blocks`, {
                   routine_id: activeRoutine.id,
                   ...newBlock,
                   name: blockName
-                }
+                }),
+                "Não foi possível adicionar o bloco na rotina."
               );
+
+              if (!res) return;
 
               setNewBlock({
                 name: "",
@@ -707,9 +792,13 @@ function isBlockCompleted(value) {
   <button
     style={styles.secondaryButton}
     onClick={async () => {
-      await axios.patch(
-        `${API_URL}/activities/${a.id}/toggle`
+      const res = await runUiRequest(
+        () => axios.patch(`${API_URL}/activities/${a.id}/toggle`),
+        "Não foi possível alterar o status da atividade."
       );
+
+      if (!res) return;
+
       await fetchActivities();
     }}
   >
@@ -725,7 +814,13 @@ function isBlockCompleted(value) {
     onClick={async () => {
       if (!window.confirm("Excluir atividade permanentemente?")) return;
 
-      await axios.delete(`${API_URL}/activities/${a.id}`);
+      const res = await runUiRequest(
+        () => axios.delete(`${API_URL}/activities/${a.id}`),
+        "Não foi possível excluir a atividade."
+      );
+
+      if (!res) return;
+
       await fetchActivities();
     }}
   >
@@ -935,7 +1030,7 @@ function isBlockCompleted(value) {
   onClick={async () => {
 
     if (!newActivity.title) {
-      alert("Preencha o título.");
+      showError("Preencha o título.");
       return;
     }
 
@@ -951,7 +1046,12 @@ function isBlockCompleted(value) {
           : newActivity.fixed_duration
     };
 
-    await axios.post(`${API_URL}/activities`, activityPayload);
+    const res = await runUiRequest(
+      () => axios.post(`${API_URL}/activities`, activityPayload),
+      "Não foi possível criar a atividade."
+    );
+
+    if (!res) return;
 
 setNewActivity({
   title: "",
@@ -1213,5 +1313,24 @@ const styles = {
   empty: {
     opacity: 0.5,
     fontStyle: "italic"
+  },
+  feedbackBanner: {
+    marginBottom: "20px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: "1px solid #5a2a2a",
+    background: "#2a1212",
+    color: "#ffbdbd",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px"
+  },
+  feedbackCloseButton: {
+    background: "transparent",
+    border: "none",
+    color: "#ffbdbd",
+    cursor: "pointer",
+    fontSize: "14px"
   }
 };
