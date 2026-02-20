@@ -77,3 +77,28 @@ def test_fixed_time_overlapping_routine_block_keeps_placed_items_non_overlapping
             _overlaps(p["start_min"], p["end_min"], f["start_min"], f["end_min"])
             for f in fixed
         )
+
+
+def test_allocate_does_not_always_prefer_max_duration():
+    durations = set()
+
+    for seed in range(10):
+        engine = DayEngine(buffer_between=0, granularity_min=5, seed=seed)
+        templates = [
+            ActivityTemplate(
+                id="tpl-1",
+                name="Template",
+                category="activity",
+                min_duration=30,
+                max_duration=60,
+                priority=5,
+            )
+        ]
+
+        scheduled, not_scheduled, _ = engine.allocate([], templates)
+
+        assert not not_scheduled
+        placed = next(item for item in scheduled if item.reason == "placed")
+        durations.add(placed.end - placed.start)
+
+    assert any(duration < 60 for duration in durations)
