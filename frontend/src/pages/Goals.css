@@ -556,3 +556,21 @@
   gap: 8px;
   align-items: flex-end;
 }
+.upload-feedback {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upload-feedback.success {
+  color: #128a41;
+}
+
+.upload-feedback.error {
+  color: #c0392b;
+}
+
+.btn[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

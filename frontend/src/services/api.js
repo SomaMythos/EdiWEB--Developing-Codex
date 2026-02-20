@@ -68,6 +68,9 @@ export const goalsApi = {
   headers: { 'Content-Type': 'multipart/form-data' },
   }),
   update: (id, data) => api.put(`/goals/${id}`, data),
+  updateWithFormData: (id, data) => api.put(`/goals/${id}/multipart`, toGoalsFormData(data), {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
   remove: (id) => api.delete(`/goals/${id}`),
   linkActivity: (data) => api.post('/goals/link-activity', data),
   unlinkActivity: (goalId, activityId) => api.delete(`/goals/${goalId}/activities/${activityId}`),
