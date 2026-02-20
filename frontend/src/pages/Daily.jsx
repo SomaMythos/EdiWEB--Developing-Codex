@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import DailyHeader from "../components/daily/DailyHeader";
 import DailyTimeline from "../components/daily/DailyTimeline";
 import DayConfigModal from "../components/daily/DayConfigModal";
@@ -9,6 +9,7 @@ import { useDailyPlan } from "../hooks/daily/useDailyPlan";
 import { useDailyConfig } from "../hooks/daily/useDailyConfig";
 import { useDailyRoutines } from "../hooks/daily/useDailyRoutines";
 import { useActivities } from "../hooks/daily/useActivities";
+import { dailyApi, dayConfigApi } from "../services/api";
 import "./Daily.css";
 
 const REASON_LABELS = {
@@ -37,6 +38,11 @@ export default function Daily() {
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [editingBlock, setEditingBlock] = useState(null);
+  const [insightsState, setInsightsState] = useState({ loading: true, error: null });
+  const [consistency, setConsistency] = useState(null);
+  const [weeklyStats, setWeeklyStats] = useState([]);
+  const [dayConfigSnapshot, setDayConfigSnapshot] = useState(null);
+  const [applyingAdjustment, setApplyingAdjustment] = useState(false);
 
   const dailyPlan = useDailyPlan(selectedDate);
   const dailyConfig = useDailyConfig();
@@ -44,6 +50,121 @@ export default function Daily() {
   const activities = useActivities();
   const notScheduled = dailyPlan.generationResult?.notScheduled || [];
   const diagnostics = dailyPlan.generationResult?.diagnostics;
+
+  useEffect(() => {
+    const loadInsights = async () => {
+      setInsightsState({ loading: true, error: null });
+      try {
+        const [consistencyRes, weeklyRes, configRes] = await Promise.all([
+          dailyApi.getConsistency(7),
+          dailyApi.getWeeklyStats(selectedDate),
+          dayConfigApi.get()
+        ]);
+
+        setConsistency(consistencyRes?.data?.data || { average: 0, days: [] });
+        setWeeklyStats(weeklyRes?.data?.data?.items || []);
+        setDayConfigSnapshot(configRes?.data?.data || null);
+        setInsightsState({ loading: false, error: null });
+      } catch (error) {
+        console.error(error);
+        setInsightsState({ loading: false, error: "Não foi possível carregar os insights diários." });
+      }
+    };
+
+    loadInsights();
+  }, [selectedDate]);
+
+  const topActivities = useMemo(() => weeklyStats.slice(0, 3), [weeklyStats]);
+
+  const lowExecutionActivities = useMemo(() => {
+    return weeklyStats
+      .filter((item) => item.times_scheduled > 0)
+      .map((item) => ({
+        ...item,
+        completionRate: Math.round((item.times_completed / item.times_scheduled) * 100)
+      }))
+      .filter((item) => item.times_scheduled >= 2 && item.completionRate < 50)
+      .slice(0, 3);
+  }, [weeklyStats]);
+
+  const recommendation = useMemo(() => {
+    if (!dayConfigSnapshot || weeklyStats.length === 0 || !consistency) {
+      return null;
+    }
+
+    const totals = weeklyStats.reduce((acc, item) => {
+      acc.scheduled += item.times_scheduled;
+      acc.completed += item.times_completed;
+      return acc;
+    }, { scheduled: 0, completed: 0 });
+
+    const completionRate = totals.scheduled > 0 ? totals.completed / totals.scheduled : 0;
+    const hasLowExecution = lowExecutionActivities.length > 0;
+
+    if (completionRate < 0.55 || consistency.average < 60) {
+      return {
+        type: "weights",
+        title: "Ajuste recomendado: reduzir pressão e equilibrar diversão",
+        description: "A execução semanal está baixa. Sugestão: reduzir disciplina_weight em 1 e aumentar fun_weight em 1.",
+        payload: {
+          discipline_weight: Math.max(0, Number(dayConfigSnapshot.discipline_weight || 0) - 1),
+          fun_weight: Number(dayConfigSnapshot.fun_weight || 0) + 1
+        },
+        durationHint: hasLowExecution ? "Também é recomendado reduzir a duração das atividades com baixa execução em 10-15 minutos." : null
+      };
+    }
+
+    if (completionRate > 0.85 && consistency.average > 80) {
+      return {
+        type: "weights",
+        title: "Ajuste recomendado: aumentar desafio",
+        description: "Seu ritmo está consistente. Sugestão: aumentar discipline_weight em 1 para priorizar atividades de disciplina.",
+        payload: {
+          discipline_weight: Number(dayConfigSnapshot.discipline_weight || 0) + 1,
+          fun_weight: Number(dayConfigSnapshot.fun_weight || 0)
+        },
+        durationHint: null
+      };
+    }
+
+    return {
+      type: "duration",
+      title: "Plano equilibrado",
+      description: "Sem necessidade de ajuste automático de pesos no momento.",
+      payload: null,
+      durationHint: hasLowExecution ? "Se quiser otimizar, reduza a duração das atividades sinalizadas para melhorar a aderência." : null
+    };
+  }, [consistency, dayConfigSnapshot, lowExecutionActivities.length, weeklyStats]);
+
+  const applyRecommendedAdjustment = async () => {
+    if (!recommendation?.payload || !dayConfigSnapshot || applyingAdjustment) return;
+
+    const confirmed = window.confirm("Aplicar ajuste recomendado nos pesos da configuração diária?");
+    if (!confirmed) return;
+
+    setApplyingAdjustment(true);
+    try {
+      await dayConfigApi.save({
+        ...dayConfigSnapshot,
+        ...recommendation.payload
+      });
+
+      const updatedConfig = {
+        ...dayConfigSnapshot,
+        ...recommendation.payload
+      };
+
+      setDayConfigSnapshot(updatedConfig);
+      if (dailyConfig.config) {
+        dailyConfig.setConfig(updatedConfig);
+      }
+    } catch (error) {
+      console.error(error);
+      window.alert("Não foi possível aplicar o ajuste recomendado.");
+    } finally {
+      setApplyingAdjustment(false);
+    }
+  };
 
   return (
     <div className="daily-page">
@@ -84,6 +205,62 @@ export default function Daily() {
           onToggleCompletion={dailyPlan.toggleCompletion}
           onEditBlock={setEditingBlock}
         />
+      </section>
+
+      <section className="daily-section daily-insights-cards">
+        <h3>Insights de consistência e execução</h3>
+
+        {insightsState.loading && <p className="daily-generation-panel__empty">Carregando insights...</p>}
+        {insightsState.error && <p className="daily-insights-cards__error">{insightsState.error}</p>}
+
+        {!insightsState.loading && !insightsState.error && (
+          <div className="daily-insights-cards__grid">
+            <article className="daily-insight-card">
+              <h4>Consistência (últimos dias)</h4>
+              <p className="daily-insight-card__metric">{consistency?.average ?? 0}% média</p>
+              <p>{(consistency?.days || []).map((day) => `${day.date.slice(5)}: ${day.percentage}%`).join(" · ") || "Sem registros recentes."}</p>
+            </article>
+
+            <article className="daily-insight-card">
+              <h4>Top atividades (planejadas vs concluídas)</h4>
+              {topActivities.length === 0 ? (
+                <p>Sem dados da semana.</p>
+              ) : (
+                <ul>
+                  {topActivities.map((item) => (
+                    <li key={item.activity_id}>{item.activity_title || `Atividade #${item.activity_id}`}: {item.times_scheduled} planejadas / {item.times_completed} concluídas</li>
+                  ))}
+                </ul>
+              )}
+            </article>
+
+            <article className="daily-insight-card">
+              <h4>Alerta de baixa execução</h4>
+              {lowExecutionActivities.length === 0 ? (
+                <p>Nenhuma atividade crítica detectada.</p>
+              ) : (
+                <ul>
+                  {lowExecutionActivities.map((item) => (
+                    <li key={`${item.activity_id}-low`}>{item.activity_title || `Atividade #${item.activity_id}`}: {item.completionRate}% de execução</li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          </div>
+        )}
+
+        {!insightsState.loading && !insightsState.error && recommendation && (
+          <div className="daily-recommendation">
+            <h4>{recommendation.title}</h4>
+            <p>{recommendation.description}</p>
+            {recommendation.durationHint && <p>{recommendation.durationHint}</p>}
+            {recommendation.payload && (
+              <button className="daily-chip" onClick={applyRecommendedAdjustment} disabled={applyingAdjustment}>
+                {applyingAdjustment ? "Aplicando..." : "Aplicar ajuste recomendado"}
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="daily-section daily-generation-panel">

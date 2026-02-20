@@ -89,7 +89,63 @@
 @media (max-width: 768px) {
   .daily-page { padding: 14px; }
   .daily-section--quick-actions .daily-chip-grid,
-  .daily-onboarding__grid {
+  .daily-onboarding__grid,
+  .daily-insights-cards__grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.daily-insights-cards__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.daily-insight-card {
+  border: 1px solid #394864;
+  background: #131f31;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.daily-insight-card h4 {
+  margin: 0 0 8px;
+}
+
+.daily-insight-card__metric {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.daily-insight-card p,
+.daily-insight-card ul {
+  margin: 0;
+  color: #d8e1f4;
+  line-height: 1.45;
+}
+
+.daily-insight-card ul {
+  padding-left: 18px;
+}
+
+.daily-insights-cards__error {
+  color: #ff9d9d;
+  margin: 0;
+}
+
+.daily-recommendation {
+  margin-top: 12px;
+  border: 1px solid #4a5f84;
+  background: #0f1a2c;
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.daily-recommendation h4,
+.daily-recommendation p {
+  margin: 0;
 }
