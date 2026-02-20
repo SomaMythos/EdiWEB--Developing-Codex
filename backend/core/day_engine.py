@@ -139,6 +139,10 @@ class DayEngine:
                     new.append((rem_e, b))
         return new
 
+    @staticmethod
+    def _intervals_overlap(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
+        return a_start < b_end and b_start < a_end
+
     # ==========================================
     # ALLOCATE
     # ==========================================
@@ -149,7 +153,9 @@ class DayEngine:
     ):
 
         scheduled = []
+        fixed_spans: List[Tuple[int, int]] = []
         for ev in fixed_events:
+            fixed_spans.append((ev.start, ev.end))
             scheduled.append(
                 ScheduledItem(
                     ev.name,
@@ -197,6 +203,17 @@ class DayEngine:
                     start = interval[0]
                     end = start + chosen_dur
 
+                    intersects_fixed = any(
+                        self._intervals_overlap(start, end, fixed_start, fixed_end)
+                        for fixed_start, fixed_end in fixed_spans
+                    )
+                    if intersects_fixed:
+                        not_scheduled.append(
+                            NotScheduled(t.id, t.name, "conflict_fixed_block")
+                        )
+                        placed = True
+                        break
+
                     scheduled.append(
                         ScheduledItem(
                             t.name,
@@ -217,6 +234,29 @@ class DayEngine:
                     NotScheduled(t.id, t.name, "no_slot")
                 )
 
+        fixed_items = [s for s in scheduled if s.reason == "fixed"]
+        placed_items = [s for s in scheduled if s.reason == "placed"]
+
+        valid_placed_items = []
+        for item in placed_items:
+            intersects_fixed = any(
+                self._intervals_overlap(item.start, item.end, fixed.start, fixed.end)
+                for fixed in fixed_items
+            )
+
+            if intersects_fixed:
+                not_scheduled.append(
+                    NotScheduled(
+                        source_id=str(item.source_id),
+                        name=item.name,
+                        reason="conflict_fixed_block",
+                    )
+                )
+                continue
+
+            valid_placed_items.append(item)
+
+        scheduled = fixed_items + valid_placed_items
         scheduled.sort(key=lambda x: x.start)
 
         diagnostics = {
