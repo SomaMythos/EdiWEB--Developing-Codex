@@ -21,8 +21,13 @@ export default function AccessibleModal({
   className = ""
 }) {
   const modalRef = useRef(null);
+  const onCloseRef = useRef(onClose);
   const generatedId = useId();
   const titleId = labelledById || `modal-title-${generatedId}`;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!show) return undefined;
@@ -36,7 +41,7 @@ export default function AccessibleModal({
     const handleKeyDown = event => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current?.();
         return;
       }
 
@@ -68,7 +73,7 @@ export default function AccessibleModal({
       document.removeEventListener("keydown", handleKeyDown);
       previousActive?.focus?.();
     };
-  }, [show, onClose, initialFocusRef]);
+  }, [show, initialFocusRef]);
 
   if (!show) return null;
 
