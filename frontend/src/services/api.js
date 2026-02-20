@@ -29,6 +29,8 @@ export const dailyApi = {
   getSummary: (date) => api.get('/daily/summary', { params: { date } }),
   getDayType: (date) => api.get('/daily/type', { params: { date } }),
   getRoutine: (date) => api.get('/daily/routine', { params: { date } }),
+  getConsistency: (days = 7) => api.get('/daily/consistency', { params: { days } }),
+  getWeeklyStats: (date) => api.get('/daily/weekly-stats', { params: { date } }),
   overrideDayType: (date, isOff) => api.post('/daily/override', { date, is_off: isOff }),
   generate: (date) => api.post('/daily/generate', null, { params: { date } }),
   completeBlock: (blockId, completed) => api.patch(`/daily/block/${blockId}/complete`, { completed }),
