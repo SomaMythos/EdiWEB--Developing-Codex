@@ -1,0 +1,12 @@
+.daily-timeline { display:flex; flex-direction:column; gap:14px; margin-top:30px; }
+.daily-loading { opacity: .7; }
+.daily-empty { opacity:.5; font-style:italic; }
+.daily-block { padding:16px; border-radius:10px; border:1px solid #2a2a35; display:flex; justify-content:space-between; align-items:center; background:#1a1a22; }
+.daily-block.completed { background:linear-gradient(135deg,#102d18,#0f1f16); border-color:#00c853; opacity:.7; }
+.daily-block__left { display:flex; gap:14px; align-items:center; }
+.daily-block__checkbox { width:18px; height:18px; accent-color:#00c853; cursor:pointer; }
+.daily-block__time { font-weight:600; }
+.daily-block__duration { font-size:13px; opacity:.7; }
+.daily-block__name { font-weight:500; opacity:.85; }
+.daily-status { padding:10px 12px; border-radius:8px; }
+.daily-status--error { border:1px solid #5a2a2a; background:#2a1212; color:#ffbdbd; }

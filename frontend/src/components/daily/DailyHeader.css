@@ -1,0 +1,27 @@
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.daily-header__left { display: flex; flex-direction: column; gap: 12px; }
+.daily-header__title { margin: 0; font-size: 22px; }
+.daily-header__badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+.daily-header__badge.work { background: linear-gradient(135deg,#1976d2,#0d47a1); }
+.daily-header__badge.off { background: linear-gradient(135deg,#9c27b0,#4a148c); }
+.daily-header__progress-container { width: 220px; height: 6px; background: #1a1a22; border-radius: 6px; overflow: hidden; }
+.daily-header__progress-bar { height: 100%; background: linear-gradient(135deg,#00c853,#009624); transition: width .3s ease; }
+.daily-header__progress-text { font-size: 12px; opacity: .7; }
+.daily-header__summary-card { display: flex; gap: 40px; }
+.daily-header__summary-label { font-size: 12px; opacity: .6; }
+.daily-header__summary-value { font-size: 16px; font-weight: 600; }
+.daily-header__controls { display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+.daily-input { background:#1a1a22; border:1px solid #2a2a35; color:#fff; padding:8px 12px; border-radius:6px; }
+.daily-button { padding:8px 14px; border-radius:6px; color:#fff; cursor:pointer; }
+.daily-button--primary { background:linear-gradient(135deg,#00c853,#009624); border:none; font-weight:600; }
+.daily-button--secondary { background:#1a1a22; border:1px solid #2a2a35; color:#ccc; }
+.daily-status { width: 100%; padding: 10px 12px; border-radius: 8px; }
+.daily-status--error { border:1px solid #5a2a2a; background:#2a1212; color:#ffbdbd; }
+.daily-status--success { border:1px solid #1f5a2a; background:#0f2a15; color:#bdf9cc; }
