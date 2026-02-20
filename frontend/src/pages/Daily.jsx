@@ -628,11 +628,28 @@ function mergeSequentialBlocks(blocks) {
           <button
             style={{ ...styles.primaryButton, marginTop: "10px" }}
             onClick={async () => {
+              const blockName = newBlock.name.trim();
+              if (!blockName) {
+                alert("Nome do bloco é obrigatório.");
+                return;
+              }
+
+              if (!newBlock.start_time || !newBlock.end_time) {
+                alert("Preencha os horários de início e fim.");
+                return;
+              }
+
+              if (newBlock.start_time === newBlock.end_time) {
+                alert("Horário de fim deve ser diferente do início.");
+                return;
+              }
+
               await axios.post(
                 `${API_URL}/daily/routines/blocks`,
                 {
                   routine_id: activeRoutine.id,
-                  ...newBlock
+                  ...newBlock,
+                  name: blockName
                 }
               );
 
