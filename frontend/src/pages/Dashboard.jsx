@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Award, Calendar, Clock, Home, Target, TrendingUp } from 'lucide-react';
+import AnimatedCard from '../components/AnimatedCard';
+import StaggerList from '../components/StaggerList';
 import {
   analyticsApi,
   dashboardApi,
@@ -163,32 +165,32 @@ const Dashboard = () => {
       <div className="stats-overview">
         <h2>Resumo de Hoje</h2>
         <div className="overview-grid">
-          <div className="stat-card">
+          <AnimatedCard className="stat-card">
             <div className="stat-icon primary"><Activity size={24} /></div>
             <div className="stat-content"><p className="stat-label">Atividades concluídas</p><p className="stat-value">{overview?.completed_activities || todayData?.completed || 0}</p></div>
-          </div>
-          <div className="stat-card">
+          </AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.03}>
             <div className="stat-icon success"><Award size={24} /></div>
             <div className="stat-content"><p className="stat-label">Metas concluídas</p><p className="stat-value">{overview?.completed_goals || 0}</p></div>
-          </div>
-          <div className="stat-card">
+          </AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.06}>
             <div className="stat-icon warning"><TrendingUp size={24} /></div>
             <div className="stat-content"><p className="stat-label">Taxa de conclusão</p><p className="stat-value">{completionRateToday}%</p></div>
-          </div>
-          <div className="stat-card">
+          </AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.09}>
             <div className="stat-icon primary"><Clock size={24} /></div>
             <div className="stat-content"><p className="stat-label">Tempo executado</p><p className="stat-value">{formatMinutes(todayData?.executed_time || overview?.total_duration || 0)}</p></div>
-          </div>
+          </AnimatedCard>
         </div>
       </div>
 
       <div className="period-summary">
         <h2>Integração dos outros menus</h2>
         <div className="overview-grid">
-          <div className="stat-card"><div className="stat-icon primary"><Target size={24} /></div><div className="stat-content"><p className="stat-label">Metas cadastradas</p><p className="stat-value">{moduleSummary.goals}</p></div></div>
-          <div className="stat-card"><div className="stat-icon warning"><Calendar size={24} /></div><div className="stat-content"><p className="stat-label">Lembretes pendentes</p><p className="stat-value">{moduleSummary.reminders}</p></div></div>
-          <div className="stat-card"><div className="stat-icon success"><Activity size={24} /></div><div className="stat-content"><p className="stat-label">Itens faltando no Shopping</p><p className="stat-value">{moduleSummary.shoppingPending}</p></div></div>
-          <div className="stat-card"><div className="stat-icon primary"><Clock size={24} /></div><div className="stat-content"><p className="stat-label">Gastos fixos cadastrados</p><p className="stat-value">{moduleSummary.financeFixedExpenses}</p></div></div>
+          <AnimatedCard className="stat-card"><div className="stat-icon primary"><Target size={24} /></div><div className="stat-content"><p className="stat-label">Metas cadastradas</p><p className="stat-value">{moduleSummary.goals}</p></div></AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.03}><div className="stat-icon warning"><Calendar size={24} /></div><div className="stat-content"><p className="stat-label">Lembretes pendentes</p><p className="stat-value">{moduleSummary.reminders}</p></div></AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.06}><div className="stat-icon success"><Activity size={24} /></div><div className="stat-content"><p className="stat-label">Itens faltando no Shopping</p><p className="stat-value">{moduleSummary.shoppingPending}</p></div></AnimatedCard>
+          <AnimatedCard className="stat-card" delay={0.09}><div className="stat-icon primary"><Clock size={24} /></div><div className="stat-content"><p className="stat-label">Gastos fixos cadastrados</p><p className="stat-value">{moduleSummary.financeFixedExpenses}</p></div></AnimatedCard>
         </div>
         <div className="dashboard-quick-actions">
           {quickActions.map((item) => (
@@ -210,15 +212,18 @@ const Dashboard = () => {
         {topActivities.length === 0 ? (
           <p className="empty-state">Nenhuma atividade concluída ainda</p>
         ) : (
-          <div className="top-activities-list">
-            {topActivities.map((activity, index) => (
-              <div key={`${activity.title}-${index}`} className="top-activity-item">
+          <StaggerList
+            items={topActivities}
+            className="top-activities-list"
+            getKey={(activity, index) => `${activity.title}-${index}`}
+            renderItem={(activity, index) => (
+              <div className="top-activity-item">
                 <div className="activity-rank">{index + 1}</div>
                 <div className="activity-info"><h3>{activity.title}</h3><p>{activity.executions} execuções</p></div>
                 <div className="activity-bar"><div className="activity-bar-fill" style={{ width: `${(activity.executions / topActivities[0].executions) * 100}%` }} /></div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
 
@@ -227,14 +232,17 @@ const Dashboard = () => {
         {goalsOverview.length === 0 ? (
           <p className="empty-state">Nenhuma meta cadastrada</p>
         ) : (
-          <div className="goals-overview-grid">
-            {goalsOverview.map((goal, index) => (
-              <div key={`${goal.title}-${index}`} className={`goal-overview-card ${goal.stalled ? 'stalled' : ''}`}>
+          <StaggerList
+            items={goalsOverview}
+            className="goals-overview-grid"
+            getKey={(goal, index) => `${goal.title}-${index}`}
+            renderItem={(goal) => (
+              <div className={`goal-overview-card ${goal.stalled ? 'stalled' : ''}`}>
                 <div className="goal-overview-header"><Target size={20} /><h3>{goal.title}</h3></div>
                 <div className="goal-overview-progress"><p className="progress-text">{goal.progress}</p>{goal.stalled && <span className="stalled-badge">Parada</span>}</div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
 
