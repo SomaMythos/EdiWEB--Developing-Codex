@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Home,
   Calendar,
   Target,
   BarChart3,
@@ -30,8 +29,7 @@ const Layout = ({ children }) => {
     { path: '/', icon: Calendar, label: 'Daily' },
     { path: '/goals', icon: Target, label: 'Metas' },
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-    { path: '/stats', icon: BarChart3, label: 'Estatísticas' },
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
     { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
     { path: '/reminders', icon: Bell, label: 'Lembretes' },
     { path: '/settings', icon: Settings, label: 'Configurações' },

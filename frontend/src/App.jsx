@@ -4,7 +4,6 @@ import Layout from './components/Layout';
 import Daily from './pages/Daily';
 import Goals from './pages/Goals';
 import Financeiro from './pages/Financeiro';
-import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
 import Books from './pages/Books';
@@ -24,7 +23,7 @@ function App() {
   <Route path="/" element={<Daily />} />
   <Route path="/goals" element={<Goals />} />
   <Route path="/financeiro" element={<Financeiro />} />
-  <Route path="/stats" element={<Stats />} />
+  <Route path="/stats" element={<Navigate to="/dashboard" replace />} />
   <Route path="/dashboard" element={<Dashboard />} />
   <Route path="/hobby/leitura" element={<Books />} />
   <Route path="/hobby/artes-visuais" element={<HobbyVisualArts />} />
