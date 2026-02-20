@@ -176,9 +176,15 @@ async function fetchActivities() {
 
   async function saveConfig() {
     await axios.post(`${API_URL}/day-config`, {
-      ...config,
-      avoid_category_adjacent:
-        config.avoid_category_adjacent ? true : false
+      sleep_start: config.sleep_start,
+      sleep_end: config.sleep_end,
+      work_start: config.work_start,
+      work_end: config.work_end,
+      buffer_between: parseIntegerOrFallback(config.buffer_between, 0),
+      granularity_min: parseIntegerOrFallback(config.granularity_min, 1),
+      avoid_category_adjacent: config.avoid_category_adjacent ? true : false,
+      discipline_weight: parseIntegerOrFallback(config.discipline_weight, 1),
+      fun_weight: parseIntegerOrFallback(config.fun_weight, 1)
     });
 
     setShowConfig(false);
@@ -240,6 +246,11 @@ function addMinutesToTime(start, minutes) {
   const hh = Math.floor((total % 1440) / 60);
   const mm = total % 60;
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function parseIntegerOrFallback(value, fallback = 0) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function mergeSequentialBlocks(blocks) {
@@ -439,7 +450,7 @@ function mergeSequentialBlocks(blocks) {
                 onChange={e =>
                   setConfig({
                     ...config,
-                    buffer_between: parseInt(e.target.value)
+                    buffer_between: parseIntegerOrFallback(e.target.value, 0)
                   })
                 }
               />
@@ -453,7 +464,7 @@ function mergeSequentialBlocks(blocks) {
     onChange={e =>
       setConfig({
         ...config,
-        discipline_weight: parseInt(e.target.value)
+        discipline_weight: parseIntegerOrFallback(e.target.value, 1)
       })
     }
   />
@@ -467,7 +478,7 @@ function mergeSequentialBlocks(blocks) {
     onChange={e =>
       setConfig({
         ...config,
-        fun_weight: parseInt(e.target.value)
+        fun_weight: parseIntegerOrFallback(e.target.value, 1)
       })
     }
   />

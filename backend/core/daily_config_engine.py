@@ -18,8 +18,13 @@ class DailyConfigEngine:
         work_end,
         buffer_between,
         granularity_min,
-        avoid_category_adjacent
+        avoid_category_adjacent,
+        discipline_weight,
+        fun_weight,
     ):
+        if discipline_weight < 0 or fun_weight < 0:
+            raise ValueError("discipline_weight e fun_weight devem ser >= 0")
+
         with Database() as db:
             db.execute(
                 """
@@ -32,6 +37,8 @@ class DailyConfigEngine:
                     buffer_between = ?,
                     granularity_min = ?,
                     avoid_category_adjacent = ?,
+                    discipline_weight = ?,
+                    fun_weight = ?,
                     updated_at = ?
                 WHERE id = 1
                 """,
@@ -43,6 +50,8 @@ class DailyConfigEngine:
                     buffer_between,
                     granularity_min,
                     1 if avoid_category_adjacent else 0,
+                    discipline_weight,
+                    fun_weight,
                     datetime.now().isoformat(timespec="seconds"),
                 ),
             )

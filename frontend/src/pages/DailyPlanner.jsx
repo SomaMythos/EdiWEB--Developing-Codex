@@ -4,6 +4,11 @@ import './DailyPlanner.css';
 
 const DailyPlanner = () => {
 
+  const toSafeInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
   const [config, setConfig] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -22,9 +27,11 @@ const DailyPlanner = () => {
       sleep_end: config.sleep_end,
       work_start: config.work_start,
       work_end: config.work_end,
-      buffer_between: parseInt(config.buffer_between, 10),
-      granularity_min: parseInt(config.granularity_min, 10),
+      buffer_between: toSafeInt(config.buffer_between, 0),
+      granularity_min: toSafeInt(config.granularity_min, 1),
       avoid_category_adjacent: !!config.avoid_category_adjacent,
+      discipline_weight: toSafeInt(config.discipline_weight, 1),
+      fun_weight: toSafeInt(config.fun_weight, 1),
     });
     setModalOpen(false);
   };
