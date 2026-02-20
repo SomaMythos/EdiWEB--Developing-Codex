@@ -120,3 +120,18 @@
     text-align: left;
   }
 }
+
+
+.upload-feedback {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.upload-feedback.success {
+  color: #128a41;
+}
+
+.upload-feedback.error {
+  color: #c0392b;
+}
