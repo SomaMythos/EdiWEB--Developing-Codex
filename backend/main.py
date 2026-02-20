@@ -26,7 +26,8 @@ from core.analytics_engine import AnalyticsEngine
 from core.daily_override_engine import DailyOverrideEngine
 from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
-from data.database import initialize_database
+from core.time_overlap import add_minutes, intervals_overlap
+from data.database import Database, initialize_database
 
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,9 @@ class ActivityCreate(BaseModel):
     title: str
     min_duration: int
     max_duration: int
-    is_everyday: int = 0
+    frequency_type: str = "flex"
+    fixed_time: Optional[str] = None
+    fixed_duration: Optional[int] = None
     is_disc: int = 1
     is_fun: int = 0
 
@@ -207,15 +210,107 @@ async def list_activities():
 
 @app.post("/api/activities")
 async def create_activity(activity: ActivityCreate):
+    def _validate_fixed_activity_conflicts(payload: ActivityCreate):
+        if not payload.fixed_time:
+            return
+
+        frequency = (payload.frequency_type or "flex").strip().lower()
+        allowed_frequencies = {"flex", "everyday", "workday", "offday"}
+        if frequency not in allowed_frequencies:
+            raise HTTPException(status_code=400, detail="frequency_type inválido")
+
+        if payload.fixed_duration is None or payload.fixed_duration <= 0:
+            raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero quando fixed_time for informado")
+
+        try:
+            datetime.strptime(payload.fixed_time, "%H:%M")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
+
+        fixed_end = add_minutes(payload.fixed_time, payload.fixed_duration)
+
+        day_types = []
+        if frequency == "workday":
+            day_types = ["work"]
+        elif frequency == "offday":
+            day_types = ["off"]
+        else:
+            day_types = ["work", "off"]
+
+        with Database() as db:
+            config = db.fetchone(
+                """
+                SELECT sleep_start, sleep_end, work_start, work_end
+                FROM daily_config
+                WHERE id = 1
+                """
+            )
+
+            if config and intervals_overlap(payload.fixed_time, fixed_end, config["sleep_start"], config["sleep_end"]):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta a janela de sono ({config['sleep_start']}-{config['sleep_end']})."
+                    ),
+                )
+
+            if config and frequency in {"workday", "everyday", "flex"} and intervals_overlap(
+                payload.fixed_time,
+                fixed_end,
+                config["work_start"],
+                config["work_end"],
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta o horário de trabalho ({config['work_start']}-{config['work_end']})."
+                    ),
+                )
+
+            routine_rows = db.fetchall(
+                """
+                SELECT
+                    dr.day_type,
+                    drb.name,
+                    drb.start_time,
+                    drb.end_time
+                FROM daily_routine_blocks drb
+                INNER JOIN daily_routines dr ON dr.id = drb.routine_id
+                WHERE dr.day_type IN ({})
+                ORDER BY dr.day_type, drb.start_time
+                """.format(",".join(["?"] * len(day_types))),
+                tuple(day_types),
+            )
+
+            for row in routine_rows:
+                if intervals_overlap(payload.fixed_time, fixed_end, row["start_time"], row["end_time"]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
+                            f"intersecta bloco de rotina '{row['name']}' "
+                            f"({row['day_type']}: {row['start_time']}-{row['end_time']})."
+                        ),
+                    )
+
     try:
         if activity.min_duration <= 0 or activity.max_duration <= 0:
             raise HTTPException(status_code=400, detail="Duração inválida")
+
+        if activity.max_duration < activity.min_duration:
+            raise HTTPException(status_code=400, detail="max_duration não pode ser menor que min_duration")
+
+        _validate_fixed_activity_conflicts(activity)
 
         ActivityEngine.create_activity(
             title=activity.title,
             min_duration=activity.min_duration,
             max_duration=activity.max_duration,
-            is_everyday=activity.is_everyday,
+            frequency_type=activity.frequency_type,
+            fixed_time=activity.fixed_time,
+            fixed_duration=activity.fixed_duration,
             is_disc=activity.is_disc,
             is_fun=activity.is_fun,
         )
@@ -1595,7 +1690,6 @@ async def set_daily_override(payload: DailyOverridePayload):
 # ============================================================================
 
 from core.daily_engine import DailyEngine
-from data.database import Database
 
 
 # =========================

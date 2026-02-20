@@ -365,6 +365,24 @@ def apply_migrations(db):
     "ALTER TABLE activities ADD COLUMN is_fun INTEGER NOT NULL DEFAULT 0",
     )
 
+    run_migration(
+    "add_activities_frequency_type",
+    lambda: column_exists(db, "activities", "frequency_type"),
+    "ALTER TABLE activities ADD COLUMN frequency_type TEXT DEFAULT 'flex'",
+    )
+
+    run_migration(
+    "add_activities_fixed_time",
+    lambda: column_exists(db, "activities", "fixed_time"),
+    "ALTER TABLE activities ADD COLUMN fixed_time TEXT",
+    )
+
+    run_migration(
+    "add_activities_fixed_duration",
+    lambda: column_exists(db, "activities", "fixed_duration"),
+    "ALTER TABLE activities ADD COLUMN fixed_duration INTEGER",
+    )
+
 
     run_migration(
         "create_book_types_table",

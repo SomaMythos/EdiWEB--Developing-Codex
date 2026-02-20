@@ -14,7 +14,9 @@ class ActivityEngine:
                     title,
                     min_duration,
                     max_duration,
-                    is_everyday,
+                    frequency_type,
+                    fixed_time,
+                    fixed_duration,
                     is_disc,
                     is_fun,
                     active
@@ -28,7 +30,9 @@ class ActivityEngine:
         title,
         min_duration,
         max_duration,
-        is_everyday=0,
+        frequency_type="flex",
+        fixed_time=None,
+        fixed_duration=None,
         is_disc=1,
         is_fun=0
     ):
@@ -38,17 +42,21 @@ class ActivityEngine:
                     title,
                     min_duration,
                     max_duration,
-                    is_everyday,
+                    frequency_type,
+                    fixed_time,
+                    fixed_duration,
                     is_disc,
                     is_fun,
                     active
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
             """, (
                 title,
                 min_duration,
                 max_duration,
-                is_everyday,
+                frequency_type,
+                fixed_time,
+                fixed_duration,
                 is_disc,
                 is_fun
             ))
