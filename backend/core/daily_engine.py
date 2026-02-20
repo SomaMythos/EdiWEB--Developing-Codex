@@ -6,6 +6,37 @@ from core.daily_discipline_engine import DailyDisciplineEngine
 
 class DailyEngine:
 
+    @staticmethod
+    def _upsert_weekly_activity_counter(
+        db: Database,
+        week_start: str,
+        activity_id: int,
+        field: str,
+        delta: int
+    ):
+        if not activity_id or field not in {"times_scheduled", "times_completed"} or delta == 0:
+            return
+
+        db.execute(
+            """
+            INSERT INTO weekly_activity_stats
+            (week_start, activity_id, times_scheduled, times_completed)
+            VALUES (?, ?, 0, 0)
+            ON CONFLICT(week_start, activity_id) DO NOTHING
+            """,
+            (week_start, activity_id)
+        )
+
+        db.execute(
+            f"""
+            UPDATE weekly_activity_stats
+            SET {field} = MAX({field} + ?, 0)
+            WHERE week_start = ?
+              AND activity_id = ?
+            """,
+            (delta, week_start, activity_id)
+        )
+
     # ==========================================================
     # CONFIG
     # ==========================================================
@@ -275,6 +306,36 @@ class DailyEngine:
 
         with Database() as db:
 
+            week_start = DailyDisciplineEngine._get_week_start(target_date)
+
+            existing_blocks = db.fetchall(
+                """
+                SELECT activity_id, completed
+                FROM daily_plan_blocks
+                WHERE date = ?
+                  AND activity_id IS NOT NULL
+                """,
+                (target_date,)
+            )
+
+            for block in existing_blocks:
+                DailyEngine._upsert_weekly_activity_counter(
+                    db,
+                    week_start,
+                    block["activity_id"],
+                    "times_scheduled",
+                    -1
+                )
+
+                if block["completed"]:
+                    DailyEngine._upsert_weekly_activity_counter(
+                        db,
+                        week_start,
+                        block["activity_id"],
+                        "times_completed",
+                        -1
+                    )
+
             db.execute(
                 "DELETE FROM daily_plan_blocks WHERE date = ?",
                 (target_date,)
@@ -318,6 +379,15 @@ class DailyEngine:
                         item["name"]
                     )
                 )
+
+                if activity_id is not None:
+                    DailyEngine._upsert_weekly_activity_counter(
+                        db,
+                        week_start,
+                        activity_id,
+                        "times_scheduled",
+                        1
+                    )
 
 # ==========================================
 # GET DAY
@@ -389,14 +459,70 @@ class DailyEngine:
     @staticmethod
     def toggle_block_completion(block_id: int, completed: bool):
         with Database() as db:
+            block = db.fetchone(
+                """
+                SELECT date, activity_id, completed
+                FROM daily_plan_blocks
+                WHERE id = ?
+                """,
+                (block_id,)
+            )
+
+            if not block:
+                return
+
+            new_completed = 1 if completed else 0
+
+            if int(block["completed"] or 0) == new_completed:
+                return
+
             db.execute(
                 """
                 UPDATE daily_plan_blocks
                 SET completed = ?
                 WHERE id = ?
                 """,
-                (1 if completed else 0, block_id)
+                (new_completed, block_id)
             )
+
+            if block["activity_id"] is not None:
+                week_start = DailyDisciplineEngine._get_week_start(block["date"])
+                delta = 1 if new_completed else -1
+
+                DailyEngine._upsert_weekly_activity_counter(
+                    db,
+                    week_start,
+                    block["activity_id"],
+                    "times_completed",
+                    delta
+                )
+
+
+    @staticmethod
+    def get_weekly_activity_stats(target_date: str):
+        week_start = DailyDisciplineEngine._get_week_start(target_date)
+
+        with Database() as db:
+            rows = db.fetchall(
+                """
+                SELECT
+                    w.activity_id,
+                    a.title AS activity_title,
+                    w.times_scheduled,
+                    w.times_completed
+                FROM weekly_activity_stats w
+                LEFT JOIN activities a ON a.id = w.activity_id
+                WHERE w.week_start = ?
+                ORDER BY w.times_scheduled DESC, w.activity_id ASC
+                """,
+                (week_start,)
+            )
+
+        return {
+            "target_date": target_date,
+            "week_start": week_start,
+            "items": [dict(row) for row in rows]
+        }
 
 
 # ==========================================

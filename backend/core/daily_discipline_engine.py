@@ -118,13 +118,56 @@ class DailyDisciplineEngine:
                 WHERE id = 1
             """)
 
+            week_start = DailyDisciplineEngine._get_week_start(target_date)
+
+            activity_ids = [act["id"] for act in flex_pool]
+            weekly_stats_map = {}
+
+            if activity_ids:
+                placeholders = ",".join(["?"] * len(activity_ids))
+                weekly_stats_rows = db.fetchall(
+                    f"""
+                    SELECT activity_id, times_scheduled, times_completed
+                    FROM weekly_activity_stats
+                    WHERE week_start = ?
+                      AND activity_id IN ({placeholders})
+                    """,
+                    (week_start, *activity_ids)
+                )
+
+                weekly_stats_map = {
+                    row["activity_id"]: {
+                        "times_scheduled": row["times_scheduled"] or 0,
+                        "times_completed": row["times_completed"] or 0
+                    }
+                    for row in weekly_stats_rows
+                }
+
             DISC_WEIGHT = config["discipline_weight"] or 1
             FUN_WEIGHT = config["fun_weight"] or 1
 
+            for act in flex_pool:
+                is_disc = bool(act.get("is_disc"))
+                category_weight = DISC_WEIGHT if is_disc else FUN_WEIGHT
+
+                stats = weekly_stats_map.get(act["id"], {})
+                times_scheduled = stats.get("times_scheduled", 0)
+                times_completed = stats.get("times_completed", 0)
+                execution_deficit = max(times_scheduled - times_completed, 0)
+
+                activity_adjustment = 1 + (execution_deficit * 0.3)
+                act["final_weight"] = max(category_weight, 0.1) * activity_adjustment
+
             total_weight = DISC_WEIGHT + FUN_WEIGHT
+
+            if total_weight <= 0:
+                total_weight = 1
 
             disc_target_minutes = int((DISC_WEIGHT / total_weight) * free_minutes)
             fun_target_minutes = free_minutes - disc_target_minutes
+
+            disc_pool.sort(key=lambda activity: activity.get("final_weight", 1), reverse=True)
+            fun_pool.sort(key=lambda activity: activity.get("final_weight", 1), reverse=True)
 
             disc_used = 0
             fun_used = 0
@@ -170,4 +213,3 @@ class DailyDisciplineEngine:
                     break
 
             return final_list
-

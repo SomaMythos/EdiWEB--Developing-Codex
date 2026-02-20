@@ -181,6 +181,21 @@ def apply_migrations(db):
     "ALTER TABLE daily_config ADD COLUMN fun_weight INTEGER DEFAULT 2",
     )
 
+    run_migration(
+        "create_weekly_activity_stats_table",
+        lambda: table_exists(db, "weekly_activity_stats"),
+        """
+        CREATE TABLE IF NOT EXISTS weekly_activity_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            week_start TEXT NOT NULL,
+            activity_id INTEGER NOT NULL,
+            times_scheduled INTEGER DEFAULT 0,
+            times_completed INTEGER DEFAULT 0,
+            UNIQUE(week_start, activity_id)
+        )
+        """,
+    )
+
 
     run_migration(
         "create_paintings_table",
