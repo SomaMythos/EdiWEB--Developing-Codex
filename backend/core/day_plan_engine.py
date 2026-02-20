@@ -10,7 +10,7 @@ class DayPlanEngine:
         with Database() as db:
             return db.fetchall(
                 """
-                SELECT dp.id, dp.date, dp.start_time, dp.duration, dp.activity_id, dp.source_type, a.title
+                SELECT dp.id, dp.date, dp.start_time, dp.duration, dp.activity_id, dp.source_type, dp.block_name, dp.block_category, dp.updated_source, a.title
                 FROM daily_plan_blocks dp
                 LEFT JOIN activities a ON a.id = dp.activity_id
                 WHERE dp.date = ?
@@ -20,11 +20,15 @@ class DayPlanEngine:
             )
 
     @staticmethod
-    def insert_plan_block(plan_date, start_time, duration, activity_id, source_type):
+    def insert_plan_block(plan_date, start_time, duration, activity_id, source_type, block_name=None, block_category=None, updated_source="manual"):
         with Database() as db:
             db.execute(
-                "INSERT INTO daily_plan_blocks (date, start_time, duration, activity_id, source_type) VALUES (?, ?, ?, ?, ?)",
-                (plan_date, start_time, duration, activity_id, source_type),
+                """
+                INSERT INTO daily_plan_blocks
+                (date, start_time, duration, activity_id, source_type, block_name, block_category, updated_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (plan_date, start_time, duration, activity_id, source_type, block_name, block_category, updated_source),
             )
             return db.lastrowid
 

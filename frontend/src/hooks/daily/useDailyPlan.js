@@ -100,6 +100,37 @@ export function useDailyPlan(selectedDate) {
     }
   }, [fetchSummary, selectedDate]);
 
+  const updateBlock = useCallback(async (blockId, payload) => {
+    setActionState(createUiState("loading"));
+    const previousBlocks = [...blocks];
+    const updatedBlocks = blocks.map(block => (
+      block.id === blockId
+        ? {
+          ...block,
+          start_time: payload.start_time,
+          duration: payload.duration,
+          block_name: payload.block_name,
+          block_category: payload.block_category,
+          updated_source: payload.updated_source || "manual",
+          activity_title: payload.block_name || block.activity_title
+        }
+        : block
+    )).sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+    setBlocks(updatedBlocks);
+
+    try {
+      await dailyApi.updateBlock(blockId, payload);
+      await fetchSummary(selectedDate);
+      setActionState(createUiState("success", null, "Bloco atualizado com sucesso."));
+    } catch (error) {
+      console.error(error);
+      setBlocks(previousBlocks);
+      const backendMessage = getBackendErrorMessage(error);
+      setActionState(createUiState("error", backendMessage || "Não foi possível editar o bloco."));
+    }
+  }, [blocks, fetchSummary, selectedDate]);
+
   const completedDuration = blocks.filter(b => isBlockCompleted(b.completed)).reduce((sum, b) => sum + b.duration, 0);
   const totalDuration = blocks.reduce((sum, b) => sum + b.duration, 0);
 
@@ -117,6 +148,7 @@ export function useDailyPlan(selectedDate) {
     toggleDayType,
     generateDaily,
     toggleCompletion,
+    updateBlock,
     clearActionState: () => setActionState(createUiState())
   };
 }
