@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Dict
 from data.database import Database
+from core.daily_override_engine import DailyOverrideEngine
 
 
 class DailyDisciplineEngine:
@@ -42,10 +43,7 @@ class DailyDisciplineEngine:
             # 2️⃣ IDENTIFICAR TIPO DO DIA
             # ==============================
 
-            dt = datetime.strptime(target_date, "%Y-%m-%d")
-            weekday = dt.weekday()
-            is_weekend = weekday >= 5
-            day_type = "off" if is_weekend else "work"
+            day_type = DailyOverrideEngine.get_day_type(target_date)
 
             # ==============================
             # 3️⃣ FILTRAR POR FREQUENCY_TYPE
@@ -172,5 +170,4 @@ class DailyDisciplineEngine:
                     break
 
             return final_list
-
 
