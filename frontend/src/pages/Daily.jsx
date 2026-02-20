@@ -4,6 +4,7 @@ import DailyTimeline from "../components/daily/DailyTimeline";
 import DayConfigModal from "../components/daily/DayConfigModal";
 import RoutinesModal from "../components/daily/RoutinesModal";
 import ActivitiesModal from "../components/daily/ActivitiesModal";
+import EditBlockModal from "../components/daily/EditBlockModal";
 import { useDailyPlan } from "../hooks/daily/useDailyPlan";
 import { useDailyConfig } from "../hooks/daily/useDailyConfig";
 import { useDailyRoutines } from "../hooks/daily/useDailyRoutines";
@@ -35,6 +36,7 @@ function getSuggestion(reason) {
 export default function Daily() {
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
+  const [editingBlock, setEditingBlock] = useState(null);
 
   const dailyPlan = useDailyPlan(selectedDate);
   const dailyConfig = useDailyConfig();
@@ -103,6 +105,14 @@ export default function Daily() {
         blocks={dailyPlan.blocks}
         loadState={dailyPlan.loadState}
         onToggleCompletion={dailyPlan.toggleCompletion}
+        onEditBlock={setEditingBlock}
+      />
+
+      <EditBlockModal
+        show={Boolean(editingBlock)}
+        block={editingBlock}
+        onClose={() => setEditingBlock(null)}
+        onSave={dailyPlan.updateBlock}
       />
 
       {dailyPlan.generationResult && (

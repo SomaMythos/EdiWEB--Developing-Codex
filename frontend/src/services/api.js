@@ -32,6 +32,7 @@ export const dailyApi = {
   overrideDayType: (date, isOff) => api.post('/daily/override', { date, is_off: isOff }),
   generate: (date) => api.post('/daily/generate', null, { params: { date } }),
   completeBlock: (blockId, completed) => api.patch(`/daily/block/${blockId}/complete`, { completed }),
+  updateBlock: (blockId, payload) => api.patch(`/daily/block/${blockId}`, payload),
 };
 
 export const routinesApi = {

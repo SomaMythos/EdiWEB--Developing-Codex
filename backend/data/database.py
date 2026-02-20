@@ -164,6 +164,10 @@ def apply_migrations(db):
             duration INTEGER NOT NULL,
             activity_id INTEGER,
             source_type TEXT DEFAULT 'manual',
+            block_name TEXT,
+            block_category TEXT,
+            completed INTEGER DEFAULT 0,
+            updated_source TEXT DEFAULT 'auto',
             FOREIGN KEY(activity_id) REFERENCES activities(id)
         )
         """,
@@ -194,6 +198,31 @@ def apply_migrations(db):
             UNIQUE(week_start, activity_id)
         )
         """,
+    )
+
+
+    run_migration(
+        "add_daily_plan_block_name",
+        lambda: column_exists(db, "daily_plan_blocks", "block_name"),
+        "ALTER TABLE daily_plan_blocks ADD COLUMN block_name TEXT",
+    )
+
+    run_migration(
+        "add_daily_plan_block_category",
+        lambda: column_exists(db, "daily_plan_blocks", "block_category"),
+        "ALTER TABLE daily_plan_blocks ADD COLUMN block_category TEXT",
+    )
+
+    run_migration(
+        "add_daily_plan_completed",
+        lambda: column_exists(db, "daily_plan_blocks", "completed"),
+        "ALTER TABLE daily_plan_blocks ADD COLUMN completed INTEGER DEFAULT 0",
+    )
+
+    run_migration(
+        "add_daily_plan_updated_source",
+        lambda: column_exists(db, "daily_plan_blocks", "updated_source"),
+        "ALTER TABLE daily_plan_blocks ADD COLUMN updated_source TEXT DEFAULT 'auto'",
     )
 
 

@@ -1201,6 +1201,17 @@ class DayPlanPayload(BaseModel):
     duration: int
     activity_id: Optional[int] = None
     source_type: str = "manual"
+    block_name: Optional[str] = None
+    block_category: Optional[str] = None
+    updated_source: Optional[str] = "manual"
+
+
+class DailyBlockUpdatePayload(BaseModel):
+    start_time: str
+    duration: int
+    block_name: Optional[str] = None
+    block_category: Optional[str] = None
+    updated_source: Optional[str] = "manual"
 
 
 @app.get("/api/dashboard/overview")
@@ -1612,6 +1623,9 @@ async def day_plan_list(date: Optional[str] = None):
                     dpb.duration,
                     dpb.activity_id,
                     dpb.source_type,
+                    dpb.block_name,
+                    dpb.block_category,
+                    dpb.updated_source,
                     a.title as activity_title
                 FROM daily_plan_blocks dpb
                 LEFT JOIN activities a ON a.id = dpb.activity_id
@@ -1630,7 +1644,16 @@ async def day_plan_list(date: Optional[str] = None):
 
 @app.post("/api/day-plan")
 async def day_plan_add(payload: DayPlanPayload):
-    bid = DayPlanEngine.insert_plan_block(payload.date, payload.start_time, payload.duration, payload.activity_id, payload.source_type)
+    bid = DayPlanEngine.insert_plan_block(
+        payload.date,
+        payload.start_time,
+        payload.duration,
+        payload.activity_id,
+        payload.source_type,
+        payload.block_name,
+        payload.block_category,
+        payload.updated_source,
+    )
     return {"success": True, "data": {"id": bid}}
 
 
@@ -1891,6 +1914,22 @@ class DailyBlockCompletePayload(BaseModel):
 async def complete_daily_block(block_id: int, payload: DailyBlockCompletePayload):
     DailyEngine.toggle_block_completion(block_id, payload.completed)
     return {"success": True}
+
+
+@app.patch("/api/daily/block/{block_id}")
+async def update_daily_block(block_id: int, payload: DailyBlockUpdatePayload):
+    try:
+        DailyEngine.update_block(
+            block_id,
+            payload.start_time,
+            payload.duration,
+            payload.block_name,
+            payload.block_category,
+            payload.updated_source or "manual"
+        )
+        return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/api/daily/consistency")

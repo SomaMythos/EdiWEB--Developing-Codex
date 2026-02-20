@@ -312,7 +312,9 @@ CREATE TABLE IF NOT EXISTS daily_plan_blocks (
     activity_id INTEGER,
     source_type TEXT,
     block_name TEXT,
-    completed INTEGER DEFAULT 0
+    block_category TEXT,
+    completed INTEGER DEFAULT 0,
+    updated_source TEXT DEFAULT 'auto'
 );
 
 -- =========================

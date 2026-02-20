@@ -2,7 +2,7 @@ import React from "react";
 import "./DailyTimeline.css";
 import { addMinutesToTime, formatDuration, isBlockCompleted } from "../../hooks/daily/utils";
 
-export default function DailyTimeline({ blocks, loadState, onToggleCompletion }) {
+export default function DailyTimeline({ blocks, loadState, onToggleCompletion, onEditBlock }) {
   if (loadState.status === "loading") return <div className="daily-loading">Carregando...</div>;
   if (loadState.status === "error") return <div className="daily-status daily-status--error">{loadState.error}</div>;
 
@@ -26,7 +26,12 @@ export default function DailyTimeline({ blocks, loadState, onToggleCompletion })
                 <div className="daily-block__duration">{formatDuration(block.duration)}</div>
               </div>
             </div>
-            <div className="daily-block__name">{block.activity_title || "Bloco fixo"}</div>
+            <div className="daily-block__right">
+              <div className="daily-block__name">{block.activity_title || "Bloco fixo"}</div>
+              <button type="button" className="daily-block__edit" onClick={() => onEditBlock(block)}>
+                Editar
+              </button>
+            </div>
           </div>
         );
       })}

@@ -3,6 +3,7 @@ from typing import Dict, Any, List
 from data.database import Database
 from core.day_engine import generate_day_schedule
 from core.daily_discipline_engine import DailyDisciplineEngine
+from core.time_overlap import add_minutes, intervals_overlap
 
 class DailyEngine:
 
@@ -367,8 +368,8 @@ class DailyEngine:
                 db.execute(
                     """
                     INSERT INTO daily_plan_blocks
-                    (date, start_time, duration, activity_id, source_type, block_name)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (date, start_time, duration, activity_id, source_type, block_name, block_category, updated_source)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         target_date,
@@ -376,7 +377,9 @@ class DailyEngine:
                         duration,
                         activity_id,
                         source_type,
-                        item["name"]
+                        item["name"],
+                        item.get("category"),
+                        "auto"
                     )
                 )
 
@@ -405,6 +408,9 @@ class DailyEngine:
                     d.duration,
                     d.completed,
                     d.source_type,
+                    d.block_name,
+                    d.block_category,
+                    d.updated_source,
                     d.activity_id,
                     COALESCE(a.title, d.block_name) AS activity_title
                 FROM daily_plan_blocks d
@@ -440,6 +446,9 @@ class DailyEngine:
                 "duration": night_block["duration"] + early_block["duration"],
                 "completed": night_block["completed"] and early_block["completed"],
                 "source_type": "fixed",
+                "block_name": "Dormir",
+                "block_category": "sleep",
+                "updated_source": "auto",
                 "activity_id": None,
                 "activity_title": "Dormir"
             }
@@ -496,6 +505,67 @@ class DailyEngine:
                     "times_completed",
                     delta
                 )
+
+    @staticmethod
+    def update_block(
+        block_id: int,
+        start_time: str,
+        duration: int,
+        block_name: str = None,
+        block_category: str = None,
+        edit_source: str = "manual"
+    ):
+        with Database() as db:
+            block = db.fetchone(
+                """
+                SELECT id, date
+                FROM daily_plan_blocks
+                WHERE id = ?
+                """,
+                (block_id,)
+            )
+
+            if not block:
+                raise ValueError("Bloco não encontrado.")
+
+            if duration <= 0:
+                raise ValueError("duration deve ser maior que zero.")
+
+            try:
+                datetime.strptime(start_time, "%H:%M")
+            except ValueError:
+                raise ValueError("start_time deve estar no formato HH:MM.")
+
+            proposed_end = add_minutes(start_time, duration)
+
+            fixed_blocks = db.fetchall(
+                """
+                SELECT id, start_time, duration
+                FROM daily_plan_blocks
+                WHERE date = ?
+                  AND source_type = 'fixed'
+                  AND id != ?
+                """,
+                (block["date"], block_id)
+            )
+
+            for fixed_block in fixed_blocks:
+                fixed_end = add_minutes(fixed_block["start_time"], fixed_block["duration"])
+                if intervals_overlap(start_time, proposed_end, fixed_block["start_time"], fixed_end):
+                    raise ValueError("Conflito de horário com bloco fixo.")
+
+            db.execute(
+                """
+                UPDATE daily_plan_blocks
+                SET start_time = ?,
+                    duration = ?,
+                    block_name = COALESCE(?, block_name),
+                    block_category = COALESCE(?, block_category),
+                    updated_source = ?
+                WHERE id = ?
+                """,
+                (start_time, duration, block_name, block_category, edit_source, block_id)
+            )
 
 
     @staticmethod
