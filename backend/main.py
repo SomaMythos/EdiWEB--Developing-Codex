@@ -13,7 +13,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, conint
 from typing import Optional, List
 from datetime import datetime
 
@@ -1636,6 +1636,8 @@ class DailyConfigPayload(BaseModel):
     buffer_between: int
     granularity_min: int
     avoid_category_adjacent: bool
+    discipline_weight: conint(ge=0)
+    fun_weight: conint(ge=0)
 
 
 @app.get("/api/day-config")
@@ -1645,15 +1647,20 @@ async def get_day_config():
 
 @app.post("/api/day-config")
 async def update_day_config(payload: DailyConfigPayload):
-    DailyConfigEngine.update(
-        payload.sleep_start,
-        payload.sleep_end,
-        payload.work_start,
-        payload.work_end,
-        payload.buffer_between,
-        payload.granularity_min,
-        payload.avoid_category_adjacent,
-    )
+    try:
+        DailyConfigEngine.update(
+            payload.sleep_start,
+            payload.sleep_end,
+            payload.work_start,
+            payload.work_end,
+            payload.buffer_between,
+            payload.granularity_min,
+            payload.avoid_category_adjacent,
+            payload.discipline_weight,
+            payload.fun_weight,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"success": True}
     
 #===========================================================================
