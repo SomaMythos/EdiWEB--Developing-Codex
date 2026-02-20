@@ -49,6 +49,40 @@ const [newActivity, setNewActivity] = useState({
   is_fun: false
 });
 
+function getFrequencyLabel(frequencyType) {
+  const labels = {
+    flex: "Flexível",
+    everyday: "Todo Dia",
+    workday: "Work Day",
+    offday: "Off Day"
+  };
+
+  return labels[frequencyType] || "Flexível";
+}
+
+function formatFixedTime(timeValue) {
+  if (!timeValue) return null;
+  return String(timeValue).slice(0, 5);
+}
+
+function handleFrequencyChange(frequencyType) {
+  setNewActivity(prev => {
+    if (frequencyType === "flex") {
+      return {
+        ...prev,
+        frequency_type: "flex",
+        fixed_time: "",
+        fixed_duration: 30
+      };
+    }
+
+    return {
+      ...prev,
+      frequency_type: frequencyType
+    };
+  });
+}
+
 
 
   useEffect(() => {
@@ -659,12 +693,15 @@ function mergeSequentialBlocks(blocks) {
     : `${a.min_duration} - ${a.max_duration} min`}
 </div>
 <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
-  {a.frequency_type === "everyday" && "Todo Dia • "}
-  {a.frequency_type === "workday" && "Work Day • "}
-  {a.frequency_type === "offday" && "Off Day • "}
-  {a.frequency_type === "flex" && "Flexível • "}
-  {a.is_disc ? "Disciplina" : ""}
-  {a.is_fun ? "Diversão" : ""}
+  {getFrequencyLabel(a.frequency_type)}
+  {a.frequency_type !== "flex" && formatFixedTime(a.fixed_time)
+    ? ` • Horário fixo ${formatFixedTime(a.fixed_time)}`
+    : ""}
+  {a.frequency_type !== "flex" && a.fixed_duration
+    ? ` • Duração fixa ${a.fixed_duration} min`
+    : ""}
+  {a.is_disc ? " • Disciplina" : ""}
+  {a.is_fun ? " • Diversão" : ""}
 </div>
 
               </div>
@@ -777,12 +814,7 @@ function mergeSequentialBlocks(blocks) {
       type="radio"
       name="frequency"
       checked={newActivity.frequency_type === "flex"}
-      onChange={() =>
-        setNewActivity({
-          ...newActivity,
-          frequency_type: "flex"
-        })
-      }
+      onChange={() => handleFrequencyChange("flex")}
     />
     Flexível
   </label>
@@ -792,12 +824,7 @@ function mergeSequentialBlocks(blocks) {
       type="radio"
       name="frequency"
       checked={newActivity.frequency_type === "everyday"}
-      onChange={() =>
-        setNewActivity({
-          ...newActivity,
-          frequency_type: "everyday"
-        })
-      }
+      onChange={() => handleFrequencyChange("everyday")}
     />
     Todo Dia
   </label>
@@ -807,12 +834,7 @@ function mergeSequentialBlocks(blocks) {
       type="radio"
       name="frequency"
       checked={newActivity.frequency_type === "workday"}
-      onChange={() =>
-        setNewActivity({
-          ...newActivity,
-          frequency_type: "workday"
-        })
-      }
+      onChange={() => handleFrequencyChange("workday")}
     />
     Work Day
   </label>
@@ -822,12 +844,7 @@ function mergeSequentialBlocks(blocks) {
       type="radio"
       name="frequency"
       checked={newActivity.frequency_type === "offday"}
-      onChange={() =>
-        setNewActivity({
-          ...newActivity,
-          frequency_type: "offday"
-        })
-      }
+      onChange={() => handleFrequencyChange("offday")}
     />
     Off Day
   </label>
@@ -925,9 +942,19 @@ function mergeSequentialBlocks(blocks) {
       return;
     }
 
-    await axios.post(`${API_URL}/activities`, {
-      ...newActivity
-    });
+    const activityPayload = {
+      ...newActivity,
+      fixed_time:
+        newActivity.frequency_type === "flex"
+          ? null
+          : (newActivity.fixed_time || null),
+      fixed_duration:
+        newActivity.frequency_type === "flex"
+          ? null
+          : newActivity.fixed_duration
+    };
+
+    await axios.post(`${API_URL}/activities`, activityPayload);
 
 setNewActivity({
   title: "",
