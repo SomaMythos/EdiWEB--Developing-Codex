@@ -1,6 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-import { API_URL } from "./constants";
+import { dayConfigApi } from "../../services/api";
 import { createUiState, parseIntegerOrFallback } from "./utils";
 
 export function useDailyConfig() {
@@ -11,7 +10,7 @@ export function useDailyConfig() {
   const fetchConfig = async () => {
     setState(createUiState("loading"));
     try {
-      const res = await axios.get(`${API_URL}/day-config`);
+      const res = await dayConfigApi.get();
       if (res.data.success) {
         setConfig(res.data.data);
         setShowConfig(true);
@@ -28,7 +27,7 @@ export function useDailyConfig() {
 
     setState(createUiState("loading"));
     try {
-      await axios.post(`${API_URL}/day-config`, {
+      await dayConfigApi.save({
         sleep_start: config.sleep_start,
         sleep_end: config.sleep_end,
         work_start: config.work_start,

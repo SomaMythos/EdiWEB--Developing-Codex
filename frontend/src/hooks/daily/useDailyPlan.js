@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
-import { API_URL, DEFAULT_SUMMARY } from "./constants";
+import { dailyApi } from "../../services/api";
+import { DEFAULT_SUMMARY } from "./constants";
 import { createUiState, isBlockCompleted } from "./utils";
 
 export function useDailyPlan(selectedDate) {
@@ -19,17 +19,17 @@ export function useDailyPlan(selectedDate) {
   };
 
   const fetchDaily = useCallback(async date => {
-    const res = await axios.get(`${API_URL}/daily/${date}`);
+    const res = await dailyApi.getByDate(date);
     if (res.data.success) setBlocks(res.data.data);
   }, []);
 
   const fetchSummary = useCallback(async date => {
-    const res = await axios.get(`${API_URL}/daily/summary`, { params: { date } });
+    const res = await dailyApi.getSummary(date);
     if (res.data.success) setSummary(res.data.data);
   }, []);
 
   const fetchDayType = useCallback(async date => {
-    const res = await axios.get(`${API_URL}/daily/type`, { params: { date } });
+    const res = await dailyApi.getDayType(date);
     if (res.data.success) setDayType(res.data.data.type);
   }, []);
 
@@ -55,7 +55,7 @@ export function useDailyPlan(selectedDate) {
     const isOff = dayType === "work";
     setActionState(createUiState("loading"));
     try {
-      await axios.post(`${API_URL}/daily/override`, { date: selectedDate, is_off: isOff });
+      await dailyApi.overrideDayType(selectedDate, isOff);
       await refreshAll(selectedDate);
       setActionState(createUiState("success", null, "Tipo de dia atualizado."));
     } catch (error) {
@@ -69,7 +69,7 @@ export function useDailyPlan(selectedDate) {
     setActionState(createUiState("loading"));
     setGenerationResult(null);
     try {
-      const res = await axios.post(`${API_URL}/daily/generate`, null, { params: { date: selectedDate } });
+      const res = await dailyApi.generate(selectedDate);
       const generationData = res?.data?.data || {};
       setGenerationResult({
         notScheduled: Array.isArray(generationData.not_scheduled) ? generationData.not_scheduled : [],
@@ -90,7 +90,7 @@ export function useDailyPlan(selectedDate) {
     const nextState = !Boolean(currentState);
     setActionState(createUiState("loading"));
     try {
-      await axios.patch(`${API_URL}/daily/block/${blockId}/complete`, { completed: nextState });
+      await dailyApi.completeBlock(blockId, nextState);
       setBlocks(prev => prev.map(b => (b.id === blockId ? { ...b, completed: nextState } : b)));
       await fetchSummary(selectedDate);
       setActionState(createUiState("success", null, "Status do bloco atualizado."));

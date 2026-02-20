@@ -63,6 +63,28 @@ cd frontend
 npm install
 ```
 
+
+### Configuração de Ambiente do Frontend (.env)
+
+No frontend, a URL da API é configurada por `VITE_API_URL`.
+
+1. Crie o arquivo `frontend/.env`:
+
+```bash
+cd frontend
+cp .env.example .env 2>/dev/null || touch .env
+```
+
+2. Defina a variável:
+
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+Fallback controlado:
+- Em desenvolvimento (`npm run dev`), se `VITE_API_URL` não estiver definida, o frontend usa `http://localhost:8000/api`.
+- Em produção, o fallback padrão é `/api`.
+
 ---
 
 ## 🏃‍♂️ Executando o Projeto

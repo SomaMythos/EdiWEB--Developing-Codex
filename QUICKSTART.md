@@ -16,6 +16,23 @@ cd frontend
 npm install
 ```
 
+### 3. Configurar variável de ambiente do Frontend
+
+```bash
+cd frontend
+cp .env.example .env 2>/dev/null || touch .env
+```
+
+No arquivo `frontend/.env`, configure:
+
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+Fallback controlado:
+- Desenvolvimento: `http://localhost:8000/api`
+- Produção: `/api`
+
 ## Executar o Projeto
 
 ### Opção 1: Script Automático (Recomendado)
