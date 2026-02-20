@@ -8,6 +8,7 @@ FastAPI application for EDI Life Manager
 import logging
 import os
 import json
+import re
 from pathlib import Path
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -1774,7 +1775,41 @@ async def get_daily_routine_blocks(routine_id: int):
 
 @app.post("/api/daily/routines/blocks")
 async def add_daily_routine_block(payload: DailyRoutineBlockCreate):
+    time_pattern = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+    block_name = (payload.name or "").strip()
+    if not block_name:
+        raise HTTPException(status_code=400, detail="Nome do bloco é obrigatório")
+
+    if not time_pattern.match(payload.start_time):
+        raise HTTPException(status_code=400, detail="start_time deve estar no formato HH:MM")
+
+    if not time_pattern.match(payload.end_time):
+        raise HTTPException(status_code=400, detail="end_time deve estar no formato HH:MM")
+
+    if payload.start_time == payload.end_time:
+        raise HTTPException(status_code=400, detail="end_time deve ser diferente de start_time")
+
     with Database() as db:
+        existing_blocks = db.fetchall(
+            """
+            SELECT name, start_time, end_time
+            FROM daily_routine_blocks
+            WHERE routine_id = ?
+            """,
+            (payload.routine_id,),
+        )
+
+        for block in existing_blocks:
+            if intervals_overlap(payload.start_time, payload.end_time, block["start_time"], block["end_time"]):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Conflito de horário com bloco existente "
+                        f"'{block['name']}' ({block['start_time']}-{block['end_time']})"
+                    ),
+                )
+
         db.execute("""
             INSERT INTO daily_routine_blocks (
                 routine_id,
@@ -1788,7 +1823,7 @@ async def add_daily_routine_block(payload: DailyRoutineBlockCreate):
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             payload.routine_id,
-            payload.name,
+            block_name,
             payload.start_time,
             payload.end_time,
             payload.category,
