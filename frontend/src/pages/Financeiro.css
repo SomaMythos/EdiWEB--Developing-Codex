@@ -1,0 +1,215 @@
+.finance-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.finance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.finance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.finance-card {
+  padding: 20px;
+}
+
+.finance-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.finance-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.finance-section {
+  padding: 20px;
+}
+
+.expense-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.expense-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.expense-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+  transition: 0.2s ease;
+}
+
+.expense-icon-btn:hover {
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: 0.2s ease;
+}
+
+.icon-btn:hover {
+  color: var(--primary);
+  transform: scale(1.05);
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+.modal-card {
+  background: var(--bg-primary);
+  padding: 32px;
+  border-radius: 14px;
+  width: 650px;
+  max-width: 95%;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+.modal-card h3 {
+  margin-bottom: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+/* =========================
+   INPUTS MODERNOS
+========================= */
+
+.form-grid input,
+.add-expense-row input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  transition: 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.form-grid input:focus,
+.add-expense-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+}
+
+/* =========================
+   GASTOS FIXOS
+========================= */
+
+.add-expense-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.add-expense-row button {
+  background: var(--primary);
+  border: none;
+  color: white;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.add-expense-row button:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* =========================
+   BOTÕES MODAL
+========================= */
+
+.modal-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.empty {
+  color: var(--text-secondary);
+  padding: 10px 0;
+}
+
+.emoji-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.emoji-btn:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.emoji-btn.delete:hover {
+  transform: scale(1.2);
+}
+
+.emoji-btn.add {
+  font-size: 18px;
+}
+
+.finance-card h3 {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.recharts-wrapper {
+  font-size: 0.8rem;
+}
+
+.finance-chart-wrapper {
+  background: linear-gradient(
+    180deg,
+    rgba(16,185,129,0.03) 0%,
+    rgba(16,185,129,0.01) 100%
+  );
+  border-radius: 16px;
+  padding: 16px;
+}

@@ -1,0 +1,1193 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = "http://localhost:8000/api";
+
+export default function Daily() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [dayType, setDayType] = useState("work");
+  const [blocks, setBlocks] = useState([]);
+  const [summary, setSummary] = useState({
+    total_blocks: 0,
+    completed_blocks: 0,
+    percentage: 0
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+const [showConfig, setShowConfig] = useState(false);
+const [config, setConfig] = useState(null);
+
+const [showRoutineModal, setShowRoutineModal] = useState(false);
+const [activeRoutine, setActiveRoutine] = useState(null);
+const [routineBlocks, setRoutineBlocks] = useState([]);
+const [newBlock, setNewBlock] = useState({
+  name: "",
+  start_time: "",
+  end_time: "",
+  category: "fixed"
+});
+
+// ==========================
+// ACTIVITIES MODAL STATE
+// ==========================
+
+const [showActivitiesModal, setShowActivitiesModal] = useState(false);
+const [activities, setActivities] = useState([]);
+
+const [newActivity, setNewActivity] = useState({
+  title: "",
+  min_duration: 30,
+  max_duration: 60,
+  frequency_type: "flex", // flex | everyday | workday | offday
+  fixed_time: "",
+  fixed_duration: 30,
+  is_disc: true,
+  is_fun: false
+});
+
+
+
+  useEffect(() => {
+    fetchDaily(selectedDate);
+    fetchDayType(selectedDate);
+    fetchSummary(selectedDate);
+  }, [selectedDate]);
+
+  async function fetchDaily(date) {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/daily/${date}`);
+      if (res.data.success) {
+        setBlocks(res.data.data);
+      }
+    } catch {
+      setBlocks([]);
+    }
+    setLoading(false);
+  }
+
+  async function fetchSummary(date) {
+    try {
+      const res = await axios.get(`${API_URL}/daily/summary`, {
+        params: { date }
+      });
+
+      if (res.data.success) {
+        setSummary(res.data.data);
+      }
+    } catch {
+      setSummary({
+        total_blocks: 0,
+        completed_blocks: 0,
+        percentage: 0
+      });
+    }
+  }
+
+  async function fetchDayType(date) {
+    try {
+      const res = await axios.get(`${API_URL}/daily/type`, {
+        params: { date }
+      });
+      if (res.data.success) {
+        setDayType(res.data.data.type);
+      }
+    } catch {
+      setDayType("work");
+    }
+  }
+
+async function fetchConfig() {
+  const res = await axios.get(`${API_URL}/day-config`);
+  if (res.data.success) {
+    setConfig(res.data.data);
+  }
+}
+
+async function fetchActiveRoutine(date) {
+  const res = await axios.get(`${API_URL}/daily/routine`, {
+    params: { date }
+  });
+
+  console.log("Routine fetch response:", res.data);
+
+  if (res.data.success && res.data.data) {
+    setActiveRoutine(res.data.data.routine);
+    setRoutineBlocks(res.data.data.blocks || []);
+  } else {
+    setActiveRoutine(null);
+    setRoutineBlocks([]);
+  }
+}
+
+async function fetchActivities() {
+  try {
+    const res = await axios.get(`${API_URL}/activities`);
+    if (res.data.success) {
+      setActivities(res.data.data);
+    }
+  } catch (err) {
+    console.error("Erro ao buscar activities:", err);
+  }
+}
+
+// activity types removido
+
+
+
+
+  async function saveConfig() {
+    await axios.post(`${API_URL}/day-config`, {
+      ...config,
+      avoid_category_adjacent:
+        config.avoid_category_adjacent ? true : false
+    });
+
+    setShowConfig(false);
+  }
+
+  async function toggleDayType() {
+    const isOff = dayType === "work";
+
+    await axios.post(`${API_URL}/daily/override`, {
+      date: selectedDate,
+      is_off: isOff
+    });
+
+    await fetchDayType(selectedDate);
+    await fetchDaily(selectedDate);
+    await fetchSummary(selectedDate);
+  }
+
+  async function generateDaily() {
+    setGenerating(true);
+
+    await axios.post(`${API_URL}/daily/generate`, null, {
+      params: { date: selectedDate }
+    });
+
+    await fetchDaily(selectedDate);
+    await fetchSummary(selectedDate);
+
+    setGenerating(false);
+  }
+
+  async function toggleCompletion(blockId, currentState) {
+    await axios.patch(
+      `${API_URL}/daily/block/${blockId}/complete`,
+      { completed: !currentState }
+    );
+
+    setBlocks(prev =>
+      prev.map(b =>
+        b.id === blockId
+          ? { ...b, completed: !currentState }
+          : b
+      )
+    );
+
+    await fetchSummary(selectedDate);
+  }
+
+  function formatDuration(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+function addMinutesToTime(start, minutes) {
+  const [h, m] = start.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  const hh = Math.floor((total % 1440) / 60);
+  const mm = total % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function mergeSequentialBlocks(blocks) {
+  if (!blocks || blocks.length === 0) return [];
+
+  const sorted = [...blocks].sort((a, b) =>
+    a.start_time.localeCompare(b.start_time)
+  );
+
+  const merged = [];
+
+  for (let block of sorted) {
+    const last = merged[merged.length - 1];
+
+    const lastEnd =
+      last &&
+      addMinutesToTime(last.start_time, last.duration);
+
+    const isMidnightContinuation =
+      last &&
+      last.activity_title === block.activity_title &&
+      lastEnd === "23:59" &&
+      block.start_time === "00:00";
+
+    const isNormalContinuation =
+      last &&
+      last.activity_title === block.activity_title &&
+      lastEnd === block.start_time;
+
+    if (isNormalContinuation || isMidnightContinuation) {
+      last.duration += block.duration;
+    } else {
+      merged.push({ ...block });
+    }
+  }
+
+  return merged;
+}
+
+
+  
+  
+
+  return (
+    <div style={styles.container}>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <h2 style={styles.title}>Agenda do Dia</h2>
+
+          <div
+            style={{
+              ...styles.dayBadge,
+              background:
+                dayType === "work"
+                  ? "linear-gradient(135deg,#1976d2,#0d47a1)"
+                  : "linear-gradient(135deg,#9c27b0,#4a148c)"
+            }}
+          >
+            {dayType === "work" ? "WORK DAY" : "OFF DAY"}
+          </div>
+
+          {/* PROGRESS */}
+          <div style={styles.progressContainer}>
+            <div
+              style={{
+                ...styles.progressBar,
+                width: `${summary.percentage}%`
+              }}
+            />
+          </div>
+
+          <div style={styles.progressText}>
+            {summary.completed_blocks}/{summary.total_blocks} concluídos
+          </div>
+
+          {/* ESTATÍSTICAS */}
+          {blocks.length > 0 && (
+            <div style={styles.summaryCard}>
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Total Planejado</div>
+                <div style={styles.summaryValue}>
+                  {formatDuration(
+                    blocks.reduce((sum, b) => sum + b.duration, 0)
+                  )}
+                </div>
+              </div>
+
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Concluído</div>
+                <div style={styles.summaryValue}>
+                  {formatDuration(
+                    blocks
+                      .filter(b => b.completed === 1)
+                      .reduce((sum, b) => sum + b.duration, 0)
+                  )}
+                </div>
+              </div>
+
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Progresso</div>
+                <div style={styles.summaryValue}>
+                  {summary.percentage}%
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={styles.controls}>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            style={styles.dateInput}
+          />
+
+          <button
+            onClick={generateDaily}
+            style={styles.primaryButton}
+            disabled={generating}
+          >
+            {generating ? "Gerando..." : "Gerar Dia"}
+          </button>
+
+          <button
+            onClick={toggleDayType}
+            style={styles.secondaryButton}
+          >
+            Alternar Dia
+          </button>
+
+          <button
+  onClick={async () => {
+    await fetchConfig();
+    setShowConfig(true);
+  }}
+  style={styles.secondaryButton}
+>
+  ⚙ Configurar Dia
+</button>
+
+<button
+  onClick={async () => {
+    await fetchActiveRoutine(selectedDate);
+    setShowRoutineModal(true);
+  }}
+  style={styles.secondaryButton}
+>
+  🧩 Rotinas
+</button>
+<button
+  onClick={async () => {
+    await fetchActivities();
+    setShowActivitiesModal(true);
+  }}
+  style={styles.secondaryButton}
+>
+  📚 Activities
+</button>
+
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {showConfig && config && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3>Configuração do Dia</h3>
+
+            {[
+              ["Sono Início", "sleep_start"],
+              ["Sono Fim", "sleep_end"],
+              ["Work Início", "work_start"],
+              ["Work Fim", "work_end"]
+            ].map(([label, key]) => (
+              <div key={key} style={styles.formRow}>
+                <label>{label}</label>
+                <input
+                  type="time"
+                  value={config[key]}
+                  onChange={e =>
+                    setConfig({
+                      ...config,
+                      [key]: e.target.value
+                    })
+                  }
+                />
+              </div>
+            ))}
+
+            <div style={styles.formRow}>
+              <label>Buffer (min)</label>
+              <input
+                type="number"
+                value={config.buffer_between}
+                onChange={e =>
+                  setConfig({
+                    ...config,
+                    buffer_between: parseInt(e.target.value)
+                  })
+                }
+              />
+            </div>
+
+<div style={styles.formRow}>
+  <label>Peso Disciplina</label>
+  <input
+    type="number"
+    value={config.discipline_weight}
+    onChange={e =>
+      setConfig({
+        ...config,
+        discipline_weight: parseInt(e.target.value)
+      })
+    }
+  />
+</div>
+
+<div style={styles.formRow}>
+  <label>Peso Diversão</label>
+  <input
+    type="number"
+    value={config.fun_weight}
+    onChange={e =>
+      setConfig({
+        ...config,
+        fun_weight: parseInt(e.target.value)
+      })
+    }
+  />
+</div>
+
+
+            <div style={styles.formRow}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={
+                    config.avoid_category_adjacent === 1 ||
+                    config.avoid_category_adjacent === true
+                  }
+                  onChange={e =>
+                    setConfig({
+                      ...config,
+                      avoid_category_adjacent: e.target.checked
+                    })
+                  }
+                />
+                Evitar categorias adjacentes
+              </label>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                style={styles.secondaryButton}
+                onClick={() => setShowConfig(false)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                style={styles.primaryButton}
+                onClick={saveConfig}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+{/* ROTINE MODAL */}
+{showRoutineModal && (
+  <div style={styles.modalOverlay}>
+    <div style={{ ...styles.modal, width: "500px" }}>
+      <h3>Rotina ({dayType})</h3>
+
+      {!activeRoutine && (
+  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ opacity: 0.6 }}>
+      Nenhuma rotina configurada para este tipo de dia.
+    </div>
+
+    <button
+  style={styles.primaryButton}
+  onClick={async () => {
+    try {
+      console.log("Criando rotina para:", dayType);
+
+      const res = await axios.post(`${API_URL}/daily/routines`, {
+        name: `Rotina ${dayType === "work" ? "Work" : "Off"}`,
+        day_type: dayType
+      });
+
+      console.log("Resposta backend:", res.data);
+
+      await fetchActiveRoutine(selectedDate);
+    } catch (err) {
+      console.error("Erro ao criar rotina:", err);
+      alert("Erro ao criar rotina. Veja o console.");
+    }
+  }}
+>
+  Criar rotina {dayType === "work" ? "Work" : "Off"}
+</button>
+
+  </div>
+)}
+
+      {routineBlocks.map(block => (
+        <div
+          key={block.id}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "8px 0",
+            borderBottom: "1px solid #2a2a35"
+          }}
+        >
+          <div>
+            <strong>{block.name}</strong>
+            <div style={{ fontSize: "12px", opacity: 0.6 }}>
+              {block.start_time} - {block.end_time}
+            </div>
+          </div>
+
+          <button
+            style={styles.secondaryButton}
+            onClick={async () => {
+              await axios.delete(
+                `${API_URL}/daily/routines/blocks/${block.id}`
+              );
+              await fetchActiveRoutine(selectedDate);
+            }}
+          >
+            Remover
+          </button>
+        </div>
+      ))}
+
+      {activeRoutine && (
+        <>
+          <h4 style={{ marginTop: "20px" }}>Novo Bloco</h4>
+
+          <div style={styles.formRow}>
+            <input
+              placeholder="Nome"
+              value={newBlock.name}
+              onChange={e =>
+                setNewBlock({ ...newBlock, name: e.target.value })
+              }
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <input
+              type="time"
+              value={newBlock.start_time}
+              onChange={e =>
+                setNewBlock({ ...newBlock, start_time: e.target.value })
+              }
+            />
+
+            <input
+              type="time"
+              value={newBlock.end_time}
+              onChange={e =>
+                setNewBlock({ ...newBlock, end_time: e.target.value })
+              }
+            />
+          </div>
+
+          <button
+            style={{ ...styles.primaryButton, marginTop: "10px" }}
+            onClick={async () => {
+              await axios.post(
+                `${API_URL}/daily/routines/blocks`,
+                {
+                  routine_id: activeRoutine.id,
+                  ...newBlock
+                }
+              );
+
+              setNewBlock({
+                name: "",
+                start_time: "",
+                end_time: "",
+                category: "fixed"
+              });
+
+              await fetchActiveRoutine(selectedDate);
+            }}
+          >
+            Adicionar
+          </button>
+        </>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+        <button
+          style={styles.secondaryButton}
+          onClick={() => setShowRoutineModal(false)}
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* ACTIVITIES MODAL */}
+{showActivitiesModal && (
+  <div style={styles.modalOverlay}>
+    <div
+      style={{
+        ...styles.modal,
+        width: "650px",
+        alignItems: "center",
+        textAlign: "center"
+      }}
+    >
+      <h3 style={{ marginBottom: 10 }}>Atividades</h3>
+
+
+      <div style={{ marginBottom: 10 }} />
+
+
+
+      {/* ========================= */}
+      {/* ACTIVITIES TAB */}
+      {/* ========================= */}
+      <div style={{ width: "100%", maxWidth: 500 }}>
+
+          {activities.map(a => (
+            <div
+              key={a.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "6px 0",
+                borderBottom: "1px solid #2a2a35"
+              }}
+            >
+              <div>
+                <strong>{a.title}</strong>
+<div style={{ fontSize: 12, opacity: 0.6 }}>
+  {a.min_duration === a.max_duration
+    ? `${a.min_duration} min`
+    : `${a.min_duration} - ${a.max_duration} min`}
+</div>
+<div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
+  {a.frequency_type === "everyday" && "Todo Dia • "}
+  {a.frequency_type === "workday" && "Work Day • "}
+  {a.frequency_type === "offday" && "Off Day • "}
+  {a.frequency_type === "flex" && "Flexível • "}
+  {a.is_disc ? "Disciplina" : ""}
+  {a.is_fun ? "Diversão" : ""}
+</div>
+
+              </div>
+
+<div style={{ display: "flex", gap: 8 }}>
+  <button
+    style={styles.secondaryButton}
+    onClick={async () => {
+      await axios.patch(
+        `${API_URL}/activities/${a.id}/toggle`
+      );
+      await fetchActivities();
+    }}
+  >
+    {a.active ? "Desativar" : "Ativar"}
+  </button>
+
+  <button
+    style={{
+      ...styles.secondaryButton,
+      background: "#3a1f1f",
+      border: "1px solid #5a2a2a"
+    }}
+    onClick={async () => {
+      if (!window.confirm("Excluir atividade permanentemente?")) return;
+
+      await axios.delete(`${API_URL}/activities/${a.id}`);
+      await fetchActivities();
+    }}
+  >
+    Excluir
+  </button>
+</div>
+
+            </div>
+          ))}
+
+          <h4 style={{ marginTop: 30, marginBottom: 15 }}>
+            Nova Atividade
+          </h4>
+
+<div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+
+<input
+  style={{
+    width: "100%",
+    padding: "8px",
+    borderRadius: "6px",
+    border: "1px solid #2a2a35",
+    background: "#14141b",
+    color: "#fff"
+  }}
+  placeholder="Título"
+  value={newActivity.title}
+  onChange={e =>
+    setNewActivity({ ...newActivity, title: e.target.value })
+  }
+/>
+
+<div style={{ display: "flex", gap: 10 }}>
+  <input
+    style={{
+      flex: 1,
+      padding: "8px",
+      borderRadius: "6px",
+      border: "1px solid #2a2a35",
+      background: "#14141b",
+      color: "#fff"
+    }}
+    type="number"
+    placeholder="Mín (min)"
+    value={newActivity.min_duration}
+    onChange={e =>
+      setNewActivity({
+        ...newActivity,
+        min_duration: parseInt(e.target.value)
+      })
+    }
+  />
+
+  <input
+    style={{
+      flex: 1,
+      padding: "8px",
+      borderRadius: "6px",
+      border: "1px solid #2a2a35",
+      background: "#14141b",
+      color: "#fff"
+    }}
+    type="number"
+    placeholder="Máx (min)"
+    value={newActivity.max_duration}
+    onChange={e =>
+      setNewActivity({
+        ...newActivity,
+        max_duration: parseInt(e.target.value)
+      })
+    }
+  />
+</div>
+
+<div style={{ display: "flex", justifyContent: "center", gap: 25, marginTop: 10 }}>
+
+
+
+  <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
+
+  <label>
+    <input
+      type="radio"
+      name="frequency"
+      checked={newActivity.frequency_type === "flex"}
+      onChange={() =>
+        setNewActivity({
+          ...newActivity,
+          frequency_type: "flex"
+        })
+      }
+    />
+    Flexível
+  </label>
+
+  <label>
+    <input
+      type="radio"
+      name="frequency"
+      checked={newActivity.frequency_type === "everyday"}
+      onChange={() =>
+        setNewActivity({
+          ...newActivity,
+          frequency_type: "everyday"
+        })
+      }
+    />
+    Todo Dia
+  </label>
+
+  <label>
+    <input
+      type="radio"
+      name="frequency"
+      checked={newActivity.frequency_type === "workday"}
+      onChange={() =>
+        setNewActivity({
+          ...newActivity,
+          frequency_type: "workday"
+        })
+      }
+    />
+    Work Day
+  </label>
+
+  <label>
+    <input
+      type="radio"
+      name="frequency"
+      checked={newActivity.frequency_type === "offday"}
+      onChange={() =>
+        setNewActivity({
+          ...newActivity,
+          frequency_type: "offday"
+        })
+      }
+    />
+    Off Day
+  </label>
+
+</div>
+
+{newActivity.frequency_type !== "flex" && (
+  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+    <input
+      type="time"
+      value={newActivity.fixed_time}
+      onChange={e =>
+        setNewActivity({
+          ...newActivity,
+          fixed_time: e.target.value
+        })
+      }
+      style={{
+        padding: "8px",
+        borderRadius: "6px",
+        border: "1px solid #2a2a35",
+        background: "#14141b",
+        color: "#fff"
+      }}
+    />
+
+    <input
+      type="number"
+      placeholder="Duração (min)"
+      value={newActivity.fixed_duration}
+      onChange={e =>
+        setNewActivity({
+          ...newActivity,
+          fixed_duration: parseInt(e.target.value)
+        })
+      }
+      style={{
+        padding: "8px",
+        borderRadius: "6px",
+        border: "1px solid #2a2a35",
+        background: "#14141b",
+        color: "#fff"
+      }}
+    />
+  </div>
+)}
+
+
+  <label>
+    <input
+      type="checkbox"
+      checked={newActivity.is_disc}
+      onChange={e =>
+        setNewActivity({
+          ...newActivity,
+          is_disc: e.target.checked,
+          is_fun: false
+        })
+      }
+    />
+    Disciplina
+  </label>
+
+  <label>
+    <input
+      type="checkbox"
+      checked={newActivity.is_fun}
+      onChange={e =>
+        setNewActivity({
+          ...newActivity,
+          is_fun: e.target.checked,
+          is_disc: false
+        })
+      }
+    />
+    Diversão
+  </label>
+
+</div>
+
+</div>
+
+<button
+
+  style={{
+    ...styles.primaryButton,
+    marginTop: 20,
+    alignSelf: "center",
+    padding: "10px 30px"
+  }}
+  onClick={async () => {
+
+    if (!newActivity.title) {
+      alert("Preencha o título.");
+      return;
+    }
+
+    await axios.post(`${API_URL}/activities`, {
+      ...newActivity
+    });
+
+setNewActivity({
+  title: "",
+  min_duration: 30,
+  max_duration: 60,
+  frequency_type: "flex",
+  fixed_time: "",
+  fixed_duration: 30,
+  is_disc: true,
+  is_fun: false
+});
+
+    await fetchActivities();
+  }}
+>
+  Criar
+</button>
+
+        </div>
+
+      {/* ========================= */}
+      {/* TYPES TAB */}
+      {/* ========================= */}
+      
+	  
+	  {/* Aba Types removida completamente */}
+
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+        <button
+          style={styles.secondaryButton}
+          onClick={() => setShowActivitiesModal(false)}
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+{/* TIMELINE */}
+      {loading ? (
+        <div style={styles.loading}>Carregando...</div>
+      ) : (
+        <div style={styles.timeline}>
+          {blocks.length === 0 && (
+            <div style={styles.empty}>
+              Nenhum plano gerado para este dia.
+            </div>
+          )}
+
+ {mergeSequentialBlocks(blocks).map(block => {
+  const endTime = addMinutesToTime(
+    block.start_time,
+    block.duration
+  );
+
+  return (
+    <div
+      key={block.id}
+      style={{
+        ...styles.block,
+        background: block.completed
+          ? "linear-gradient(135deg,#102d18,#0f1f16)"
+          : "#1a1a22",
+        borderColor: block.completed
+          ? "#00c853"
+          : "#2a2a35",
+        opacity: block.completed ? 0.7 : 1
+      }}
+    >
+      <div style={styles.left}>
+        <input
+          type="checkbox"
+          checked={block.completed === 1}
+          onChange={() =>
+            toggleCompletion(block.id, block.completed)
+          }
+          style={styles.checkbox}
+        />
+
+        <div>
+          <div style={styles.time}>
+            {block.start_time} - {endTime}
+          </div>
+          <div style={styles.duration}>
+            {formatDuration(block.duration)}
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.activityName}>
+        {block.activity_title || "Bloco fixo"}
+      </div>
+    </div>
+  );
+})}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+const styles = {
+  container: {
+    padding: "40px",
+    color: "#fff",
+    minHeight: "100vh",
+    background: "#0f0f14"
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "40px"
+  },
+  title: {
+    margin: 0,
+    fontSize: "22px",
+    fontWeight: 600
+  },
+  dayBadge: {
+    marginTop: "8px",
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: 600,
+    display: "inline-block"
+  },
+  controls: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center"
+  },
+  dateInput: {
+    background: "#1a1a22",
+    border: "1px solid #2a2a35",
+    color: "#fff",
+    padding: "8px 12px",
+    borderRadius: "6px"
+  },
+  primaryButton: {
+    background: "linear-gradient(135deg,#00c853,#009624)",
+    border: "none",
+    padding: "8px 16px",
+    borderRadius: "6px",
+    color: "#fff",
+    fontWeight: 600,
+    cursor: "pointer"
+  },
+  secondaryButton: {
+    background: "#1a1a22",
+    border: "1px solid #2a2a35",
+    padding: "8px 14px",
+    borderRadius: "6px",
+    color: "#ccc",
+    cursor: "pointer"
+  },
+  progressContainer: {
+    width: "220px",
+    height: "6px",
+    background: "#1a1a22",
+    borderRadius: "6px",
+    overflow: "hidden",
+    marginTop: "6px"
+  },
+  progressBar: {
+    height: "100%",
+    background: "linear-gradient(135deg,#00c853,#009624)",
+    transition: "width 0.3s ease"
+  },
+  progressText: {
+    fontSize: "12px",
+    opacity: 0.7,
+    marginTop: "6px"
+  },
+  summaryCard: {
+    display: "flex",
+    gap: "40px",
+    marginTop: "12px"
+  },
+  summaryItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px"
+  },
+  summaryLabel: {
+    fontSize: "12px",
+    opacity: 0.6
+  },
+  summaryValue: {
+    fontSize: "16px",
+    fontWeight: 600
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.6)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000
+  },
+  modal: {
+    background: "#1a1a22",
+    padding: "30px",
+    borderRadius: "12px",
+    width: "400px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px"
+  },
+  formRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px"
+  },
+  timeline: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    marginTop: "30px"
+  },
+  block: {
+    padding: "16px",
+    borderRadius: "10px",
+    border: "1px solid",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  left: {
+    display: "flex",
+    gap: "14px",
+    alignItems: "center"
+  },
+  checkbox: {
+    width: "18px",
+    height: "18px",
+    accentColor: "#00c853",
+    cursor: "pointer"
+  },
+  time: {
+    fontWeight: 600
+  },
+  duration: {
+    fontSize: "13px",
+    opacity: 0.7
+  },
+  activityName: {
+    fontWeight: 500,
+    opacity: 0.85
+  },
+  loading: {
+    opacity: 0.7
+  },
+  empty: {
+    opacity: 0.5,
+    fontStyle: "italic"
+  }
+};

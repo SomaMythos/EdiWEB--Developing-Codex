@@ -1,0 +1,423 @@
+.media-folder-section {
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.media-gallery-modal {
+  width: min(1200px, 98vw);
+  max-height: 95vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #1b1b1b 0%, #151515 100%);
+  color: #fff;
+  border-radius: 18px;
+  padding: 28px 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.media-folder-create-form,
+.media-folder-upload-form,
+.media-folder-rename-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.media-folder-feedback,
+.media-folder-loading,
+.media-folder-empty {
+  margin-top: 12px;
+  opacity: 0.85;
+}
+
+.media-folder-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.media-folder-card {
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.media-folder-preview {
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-folder-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.media-folder-empty-preview {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.media-folder-card h3 {
+  margin: 10px 0 4px;
+}
+
+.media-folder-card p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.media-folder-detail {
+  margin-top: 18px;
+  border-top: 1px solid #ececec;
+  padding-top: 14px;
+}
+
+.media-folder-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.media-folder-items-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.media-item-card {
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.media-item-card img {
+  width: 100%;
+  height: 130px;
+  object-fit: contain;
+  display: block;
+  cursor: zoom-in;
+}
+
+.media-folder-preview img {
+  cursor: zoom-in;
+}
+
+.media-item-card p {
+  margin: 0;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.dark-gallery-grid {
+  gap: 16px;
+}
+
+.dark-gallery-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+}
+
+.dark-image-wrapper {
+  background: #0f0f0f;
+  padding: 6px;
+}
+
+.dark-image-wrapper img {
+  cursor: zoom-in;
+  transition: transform 0.25s ease;
+}
+
+.dark-image-wrapper img:hover {
+  transform: scale(1.03);
+}
+
+/* VIEWER FULLSCREEN */
+
+.dark-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.dark-viewer-image {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  background: transparent;
+  border: none;
+  font-size: 26px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 42px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.viewer-nav.left {
+  left: 30px;
+}
+
+.viewer-nav.right {
+  right: 30px;
+}
+
+/* DARK MODAL */
+
+.dark-modal {
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+/* Upload section */
+
+.dark-upload-form {
+  margin-bottom: 18px;
+  padding: 12px;
+  background: #1b1b1b;
+  border: 1px solid #2b2b2b;
+  border-radius: 10px;
+}
+
+/* Gallery cards */
+
+.gallery-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.delete-btn:hover {
+  opacity: 0.7;
+}
+
+/* Drag effect */
+
+.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+/* Fade animation */
+
+.modal-backdrop {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Viewer improvements */
+
+.dark-viewer-overlay {
+  animation: fadeIn 0.2s ease;
+}
+
+/* Header Dark */
+
+.dark-header {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.icon-btn {
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  color: #eee;
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: #2a2a2a;
+}
+
+.icon-btn.danger {
+  color: #ff6b6b;
+  border-color: #3a1a1a;
+}
+
+/* Mini upload modal */
+
+.mini-upload-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+}
+
+.mini-upload-card {
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  padding: 20px;
+  border-radius: 12px;
+  width: 320px;
+}
+
+.dark-input {
+  background: #1b1b1b;
+  border: 1px solid #2a2a2a;
+  color: #eee;
+}
+
+
+/* Emoji buttons */
+
+.emoji-btn {
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.emoji-btn:hover {
+  transform: scale(1.15);
+  opacity: 0.85;
+}
+
+.emoji-btn.add {
+  color: #00d26a; /* green */
+}
+
+.emoji-btn.delete {
+  color: #ff4d4d; /* red */
+}
+
+/* ===== GALLERY HEADER ===== */
+
+.gallery-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.gallery-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+/* ===== EMOJI ICONS CLEAN ===== */
+
+.emoji-btn {
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 22px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.emoji-btn:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.emoji-btn.add {
+  color: #00d26a;
+  font-weight: 600;
+}
+
+.emoji-btn.delete {
+  color: #ff3b3b;
+  font-weight: 600;
+}
+
+/* Forçar modal totalmente dark */
+
+.media-gallery-modal.modal-card {
+  background: linear-gradient(180deg, #1b1b1b 0%, #151515 100%) !important;
+  color: #fff;
+}
+
+.emoji-btn.delete {
+  transform: scale(0.9);
+}
+
+.gallery-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.gallery-title-text {
+  font-weight: 500;
+}
+
+.gallery-date-text {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.7;
+  margin-top: 2px;
+}

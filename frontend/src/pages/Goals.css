@@ -1,0 +1,558 @@
+/* src/pages/Goals.css
+   Versão substituta completa — colar por cima do arquivo atual.
+   Objetivos:
+   - estrela principal (badge) centralizada verticalmente no lado direito do card
+   - botões (emoji) pequenos, alinhados horizontalmente no canto inferior direito
+   - botões aparecem ao hover / focus-within do card (acessível por teclado)
+   - evitar conflitos / regras duplicadas
+*/
+
+/* container */
+.goals-page-wow {
+  display: flex;
+  gap: 30px;
+  padding: 4px;
+  min-height: calc(100vh - 40px);
+  box-sizing: border-box;
+}
+
+/* left column */
+.goals-left-column {
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-btn {
+  padding: 4px 14px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.category-btn.active {
+  background: #ececff;
+  border-color: #c8c5ff;
+  font-weight: 760;
+}
+
+/* main */
+.goals-main {
+  background: #f7f8fc;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+.goals-header-wrapper {
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.goals-header-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.goals-title {
+  font-size: 60px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.stars-centered {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.star-yellow {
+  color: #facc15;
+  fill: #facc15;
+}
+
+.stars-number {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.header-actions-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-category-inline input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.btn {
+  padding: 8px 12px;
+  background: #6b5cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* --------- SUMMARY VIEW ---------- */
+.section-title {
+  font-size: 25px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.card {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 6px 16px rgba(30,30,40,0.06);
+}
+
+/* recent items */
+.recent-item-wide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.thumb-box {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.goal-thumb-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* center text in the recent item */
+.recent-mid {
+  flex: 1;
+  text-align: center;
+}
+
+.recent-title {
+  font-weight: 700;
+}
+
+.recent-right {
+  width: 120px;
+  text-align: right;
+}
+
+.progress-row-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-label-compact {
+  width: 140px;
+  font-weight: 600;
+}
+
+.progress-bar-outer-compact {
+  flex: 1;
+  height: 14px;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar-inner-compact {
+  height: 100%;
+  background: #1fb57a;
+}
+
+.progress-count-compact {
+  width: 60px;
+  text-align: right;
+}
+
+/* CATEGORY VIEW */
+.category-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* GOAL CARD - container base (IMPORTANTE) */
+.goal-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 3px solid rgba(0,0,0,0.04);
+  box-shadow: 0 8px 24px rgba(20,20,60,0.04);
+  border-radius: 8px;
+  position: relative;   /* referência absoluta para estrela e botões */
+  overflow: visible;
+  background: #fff;
+  min-height: 96px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  /* garante altura suficiente para posicionamento inferior */
+}
+
+.goal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(20,20,60,0.08);
+}
+
+/* left thumbnail column */
+.goal-left {
+  width: 78px;
+  flex: 0 0 78px;
+}
+
+/* main middle column (título e descrição) */
+.goal-middle {
+  flex: 1;
+  text-align: center;
+}
+
+/* title styling */
+.goal-title {
+  font-weight: 750;
+  font-size: 18px;
+}
+
+/* right column (conteúdo auxiliar) */
+.goal-right {
+  width: 210px;
+  flex: 0 0 210px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 62px;
+  position: static;   /* importante: remove contexto relativo */
+}
+
+/* FORM */
+.goal-form-card {
+  max-width: 650px;
+  margin: 0 auto 25px auto;
+}
+
+.goal-form-card h3 {
+  margin-bottom: 18px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.form-row input,
+.form-row textarea {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.form-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.star-picker-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stars-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+}
+
+.star-btn.filled {
+  color: #f5b642;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-danger {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+/* thumbnail specifics (form & list) */
+.thumb-box {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden; /* garante constraints */
+}
+
+.goal-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* ===========================
+   CUSTOM: estrela + ações (substituir bloco inteiro)
+   =========================== */
+
+/* ⭐ Badge: estrela grande, centralizada verticalmente à direita do card */
+.goal-stars-badge {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  width: 58px;     /* ⭐ maior */
+  height: 58px;    /* ⭐ maior */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  pointer-events: none;
+  z-index: 5;
+  transition: transform 150ms ease;
+}
+
+/* Caso use SVG (StarIcon), forçar preenchimento e zero outline */
+.goal-stars-badge svg {
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.4));
+  width: 100%;
+  height: 100%;
+  fill: #facc15;
+  color: #facc15;
+  stroke: none;
+}
+
+/* Se estiver usando emoji/star diretamente, reduzir o contorno óbvio do emoji não é possível pelo CSS.
+   Melhor usar o StarIcon (SVG) no JSX para aparência consistente.
+   Número dentro da estrela (se houver <span>) */
+.goal-stars-badge span {
+  position: absolute;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  pointer-events: none;
+}
+
+.goal-card:hover .goal-stars-badge {
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* ===========================
+   AÇÕES (botões emoji) — canto inferior direito, reveladas por hover / foco
+   =========================== */
+
+/* container das ações (por padrão escondido) */
+.goal-actions {
+  position: absolute;
+  bottom: 12px;   /* gruda no rodapé do CARD */
+  right: 16px;    /* gruda na lateral direita do CARD */
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+  z-index: 10;    /* acima da estrela */
+}
+
+/* mostrar ações quando o card estiver hover ou houver foco interno (acessibilidade) */
+.goal-card:hover .goal-actions,
+.goal-card:focus-within .goal-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* botões emoji — pequenos e discretos */
+.goal-icon-btn,
+.emoji-btn {
+  background: transparent;   /* ❌ remove fundo */
+  border: none;              /* ❌ remove borda */
+  font-size: 13px;           /* 🔹 menor */
+  cursor: pointer;
+  padding: 2px;              /* 🔹 mais compacto */
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;          /* ❌ remove sombra */
+  transition: transform 120ms ease;
+}
+
+/* hover/focus nos botões para feedback */
+.goal-icon-btn:hover,
+.goal-icon-btn:focus,
+.emoji-btn:hover,
+.emoji-btn:focus {
+  transform: translateY(-2px);
+  background: #fff;
+  outline: none;
+}
+
+/* diminuir ainda mais o ícone do concluir/editar */
+.goal-icon-btn.small {
+  font-size: 14px;
+  padding: 3px 5px;
+}
+
+
+/* foco visível (acessibilidade) */
+.goal-icon-btn:focus,
+.emoji-btn:focus {
+  box-shadow: 0 0 0 3px rgba(100,100,255,0.08);
+  border-radius: 6px;
+}
+
+/* ===========================
+   Fallbacks / pequenas melhorias
+   =========================== */
+
+/* Se o layout apresentar colisão entre estrela e ações (ajuste fino),
+   aumentar o padding-right do .goal-right ou mover a estrela mais para esquerda:
+   ex: .goal-stars-badge { right: 26px } ou .goal-right { padding-right: 36px } */
+
+/* Forçar que .goal-right não empurre conteúdo sobre a estrela */
+.goal-right { padding-right: 62px; } /* o suficiente para "não cair em cima" da estrela */
+
+/* garantir consistência visual em telas pequenas */
+@media (max-width: 900px) {
+  .goals-page-wow {
+      background: linear-gradient(180deg, #f8f9ff 0%, #eef1ff 100%);
+	  padding: 18px; gap: 12px; }
+  .goals-left-column { width: 170px; }
+  .goal-right { width: 160px; flex: 0 0 160px; padding-right: 56px; }
+  .goal-stars-badge { width: 40px; height: 40px; right: 12px; }
+}
+
+
+/* ===============================
+   STATUS VISUAL: PROGRESSO vs CONCLUÍDA
+   =============================== */
+
+/* Meta ativa (em progresso) */
+.goal-active {
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Meta concluída */
+.goal-completed {
+  background: linear-gradient(
+    90deg,
+    rgba(34,223,94,0.30) 0%,
+    rgba(255,255,255,1) 50%
+  );
+  border: 7px solid rgba(34,223,94,0.40);
+}
+
+/* Reduz leve intensidade do texto quando concluída */
+.goal-completed .goal-title {
+  opacity: 0.2;
+}
+
+.goal-completed .goal-desc {
+  opacity: 0.1;
+}
+
+/* Estrela levemente mais viva se concluída */
+.goal-completed .goal-stars-badge svg {
+  filter: drop-shadow(0 0 6px rgba(34,223,94,0.5));
+}
+
+
+/* CATEGORY ACTIONS */
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.category-name {
+  flex: 1;
+  cursor: pointer;
+}
+
+.category-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.category-item:hover .category-actions {
+  opacity: 1;
+}
+
+.category-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.category-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
