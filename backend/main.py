@@ -1841,6 +1841,14 @@ async def daily_consistency(days: int = 7):
     }
 
 
+@app.get("/api/daily/weekly-stats")
+async def daily_weekly_stats(date: str):
+    return {
+        "success": True,
+        "data": DailyEngine.get_weekly_activity_stats(date)
+    }
+
+
 # =========================
 # DAILY ACTIVE ROUTINE
 # =========================
