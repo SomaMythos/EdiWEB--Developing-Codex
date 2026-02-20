@@ -143,6 +143,23 @@ class DayEngine:
     def _intervals_overlap(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
         return a_start < b_end and b_start < a_end
 
+    @staticmethod
+    def _duration_try_order(valid_durations: List[int], sampled_idx: int) -> List[int]:
+        """Prioriza a duração sorteada e expande para vizinhas antes de extremos."""
+        order = []
+        left = sampled_idx
+        right = sampled_idx + 1
+
+        while left >= 0 or right < len(valid_durations):
+            if left >= 0:
+                order.append(valid_durations[left])
+                left -= 1
+            if right < len(valid_durations):
+                order.append(valid_durations[right])
+                right += 1
+
+        return order
+
     # ==========================================
     # ALLOCATE
     # ==========================================
@@ -184,10 +201,7 @@ class DayEngine:
 
             sampled_dur = self.rng.choice(valid_durations)
             sampled_idx = valid_durations.index(sampled_dur)
-            durations_to_try = (
-                list(reversed(valid_durations[sampled_idx:]))
-                + list(reversed(valid_durations[:sampled_idx]))
-            )
+            durations_to_try = self._duration_try_order(valid_durations, sampled_idx)
 
             placed = False
 
