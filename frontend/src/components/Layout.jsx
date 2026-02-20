@@ -33,8 +33,8 @@ const Layout = ({ children }) => {
     { path: '/', icon: Calendar, label: 'Daily' },
     { path: '/goals', icon: Target, label: 'Metas' },
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-    { path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
     { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
+	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
     { path: '/reminders', icon: Bell, label: 'Lembretes' },
     { path: '/settings', icon: Settings, label: 'Configurações' },
   ];
