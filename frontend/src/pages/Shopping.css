@@ -135,3 +135,56 @@
 .upload-feedback.error {
   color: #c0392b;
 }
+
+/* ===== Unified shopping surfaces + interactions ===== */
+.shopping-sections > .card,
+.shopping-item,
+.shopping-modal-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
+}
+
+.shopping-sections > .card:hover,
+.shopping-item:hover,
+.shopping-modal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--border-hover);
+}
+
+.shopping-item {
+  grid-template-columns: auto 56px 1fr auto;
+}
+
+.shopping-actions .btn,
+.shopping-actions button,
+.shopping-form-actions .btn,
+.shopping-toolbar .btn {
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, opacity var(--motion-fast) ease;
+}
+
+.shopping-actions .btn:hover,
+.shopping-actions button:hover,
+.shopping-form-actions .btn:hover,
+.shopping-toolbar .btn:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .shopping-sections {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .shopping-item {
+    grid-template-columns: 1fr;
+  }
+
+  .shopping-actions {
+    justify-content: flex-end;
+  }
+}

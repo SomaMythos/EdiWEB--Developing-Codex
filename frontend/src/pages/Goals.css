@@ -604,3 +604,76 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* ===== UI refresh: unified surfaces + microinteractions ===== */
+.goals-page-wow {
+  gap: clamp(0.9rem, 2vw, 1.6rem);
+  padding: clamp(0.5rem, 1.2vw, 1rem);
+}
+
+.goals-main {
+  background: transparent;
+  gap: var(--spacing-md);
+}
+
+.goals-left-column .category-btn,
+.goal-card,
+.goal-form-card,
+.recent-item-wide,
+.modal-card {
+  border-color: var(--border);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-soft);
+}
+
+.category-btn,
+.goal-card,
+.goal-icon-btn,
+.emoji-btn,
+.btn,
+.category-icon-btn {
+  transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease, background-color var(--motion-fast) ease;
+}
+
+.category-btn:hover,
+.goal-card:hover,
+.btn:hover,
+.goal-icon-btn:hover,
+.emoji-btn:hover,
+.category-icon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.goal-card {
+  border-width: 1px;
+  border-radius: var(--radius-lg);
+}
+
+.goal-active,
+.goal-completed {
+  border-width: 1px;
+  border-radius: var(--radius-lg);
+}
+
+.goal-completed {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-success-soft) 70%, transparent), var(--surface-1) 48%);
+  border-color: color-mix(in srgb, var(--secondary) 40%, var(--border));
+}
+
+@media (max-width: 900px) {
+  .goals-page-wow {
+    flex-direction: column;
+    padding: 0.75rem;
+  }
+
+  .goals-left-column {
+    width: 100%;
+  }
+
+  .header-actions-right {
+    position: static;
+    margin-top: 0.75rem;
+    justify-content: center;
+  }
+}

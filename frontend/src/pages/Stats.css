@@ -282,3 +282,50 @@
   margin-top: var(--spacing-md);
   color: var(--text-secondary);
 }
+
+/* ===== Dashboard/Card visual consistency ===== */
+.stats-overview,
+.period-summary,
+.top-activities-section,
+.goals-overview-section,
+.daily-breakdown,
+.dashboard-profile-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(0.9rem, 1.3vw, 1.2rem);
+}
+
+.stat-card,
+.goal-overview-card,
+.top-activity-item,
+.daily-item {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.stat-card:hover,
+.goal-overview-card:hover,
+.top-activity-item:hover,
+.daily-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: var(--border-hover);
+}
+
+.dashboard-quick-actions .btn {
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease;
+}
+
+@media (max-width: 768px) {
+  .stats-overview,
+  .period-summary,
+  .top-activities-section,
+  .goals-overview-section,
+  .dashboard-profile-form {
+    padding: 0.85rem;
+  }
+}

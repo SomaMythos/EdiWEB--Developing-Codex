@@ -197,3 +197,42 @@
     text-align: center;
   }
 }
+
+/* ===== Unified settings cards ===== */
+.settings-page .card,
+.metric-card,
+.history-item,
+.export-button,
+.exporting-indicator {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
+}
+
+.settings-page .card:hover,
+.metric-card:hover,
+.history-item:hover,
+.export-button:hover:not(:disabled),
+.exporting-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--border-hover);
+}
+
+.metric-card,
+.history-item,
+.exporting-indicator {
+  background: var(--surface-2);
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    max-width: 100%;
+  }
+
+  .settings-grid {
+    gap: var(--spacing-md);
+  }
+}
