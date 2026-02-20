@@ -1312,61 +1312,6 @@ async def books_delete(book_id: int):
     return {"success": True}
 
 
-@app.post("/api/visual-arts/artworks")
-async def artworks_create(
-    title: str = Form(...),
-    visual_category: str = Form("pintura"),
-    size: Optional[str] = Form(None),
-    started_at: Optional[str] = Form(None),
-    reference_image: Optional[UploadFile] = File(None),
-):
-    required_reference_categories = {"pintura", "pintura_digital", "desenho_tradicional"}
-    if visual_category in required_reference_categories and not reference_image:
-        raise HTTPException(
-            status_code=400,
-            detail="A imagem de referência é obrigatória para pintura, pintura digital e desenho tradicional.",
-        )
-
-    reference_image_path = None
-    if reference_image:
-        reference_image_path = _save_upload_file(
-            reference_image,
-            VISUAL_ARTS_UPLOADS_DIR / "reference" / visual_category,
-        )
-
-    artwork_id = PaintingEngine.create_artwork(
-        title=title,
-        size=size,
-        started_at=started_at,
-        reference_image_path=reference_image_path,
-        visual_category=visual_category,
-    )
-    return {"success": True, "data": {"id": artwork_id, "reference_image_path": reference_image_path, "reference_image_url": _to_public_upload_url(reference_image_path)}}
-
-
-@app.post("/api/visual-arts/artworks/{painting_id}/updates")
-async def artworks_add_update(
-    painting_id: int,
-    update_title: str = Form(...),
-    mark_completed: bool = Form(False),
-    photo: UploadFile = File(...),
-):
-    photo_path = _save_upload_file(photo, VISUAL_ARTS_UPLOADS_DIR / "progress")
-    update_id = PaintingEngine.add_artwork_update(
-        painting_id=painting_id,
-        update_title=update_title,
-        photo_path=photo_path,
-        mark_completed=mark_completed,
-    )
-    return {"success": True, "data": {"id": update_id, "photo_path": photo_path, "photo_url": _to_public_upload_url(photo_path)}}
-
-
-@app.patch("/api/visual-arts/artworks/{painting_id}/completion-date")
-async def artworks_set_completion_date(painting_id: int, payload: ArtworkCompletionPayload):
-    ok = PaintingEngine.set_artwork_completed_date(painting_id, payload.finished_at)
-    return {"success": ok}
-
-
 @app.get("/api/visual-arts/artworks")
 async def artworks_list(status: Optional[str] = None, visual_category: Optional[str] = None):
     artworks = [dict(artwork) for artwork in PaintingEngine.list_artworks(status, visual_category)]
