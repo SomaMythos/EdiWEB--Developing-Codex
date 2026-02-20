@@ -135,8 +135,21 @@ class DailyEngine:
         )
 
         templates: List[Dict[str, Any]] = []
+        fixed_discipline_activities: List[Dict[str, Any]] = []
+
+        def _add_minutes_to_hm(start_hm: str, minutes: int) -> str:
+            total = _hm_to_min(start_hm) + int(minutes)
+            total = total % (24 * 60)
+            h = total // 60
+            m = total % 60
+            return f"{h:02d}:{m:02d}"
 
         for act in discipline_activities:
+
+            if act.get("fixed_time") and act.get("fixed_duration"):
+                fixed_discipline_activities.append(act)
+                continue
+
             templates.append({
                 "id": act["id"],
                 "name": act["title"],
@@ -220,6 +233,19 @@ class DailyEngine:
                 "category": block["category"]
             })
 
+        # -------------------------------
+        # ATIVIDADES COM HORÁRIO FIXO
+        # -------------------------------
+
+        for act in fixed_discipline_activities:
+            fixed_events.append({
+                "id": f"fixed_activity:{act['id']}",
+                "name": act["title"],
+                "start_hm": act["fixed_time"],
+                "end_hm": _add_minutes_to_hm(act["fixed_time"], act["fixed_duration"]),
+                "category": "disciplina" if act["is_disc"] else "diversao"
+            })
+
 
         # ===============================
         # SCHEDULER
@@ -269,6 +295,13 @@ class DailyEngine:
                         activity_id = int(item["source_id"])
                     except:
                         activity_id = None
+                elif source_type == "fixed":
+                    source_id = str(item.get("source_id") or "")
+                    if source_id.startswith("fixed_activity:"):
+                        try:
+                            activity_id = int(source_id.split(":", 1)[1].split("_", 1)[0])
+                        except:
+                            activity_id = None
 
                 db.execute(
                     """
