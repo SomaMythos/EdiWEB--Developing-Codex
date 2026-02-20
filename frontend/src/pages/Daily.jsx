@@ -3,6 +3,7 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000/api";
 
+// Fonte única de verdade para configuração diária.
 export default function Daily() {
   const today = new Date().toISOString().split("T")[0];
 
