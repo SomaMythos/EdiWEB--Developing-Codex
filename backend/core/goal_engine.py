@@ -3,6 +3,10 @@ from core.activity_engine import ActivityEngine
 from data.database import Database
 
 
+class GoalActivityValidationError(ValueError):
+    """Erro de validação ao vincular/desvincular atividades de metas."""
+
+
 class GoalEngine:
 
     STALE_DAYS_THRESHOLD = 3
@@ -128,31 +132,53 @@ class GoalEngine:
     def link_activity(goal_id, activity_id):
         """Vincula uma atividade a uma meta"""
         db = Database()
-        try:
-            db.execute("""
+        goal_exists = db.fetchone("SELECT 1 FROM goals WHERE id = ?", (goal_id,))
+        if not goal_exists:
+            db.close()
+            raise GoalActivityValidationError(f"Meta {goal_id} não encontrada")
+
+        activity_exists = db.fetchone("SELECT 1 FROM activities WHERE id = ?", (activity_id,))
+        if not activity_exists:
+            db.close()
+            raise GoalActivityValidationError(f"Atividade {activity_id} não encontrada")
+
+        db.execute(
+            """
                 INSERT OR IGNORE INTO goal_activities (goal_id, activity_id)
                 VALUES (?, ?)
-            """, (goal_id, activity_id))
-            db.commit()
-        except Exception as e:
-            print(f"Erro ao vincular atividade: {e}")
-        finally:
-            db.close()
+            """,
+            (goal_id, activity_id),
+        )
+        linked = db.execute("SELECT changes() AS c").fetchone()[0] > 0
+        db.commit()
+        db.close()
+        return linked
 
     @staticmethod
     def unlink_activity(goal_id, activity_id):
         """Remove vínculo entre atividade e meta"""
         db = Database()
-        try:
-            db.execute("""
+        goal_exists = db.fetchone("SELECT 1 FROM goals WHERE id = ?", (goal_id,))
+        if not goal_exists:
+            db.close()
+            raise GoalActivityValidationError(f"Meta {goal_id} não encontrada")
+
+        activity_exists = db.fetchone("SELECT 1 FROM activities WHERE id = ?", (activity_id,))
+        if not activity_exists:
+            db.close()
+            raise GoalActivityValidationError(f"Atividade {activity_id} não encontrada")
+
+        db.execute(
+            """
                 DELETE FROM goal_activities
                 WHERE goal_id = ? AND activity_id = ?
-            """, (goal_id, activity_id))
-            db.commit()
-        except Exception as e:
-            print(f"Erro ao desvincular atividade: {e}")
-        finally:
-            db.close()
+            """,
+            (goal_id, activity_id),
+        )
+        unlinked = db.execute("SELECT changes() AS c").fetchone()[0] > 0
+        db.commit()
+        db.close()
+        return unlinked
 
     @staticmethod
     def list_linked_activities(goal_id):
