@@ -10,6 +10,13 @@ export function useDailyPlan(selectedDate) {
   const [loadState, setLoadState] = useState(createUiState("loading"));
   const [actionState, setActionState] = useState(createUiState());
   const [generating, setGenerating] = useState(false);
+  const [generationResult, setGenerationResult] = useState(null);
+
+  const getBackendErrorMessage = error => {
+    const payload = error?.response?.data;
+    if (!payload) return null;
+    return payload.message || payload.error || payload.detail || null;
+  };
 
   const fetchDaily = useCallback(async date => {
     const res = await axios.get(`${API_URL}/daily/${date}`);
@@ -60,13 +67,20 @@ export function useDailyPlan(selectedDate) {
   const generateDaily = useCallback(async () => {
     setGenerating(true);
     setActionState(createUiState("loading"));
+    setGenerationResult(null);
     try {
-      await axios.post(`${API_URL}/daily/generate`, null, { params: { date: selectedDate } });
+      const res = await axios.post(`${API_URL}/daily/generate`, null, { params: { date: selectedDate } });
+      const generationData = res?.data?.data || {};
+      setGenerationResult({
+        notScheduled: Array.isArray(generationData.not_scheduled) ? generationData.not_scheduled : [],
+        diagnostics: generationData.diagnostics || null
+      });
       await refreshAll(selectedDate);
       setActionState(createUiState("success", null, "Planejamento gerado com sucesso."));
     } catch (error) {
       console.error(error);
-      setActionState(createUiState("error", "Não foi possível gerar o planejamento do dia."));
+      const backendMessage = getBackendErrorMessage(error);
+      setActionState(createUiState("error", backendMessage || "Não foi possível gerar o planejamento do dia."));
     } finally {
       setGenerating(false);
     }
@@ -96,6 +110,7 @@ export function useDailyPlan(selectedDate) {
     loadState,
     actionState,
     generating,
+    generationResult,
     totalDuration,
     completedDuration,
     refreshAll,
