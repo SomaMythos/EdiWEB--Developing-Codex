@@ -39,6 +39,8 @@ const Goals = () => {
   const [formData, setFormData] = useState(initialFormState);
   const [editingGoalId, setEditingGoalId] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
+  const [uploadFeedback, setUploadFeedback] = useState({ type: '', message: '' });
+  const [isSubmittingGoal, setIsSubmittingGoal] = useState(false);
 
   useEffect(() => {
     loadSummary();
@@ -165,7 +167,6 @@ const handleDeleteCategory = async (categoryId) => {
   const handleSubmitGoal = async (e) => {
     e.preventDefault();
 
-    // payload base
     const payload = {
       title: formData.title,
       description: formData.description,
@@ -174,41 +175,42 @@ const handleDeleteCategory = async (categoryId) => {
       category_id: selectedCategory ? selectedCategory.id : null,
     };
 
-    try {
-      if (photoFile) {
-        // use multipart/form-data endpoint
-        const fd = new FormData();
-        fd.append('title', payload.title);
-        if (payload.description) fd.append('description', payload.description);
-        if (payload.deadline) fd.append('deadline', payload.deadline);
-        fd.append('difficulty', String(payload.difficulty));
-        if (payload.category_id) fd.append('category_id', String(payload.category_id));
-        fd.append('image', photoFile);
+    setUploadFeedback({ type: '', message: '' });
+    setIsSubmittingGoal(true);
 
-        if (editingGoalId) {
-          // editing with photo not implemented: fallback to update json
-          await goalsApi.update(editingGoalId, payload);
+    const shouldKeepFormOpen = Boolean(photoFile);
+
+    try {
+      if (editingGoalId) {
+        if (photoFile) {
+          await goalsApi.updateWithFormData(editingGoalId, {
+            ...payload,
+            image: photoFile,
+          });
+          setUploadFeedback({ type: 'success', message: 'Upload da imagem concluído com sucesso.' });
         } else {
-          await goalsApi.create(fd);
+          await goalsApi.update(editingGoalId, payload);
         }
       } else {
-        if (editingGoalId) {
-          await goalsApi.update(editingGoalId, payload);
-        } else {
-          await goalsApi.create(payload);
+        await goalsApi.create(photoFile ? { ...payload, image: photoFile } : payload);
+        if (photoFile) {
+          setUploadFeedback({ type: 'success', message: 'Upload da imagem concluído com sucesso.' });
         }
       }
 
       setFormData(initialFormState);
       setPhotoFile(null);
       setEditingGoalId(null);
-      setShowGoalForm(false);
+      setShowGoalForm(shouldKeepFormOpen);
       if (selectedCategory) await loadGoalsByCategory(selectedCategory.id);
       else await loadSummary();
     } catch (err) {
       console.error('Erro salvando meta:', err);
       const msg = err?.response?.data?.detail || 'Erro ao salvar meta';
+      setUploadFeedback({ type: 'error', message: photoFile ? `Falha no upload: ${msg}` : msg });
       alert(msg);
+    } finally {
+      setIsSubmittingGoal(false);
     }
   };
 
@@ -223,6 +225,7 @@ const handleDeleteCategory = async (categoryId) => {
       difficulty: goal.difficulty || 1,
     });
     setPhotoFile(null);
+    setUploadFeedback({ type: '', message: '' });
     setShowGoalForm(true);
   };
 
@@ -322,6 +325,7 @@ const handleDeleteCategory = async (categoryId) => {
         onClick={() => {
           setShowGoalForm(true);
           setEditingGoalId(null);
+          setUploadFeedback({ type: '', message: '' });
         }}
       >
         Criar Meta
@@ -469,6 +473,9 @@ const handleDeleteCategory = async (categoryId) => {
                       <div className="form-row">
                         <label>Foto (opcional)</label>
                         <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)} />
+                        {uploadFeedback.message ? (
+                          <div className={`upload-feedback ${uploadFeedback.type}`}>{uploadFeedback.message}</div>
+                        ) : null}
                       </div>
 
                       <div className="form-actions">
@@ -479,13 +486,14 @@ const handleDeleteCategory = async (categoryId) => {
                             setShowGoalForm(false);
                             setFormData(initialFormState);
                             setPhotoFile(null);
+                            setUploadFeedback({ type: '', message: '' });
                           }}
                         >
                           Cancelar
                         </button>
 
-                        <button type="submit" className="btn btn-primary">
-                          {editingGoalId ? 'Salvar' : 'Criar'}
+                        <button type="submit" className="btn btn-primary" disabled={isSubmittingGoal}>
+                          {isSubmittingGoal ? 'Enviando...' : (editingGoalId ? 'Salvar' : 'Criar')}
                         </button>
                       </div>
                     </form>

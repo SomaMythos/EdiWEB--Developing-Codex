@@ -480,6 +480,45 @@ async def update_goal(goal_id: int, goal: GoalUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.put("/api/goals/{goal_id}/multipart")
+async def update_goal_multipart(
+    goal_id: int,
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    deadline: Optional[str] = Form(None),
+    difficulty: int = Form(1),
+    category_id: Optional[int] = Form(None),
+    image: Optional[UploadFile] = File(None),
+):
+    """Update a goal using multipart/form-data, optionally replacing image."""
+    try:
+        image_path = None
+        if image:
+            image_path = _save_upload_file(image, UPLOADS_DIR / "goals")
+
+        updated = GoalEngine.update_goal(
+            goal_id=goal_id,
+            title=title,
+            description=description,
+            deadline=deadline,
+            difficulty=difficulty,
+            category_id=category_id,
+            image_path=image_path,
+        )
+        if not updated:
+            raise HTTPException(status_code=400, detail="Meta concluída não pode ser editada")
+
+        return {
+            "success": True,
+            "message": "Goal updated",
+            "data": {"image_path": image_path},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/goals/{goal_id}")
 async def delete_goal(goal_id: int):
     """Delete a goal"""
