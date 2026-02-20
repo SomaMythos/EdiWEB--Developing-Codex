@@ -737,11 +737,13 @@ async function runUiRequest(requestFn, friendlyMessage) {
 
 {/* ACTIVITIES MODAL */}
 {showActivitiesModal && (
-  <div style={styles.modalOverlay}>
+  <div style={styles.scrollableModalOverlay}>
     <div
       style={{
         ...styles.modal,
         width: "650px",
+        maxHeight: "calc(100vh - 48px)",
+        overflowY: "auto",
         alignItems: "center",
         textAlign: "center"
       }}
@@ -896,11 +898,11 @@ async function runUiRequest(requestFn, friendlyMessage) {
   />
 </div>
 
-<div style={{ display: "flex", justifyContent: "center", gap: 25, marginTop: 10 }}>
+<div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
 
 
 
-  <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
+  <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" }}>
 
   <label>
     <input
@@ -945,7 +947,7 @@ async function runUiRequest(requestFn, friendlyMessage) {
 </div>
 
 {newActivity.frequency_type !== "flex" && (
-  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
     <input
       type="time"
       value={newActivity.fixed_time}
@@ -956,6 +958,7 @@ async function runUiRequest(requestFn, friendlyMessage) {
         })
       }
       style={{
+        width: "170px",
         padding: "8px",
         borderRadius: "6px",
         border: "1px solid #2a2a35",
@@ -975,6 +978,7 @@ async function runUiRequest(requestFn, friendlyMessage) {
         })
       }
       style={{
+        width: "170px",
         padding: "8px",
         borderRadius: "6px",
         border: "1px solid #2a2a35",
@@ -985,7 +989,7 @@ async function runUiRequest(requestFn, friendlyMessage) {
   </div>
 )}
 
-
+  <div style={{ display: "flex", justifyContent: "center", gap: 25, flexWrap: "wrap" }}>
   <label>
     <input
       type="checkbox"
@@ -1015,6 +1019,7 @@ async function runUiRequest(requestFn, friendlyMessage) {
     />
     Diversão
   </label>
+  </div>
 
 </div>
 
@@ -1256,6 +1261,17 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1000
+  },
+  scrollableModalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.6)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    overflowY: "auto",
+    padding: "24px 16px",
     zIndex: 1000
   },
   modal: {
