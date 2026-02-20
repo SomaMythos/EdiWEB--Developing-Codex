@@ -148,6 +148,15 @@ const Financeiro = () => {
   const extraValue = Number(summary?.extra ?? config?.reserve_extra ?? 0);
   const fgtsValue = Number(summary?.fgts ?? config?.reserve_fgts ?? config?.fgts ?? 0);
 
+  const chartTooltipStyle = {
+    backgroundColor: 'var(--surface-elevated)',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
+    boxShadow: 'var(--shadow-lg)'
+  };
+
+  const chartLabelStyle = { color: 'var(--text-secondary)' };
+
   return (
     <div className="finance-page">
       <div className="finance-header">
@@ -227,22 +236,17 @@ const Financeiro = () => {
     {/* DEFINIÇÕES DE GRADIENTE */}
     <defs>
       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
-        <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+        <stop offset="5%" stopColor="var(--accent-success)" stopOpacity={0.4}/>
+        <stop offset="95%" stopColor="var(--accent-success)" stopOpacity={0}/>
       </linearGradient>
     </defs>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
 				<Tooltip
-					contentStyle={{
-					backgroundColor: "#111827",
-					border: "none",
-					borderRadius: "10px",
-					boxShadow: "0 10px 25px rgba(0,0,0,0.3)"
-				}}
-				labelStyle={{ color: "#9CA3AF" }}
-				formatter={(value, name) =>
+					contentStyle={chartTooltipStyle}
+					labelStyle={chartLabelStyle}
+					formatter={(value, name) =>
 					[`R$ ${Number(value).toLocaleString("pt-BR")}`, name]
 				}
 			/>
@@ -251,7 +255,7 @@ const Financeiro = () => {
               <Line
                 type="natural"
                 dataKey="total"
-                stroke="#22c55e"
+                stroke="var(--accent-success)"
                 strokeWidth={3}
                 dot={false}
                 name="Total"
@@ -261,7 +265,7 @@ const Financeiro = () => {
               <Line
                 type="natural"
                 dataKey="current"
-                stroke="#0ea5e9"
+                stroke="var(--accent-info)"
                 strokeWidth={2}
                 dot={false}
                 name="Conta Corrente"
@@ -270,7 +274,7 @@ const Financeiro = () => {
               <Line
                 type="natural"
                 dataKey="cdb"
-                stroke="#f59e0b"
+                stroke="var(--accent-warning)"
                 strokeWidth={2}
                 dot={false}
                 name="CDB"
@@ -279,7 +283,7 @@ const Financeiro = () => {
               <Line
                 type="natural"
                 dataKey="extra"
-                stroke="#7c3aed"
+                stroke="var(--accent-primary)"
                 strokeWidth={2}
                 dot={false}
                 name="Extra"
@@ -288,7 +292,7 @@ const Financeiro = () => {
               <Line
                 type="natural"
                 dataKey="fgts"
-                stroke="#ef4444"
+                stroke="var(--error)"
                 strokeWidth={2}
                 dot={false}
                 name="FGTS"
@@ -300,7 +304,7 @@ const Financeiro = () => {
       </div>
 
       {/* CARDS DE RESUMO (valores atuais individuais) */}
-      <div style={{ marginTop: 16 }} className="finance-grid">
+      <div className="finance-grid finance-grid--spaced">
         <div className="card finance-card">
           <div className="finance-label">Valor Conta Corrente (atual)</div>
           <div className="finance-value">
@@ -331,20 +335,20 @@ const Financeiro = () => {
       </div>
 
       {/* CARD GRANDE: LISTA DE GASTOS FIXOS + TOTAL */}
-      <div className="card finance-card" style={{ marginTop: 20 }}>
+      <div className="card finance-card finance-card--spaced">
         <h3>Gastos Fixos Mensais</h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="finance-expenses-list">
           {gastosFixos.length === 0 && <div>Nenhum gasto fixo cadastrado.</div>}
 
           {gastosFixos.map((g) => (
-            <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px dashed rgba(0,0,0,0.06)' }}>
-              <div style={{ fontWeight: 600 }}>{g.name}</div>
+            <div key={g.id} className="finance-expense-inline-row">
+              <div className="finance-expense-name">{g.name}</div>
               <div>R$ {Number(g.monthly_value).toLocaleString('pt-BR')}</div>
             </div>
           ))}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(0,0,0,0.08)', fontWeight: 700 }}>
+          <div className="finance-expense-total">
             <div>Total</div>
             <div>R$ {Number(totalGastosFixos).toLocaleString('pt-BR')}</div>
           </div>
@@ -538,7 +542,7 @@ const Financeiro = () => {
 
             </div>
 
-            <hr style={{ margin: '20px 0' }} />
+            <hr className="finance-divider" />
 
             <h4>Gastos Fixos</h4>
 
