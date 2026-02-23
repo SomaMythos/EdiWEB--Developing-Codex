@@ -14,12 +14,28 @@ import {
   Legend
 } from 'recharts';
 
+const getCSSVar = (name, fallback = '#22c55e') => {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
+};
+
 const Financeiro = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [summary, setSummary] = useState(null);
   const [config, setConfig] = useState({});
   const [gastosFixos, setGastosFixos] = useState([]);
   const [projection, setProjection] = useState([]);
+  
+  const chartColors = {
+  total: getCSSVar('--accent-success', '#22c55e'),
+  current: getCSSVar('--accent-info', '#3b82f6'),
+  cdb: getCSSVar('--accent-warning', '#f59e0b'),
+  extra: getCSSVar('--accent-primary', '#8b5cf6'),
+  fgts: getCSSVar('--error', '#ef4444')
+};
 
   const [novoGasto, setNovoGasto] = useState({
     name: '',
@@ -149,10 +165,11 @@ const Financeiro = () => {
   const fgtsValue = Number(summary?.fgts ?? config?.reserve_fgts ?? config?.fgts ?? 0);
 
   const chartTooltipStyle = {
-    backgroundColor: 'var(--surface-elevated)',
-    border: '1px solid var(--border)',
-    borderRadius: '10px',
-    boxShadow: 'var(--shadow-lg)'
+  backgroundColor: 'rgba(20, 25, 35, 0.95)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '12px',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+  backdropFilter: 'blur(12px)'
   };
 
   const chartLabelStyle = { color: 'var(--text-secondary)' };
@@ -235,14 +252,21 @@ const Financeiro = () => {
         <LineChart data={projection} margin={{ top: 20, right: 30, left: 10, bottom: 10 }} >
     {/* DEFINIÇÕES DE GRADIENTE */}
     <defs>
-      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%" stopColor="var(--accent-success)" stopOpacity={0.4}/>
-        <stop offset="95%" stopColor="var(--accent-success)" stopOpacity={0}/>
-      </linearGradient>
-    </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
+  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="5%" stopColor={chartColors.total} stopOpacity={0.4}/>
+<stop offset="95%" stopColor={chartColors.total} stopOpacity={0}/>
+  </linearGradient>
+</defs>
+              <CartesianGrid 
+  stroke="rgba(255,255,255,0.08)" 
+  strokeDasharray="3 3" 
+/>
+
+<XAxis 
+  dataKey="month" 
+  stroke="rgba(255,255,255,0.5)" 
+  tick={{ fill: "rgba(255,255,255,0.6)" }} 
+/>
 				<Tooltip
 					contentStyle={chartTooltipStyle}
 					labelStyle={chartLabelStyle}
@@ -253,50 +277,50 @@ const Financeiro = () => {
               <Legend verticalAlign="bottom" height={36} />
               {/* total */}
               <Line
-                type="natural"
-                dataKey="total"
-                stroke="var(--accent-success)"
-                strokeWidth={3}
-                dot={false}
-                name="Total"
-				fill="url(#colorTotal)"
-              />
-              {/* conta corrente */}
-              <Line
-                type="natural"
-                dataKey="current"
-                stroke="var(--accent-info)"
-                strokeWidth={2}
-                dot={false}
-                name="Conta Corrente"
-              />
-              {/* cdb */}
-              <Line
-                type="natural"
-                dataKey="cdb"
-                stroke="var(--accent-warning)"
-                strokeWidth={2}
-                dot={false}
-                name="CDB"
-              />
-              {/* extra */}
-              <Line
-                type="natural"
-                dataKey="extra"
-                stroke="var(--accent-primary)"
-                strokeWidth={2}
-                dot={false}
-                name="Extra"
-              />
-              {/* fgts */}
-              <Line
-                type="natural"
-                dataKey="fgts"
-                stroke="var(--error)"
-                strokeWidth={2}
-                dot={false}
-                name="FGTS"
-              />
+  type="natural"
+  dataKey="total"
+  stroke={chartColors.total}
+  strokeWidth={3}
+  dot={false}
+  name="Total"
+  fill="url(#colorTotal)"
+/>
+
+<Line
+  type="natural"
+  dataKey="current"
+  stroke={chartColors.current}
+  strokeWidth={2}
+  dot={false}
+  name="Conta Corrente"
+/>
+
+<Line
+  type="natural"
+  dataKey="cdb"
+  stroke={chartColors.cdb}
+  strokeWidth={2}
+  dot={false}
+  name="CDB"
+/>
+
+<Line
+  type="natural"
+  dataKey="extra"
+  stroke={chartColors.extra}
+  strokeWidth={2}
+  dot={false}
+  name="Extra"
+/>
+
+<Line
+  type="natural"
+  dataKey="fgts"
+  stroke={chartColors.fgts}
+  strokeWidth={2}
+  dot={false}
+  name="FGTS"
+/>
             </LineChart>
           </ResponsiveContainer>
 		  </div>
@@ -358,7 +382,7 @@ const Financeiro = () => {
       {/* MODAL CONFIG */}
       {showConfig && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card glass-scrollbar">
             <h3>Configuração Financeira</h3>
 
             <div className="form-grid">

@@ -1,7 +1,11 @@
+/* ===================================
+   FINANCE — TOKENIZED GLASS VERSION
+=================================== */
+
 .finance-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-xl);
 }
 
 .finance-header {
@@ -13,231 +17,70 @@
 .finance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
-.finance-card {
-  padding: 20px;
+/* ===== Unified Glass Surfaces ===== */
+
+.finance-card,
+.finance-section,
+.finance-chart-wrapper {
+  padding: var(--spacing-lg);
+
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow-soft);
+
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-normal),
+    border-color var(--motion-fast),
+    background var(--motion-fast);
 }
+
+.finance-card:hover,
+.finance-section:hover,
+.finance-chart-wrapper:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-medium);
+}
+
+/* ===== Typography ===== */
 
 .finance-label {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
 }
 
 .finance-value {
   font-size: 1.4rem;
   font-weight: 600;
   margin-top: 6px;
+  color: var(--glass-text-primary);
 }
 
-.finance-section {
-  padding: 20px;
-}
+/* ===== Expense rows ===== */
 
-.expense-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.expense-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.expense-icon-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: var(--text-secondary);
-  transition: 0.2s ease;
-}
-
-.expense-icon-btn:hover {
-  color: var(--primary);
-  transform: scale(1.1);
-}
-
-.icon-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: 0.2s ease;
-}
-
-.icon-btn:hover {
-  color: var(--primary);
-  transform: scale(1.05);
-}
-
-/* =========================
-   MODAL
-========================= */
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--surface-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(2px);
-  z-index: 999;
-}
-
-.modal-card {
-  background: var(--bg-primary);
-  padding: 32px;
-  border-radius: 14px;
-  width: 650px;
-  max-width: 95%;
-  box-shadow: var(--shadow-lg);
-}
-
-.modal-card h3 {
-  margin-bottom: 20px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-top: 10px;
-}
-
-/* =========================
-   INPUTS MODERNOS
-========================= */
-
-.form-grid input,
-.add-expense-row input {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  transition: 0.2s ease;
-  font-size: 0.95rem;
-}
-
-.form-grid input:focus,
-.add-expense-row input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: var(--focus-ring);
-}
-
-/* =========================
-   GASTOS FIXOS
-========================= */
-
-.add-expense-row {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-  align-items: center;
-}
-
-.add-expense-row button {
-  background: var(--primary);
-  border: none;
-  color: var(--text-on-accent, #fff);
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.add-expense-row button:hover {
-  opacity: 0.9;
-  transform: scale(1.05);
-}
-
-/* =========================
-   BOTÕES MODAL
-========================= */
-
-.modal-actions {
-  margin-top: 25px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.empty {
-  color: var(--text-secondary);
-  padding: 10px 0;
-}
-
-.emoji-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px 6px;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.emoji-btn:hover {
-  transform: scale(1.2);
-  opacity: 0.8;
-}
-
-.emoji-btn.delete:hover {
-  transform: scale(1.2);
-}
-
-.emoji-btn.add {
-  font-size: 18px;
-}
-
-.finance-card h3 {
-  margin-bottom: 16px;
-  font-weight: 600;
-}
-
-.recharts-wrapper {
-  font-size: 0.8rem;
-}
-
-.finance-chart-wrapper {
-  background: linear-gradient(
-    180deg,
-    var(--accent-success-soft) 0%,
-    transparent 100%
-  );
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.finance-grid--spaced {
-  margin-top: var(--spacing-md);
-}
-
-.finance-card--spaced {
-  margin-top: var(--spacing-lg);
-}
-
-.finance-expenses-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+.expense-row,
 .finance-expense-inline-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px dashed var(--border);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+
+  transition:
+    background var(--motion-fast),
+    opacity var(--motion-fast);
 }
 
-.finance-expense-name {
-  font-weight: 600;
+.expense-row:hover,
+.finance-expense-inline-row:hover {
+  background: var(--glass-surface-soft);
 }
 
 .finance-expense-total {
@@ -245,67 +88,170 @@
   justify-content: space-between;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border-default);
   font-weight: 700;
 }
 
-.finance-divider {
-  margin: 20px 0;
-  border: 0;
-  border-top: 1px solid var(--border);
-}
-
-/* ===== Unified finance surfaces ===== */
-.finance-card,
-.finance-section,
-.finance-chart-wrapper {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  box-shadow: var(--shadow-soft);
-  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease;
-}
-
-.finance-card:hover,
-.finance-section:hover,
-.finance-chart-wrapper:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-elevated);
-  border-color: var(--border-hover);
-}
-
-.expense-row,
-.finance-expense-inline-row {
-  transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
-}
-
-.expense-row:hover,
-.finance-expense-inline-row:hover {
-  background: var(--surface-2);
-}
+/* ===== Buttons (icons & emoji) ===== */
 
 .expense-icon-btn,
 .icon-btn,
-.emoji-btn,
-.add-expense-row button {
-  transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+.emoji-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  color: var(--glass-text-secondary);
+
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    color var(--motion-fast);
 }
 
 .expense-icon-btn:hover,
 .icon-btn:hover,
-.emoji-btn:hover,
-.add-expense-row button:hover {
+.emoji-btn:hover {
+  color: var(--glass-accent-primary);
   transform: translateY(-1px);
 }
 
-@media (max-width: 768px) {
-  .finance-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
+/* ===== Add expense row ===== */
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+.add-expense-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  align-items: center;
 }
+
+.add-expense-row input {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
+  color: var(--glass-text-primary);
+
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    background var(--motion-fast);
+}
+
+.add-expense-row input:focus {
+  outline: none;
+  border-color: var(--glass-border-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.add-expense-row button {
+  background: var(--glass-accent-primary);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  cursor: pointer;
+
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.add-expense-row button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glass-glow-soft);
+}
+
+/* ===== Modal ===== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--glass-surface-overlay);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
+  max-height: 85vh;
+  overflow-y: auto;
+
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  width: 650px;
+  max-width: 95%;
+
+  box-shadow: var(--glass-shadow-medium);
+}
+
+.modal-card {
+  composes: glass-scrollbar;
+}
+
+.modal-actions {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+}
+
+/* ===== Divider ===== */
+
+.finance-divider {
+  margin: var(--spacing-lg) 0;
+  border: 0;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+/* ===== Empty state ===== */
+
+.empty {
+  color: var(--glass-text-secondary);
+  padding: 10px 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  color: var(--glass-text-secondary);
+}
+
+.form-group input {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
+  color: var(--glass-text-primary);
+
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    background var(--motion-fast);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--glass-border-accent);
+  box-shadow: var(--focus-ring);
+}
+
