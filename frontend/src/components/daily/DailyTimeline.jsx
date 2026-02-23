@@ -13,7 +13,10 @@ export default function DailyTimeline({ blocks, loadState, onToggleCompletion, o
         const endTime = addMinutesToTime(block.start_time, block.duration);
         const completed = isBlockCompleted(block.completed);
         return (
-          <div key={block.id} className={`daily-block ${completed ? "completed" : ""}`}>
+          <div
+  key={block.id}
+className={`daily-block daily-block--${block.block_category} ${completed ? "completed" : ""}`}
+>
             <div className="daily-block__left">
               <input
                 type="checkbox"

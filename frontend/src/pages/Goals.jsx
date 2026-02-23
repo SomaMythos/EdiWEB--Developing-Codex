@@ -550,9 +550,15 @@ const handleDeleteCategory = async (categoryId) => {
                 {!showGoalForm && goals.length === 0 && (
                   <div className="card empty">Nenhuma meta nesta categoria</div>
                 )}
-
+{console.log("GOALS ARRAY:", goals)}
                 {goals.map((goal) => (
-                  <div key={goal.id} className={`card goal-card ${goal.status === 'concluida' ? 'goal-completed' : 'goal-active'}`}
+<div
+  key={goal.id}
+  className={`card goal-card ${
+    goal.status === 'concluida'
+      ? 'goal-completed'
+      : 'goal-active'
+  }`}
 >
                     <div className="goal-left">
                       <div className="thumb-box">
@@ -565,11 +571,37 @@ const handleDeleteCategory = async (categoryId) => {
                     </div>
 
                     <div className="goal-middle">
-                      <div className="goal-title">{goal.title}</div>
-                      <div className="goal-desc">{goal.description}</div>
-                    </div>
+  <div className="goal-title">{goal.title}</div>
 
-                    <div className="goal-right">
+  {goal.description && (
+    <div className="goal-desc">{goal.description}</div>
+  )}
+
+  {goal.status === 'concluida' && goal.completed_at && (
+    <div className="goal-date">
+      Concluída em {new Date(goal.completed_at).toLocaleString('pt-BR')}
+    </div>
+  )}
+</div>
+
+<div className="goal-right">
+
+  {goal.status === 'concluida' && (
+    <svg
+      className="goal-check"
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6L9 17L4 12" />
+    </svg>
+  )}
+
   <div className="goal-stars-badge">
     <StarIcon size={42} className="goal-star-icon" />
     <span className="goal-star-number">{goal.difficulty}</span>

@@ -1,9 +1,57 @@
-.daily-form-row { display:flex; flex-direction:column; gap:6px; }
-.daily-form-row input { background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:8px; padding:10px; min-height:44px; }
-.daily-modal-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
-.daily-button { padding:10px 14px; border-radius:8px; cursor:pointer; min-height:44px; }
-.daily-button--primary { background:linear-gradient(135deg,var(--accent-success),var(--success)); border:none; color:#fff; font-weight:600; }
-.daily-button--secondary { background:var(--bg-tertiary); border:1px solid var(--border-strong); color:var(--text-primary); }
-.daily-status { padding:10px 12px; border-radius:8px; }
-.daily-status--error { border:1px solid var(--error); background:var(--error-soft); color:var(--text-primary); }
-.daily-status--success { border:1px solid var(--success); background:var(--success-soft); color:var(--text-primary); }
+.daily-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daily-form-row input {
+  background: var(--glass-surface-soft);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 44px;
+  backdrop-filter: var(--glass-blur);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.daily-form-row input:focus {
+  background: var(--glass-surface-medium);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--focus-ring);
+}
+
+.daily-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* NÃO redefinir botão — usar .btn no JSX */
+
+/* STATUS */
+
+.daily-status {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.daily-status--error {
+  background: var(--glass-accent-danger);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+}
+
+.daily-status--success {
+  background: var(--glass-accent-success);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+}
+
+.daily-form-row input[type="checkbox"] {
+  accent-color: #16a34a;
+}

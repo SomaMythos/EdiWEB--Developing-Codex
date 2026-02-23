@@ -42,8 +42,8 @@ export default function DayConfigModal({ show, config, setConfig, onClose, onSav
         {state.status === "success" && state.successMessage && <div className="daily-status daily-status--success">{state.successMessage}</div>}
 
         <div className="daily-modal-actions">
-          <button className="daily-button daily-button--secondary" onClick={onClose}>Cancelar</button>
-          <button className="daily-button daily-button--primary" onClick={onSave} disabled={state.status === "loading"}>Salvar</button>
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={onSave} disabled={state.status === "loading"}>Salvar</button>
         </div>
     </AccessibleModal>
   );

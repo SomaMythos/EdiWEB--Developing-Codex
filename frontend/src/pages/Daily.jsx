@@ -200,7 +200,8 @@ export default function Daily() {
         />
       </section>
 
-      <section className="daily-section daily-section--quick-actions">
+      {/* AÇÕES RÁPIDAS - INVISÍVEL */}
+      <section className="daily-section daily-section--quick-actions" style={{ display: "none" }}>
         <div className="daily-section__header">
           <h3>Ações rápidas</h3>
           <button className="daily-section__collapse" onClick={() => toggleSection("quickActions")}>
@@ -227,131 +228,34 @@ export default function Daily() {
         />
       </section>
 
-      <section className="daily-section daily-insights-cards">
+      {/* INSIGHTS DE CONSISTÊNCIA - INVISÍVEL */}
+      <section className="daily-section daily-insights-cards" style={{ display: "none" }}>
         <div className="daily-section__header">
           <h3>Insights de consistência e execução</h3>
           <button className="daily-section__collapse" onClick={() => toggleSection("consistencyInsights")}>
             {collapsedSections.consistencyInsights ? "Expandir" : "Minimizar"}
           </button>
         </div>
-
-        {!collapsedSections.consistencyInsights && (
-          <>
-
-            {insightsState.loading && <p className="daily-generation-panel__empty">Carregando insights...</p>}
-            {insightsState.error && <p className="daily-insights-cards__error">{insightsState.error}</p>}
-
-            {!insightsState.loading && !insightsState.error && (
-              <div className="daily-insights-cards__grid">
-                <article className="daily-insight-card">
-                  <h4>Consistência (últimos dias)</h4>
-                  <p className="daily-insight-card__metric">{consistency?.average ?? 0}% média</p>
-                  <p>{(consistency?.days || []).map((day) => `${day.date.slice(5)}: ${day.percentage}%`).join(" · ") || "Sem registros recentes."}</p>
-                </article>
-
-                <article className="daily-insight-card">
-                  <h4>Top atividades (planejadas vs concluídas)</h4>
-                  {topActivities.length === 0 ? (
-                    <p>Sem dados da semana.</p>
-                  ) : (
-                    <ul>
-                      {topActivities.map((item) => (
-                        <li key={item.activity_id}>{item.activity_title || `Atividade #${item.activity_id}`}: {item.times_scheduled} planejadas / {item.times_completed} concluídas</li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-
-                <article className="daily-insight-card">
-                  <h4>Alerta de baixa execução</h4>
-                  {lowExecutionActivities.length === 0 ? (
-                    <p>Nenhuma atividade crítica detectada.</p>
-                  ) : (
-                    <ul>
-                      {lowExecutionActivities.map((item) => (
-                        <li key={`${item.activity_id}-low`}>{item.activity_title || `Atividade #${item.activity_id}`}: {item.completionRate}% de execução</li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              </div>
-            )}
-
-            {!insightsState.loading && !insightsState.error && recommendation && (
-              <div className="daily-recommendation">
-                <h4>{recommendation.title}</h4>
-                <p>{recommendation.description}</p>
-                {recommendation.durationHint && <p>{recommendation.durationHint}</p>}
-                {recommendation.payload && (
-                  <button className="daily-chip" onClick={applyRecommendedAdjustment} disabled={applyingAdjustment}>
-                    {applyingAdjustment ? "Aplicando..." : "Aplicar ajuste recomendado"}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
       </section>
 
-      <section className="daily-section daily-generation-panel">
+      {/* INSIGHTS DE GERAÇÃO - INVISÍVEL */}
+      <section className="daily-section daily-generation-panel" style={{ display: "none" }}>
         <div className="daily-section__header">
           <h3>Insights</h3>
           <button className="daily-section__collapse" onClick={() => toggleSection("generationInsights")}>
             {collapsedSections.generationInsights ? "Expandir" : "Minimizar"}
           </button>
         </div>
-        {!collapsedSections.generationInsights && (
-          <>
-            {!dailyPlan.generationResult && (
-              <p className="daily-generation-panel__empty">Gere o dia para visualizar atividades não alocadas e diagnósticos.</p>
-            )}
-
-            {dailyPlan.generationResult && (notScheduled.length === 0 ? (
-              <p className="daily-generation-panel__empty">Todas as atividades foram alocadas.</p>
-            ) : (
-              <ul className="daily-generation-panel__list">
-                {notScheduled.map((item, index) => {
-                  const reason = item?.reason;
-                  return (
-                    <li key={`${item?.activity_id || item?.id || index}-${reason || "unknown"}`}>
-                      <div><strong>{getActivityLabel(item)}</strong></div>
-                      <div>Motivo: {getReasonLabel(reason)} ({reason || "unknown"})</div>
-                      <div>Sugestão: {getSuggestion(reason)}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ))}
-
-            {diagnostics && (
-              <div className="daily-generation-panel__diagnostics">
-                <h4>Diagnósticos</h4>
-                <pre>{JSON.stringify(diagnostics, null, 2)}</pre>
-              </div>
-            )}
-          </>
-        )}
       </section>
 
-      <section className="daily-section daily-onboarding">
+      {/* ONBOARDING - INVISÍVEL */}
+      <section className="daily-section daily-onboarding" style={{ display: "none" }}>
         <div className="daily-section__header">
           <h3>Onboarding contextual</h3>
           <button className="daily-section__collapse" onClick={() => toggleSection("onboarding")}>
             {collapsedSections.onboarding ? "Expandir" : "Minimizar"}
           </button>
         </div>
-        {!collapsedSections.onboarding && (
-          <div className="daily-onboarding__grid">
-            <article>
-              <h4>Como funciona a geração</h4>
-              <p>O gerador cruza rotina, atividades fixas/flexíveis, pesos de disciplina/diversão e janelas livres para montar um plano equilibrado.</p>
-            </article>
-            <article>
-              <h4>Como resolver conflitos</h4>
-              <p>Se uma tarefa não entrar, reduza duração, altere horário fixo, revise a rotina e regenere o dia para validar o novo encaixe.</p>
-            </article>
-          </div>
-        )}
       </section>
 
       <DayConfigModal

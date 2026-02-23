@@ -1,21 +1,117 @@
-.daily-empty-state { display:flex; flex-direction:column; gap:12px; }
-.daily-empty-text { color:var(--text-secondary); }
-.routine-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-strong); gap:10px; }
-.routine-time { font-size:12px; color:var(--text-secondary); }
-.routine-time-row { display:flex; gap:10px; }
-.daily-form-row input, .routine-time-row input { background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:8px; padding:10px; min-height:44px; }
-.daily-modal-actions { display:flex; justify-content:flex-end; margin-top:20px; gap:10px; }
-.daily-button { padding:10px 14px; border-radius:8px; cursor:pointer; min-height:44px; }
-.daily-button--primary { background:linear-gradient(135deg,var(--accent-success),var(--success)); border:none; color:#fff; font-weight:600; }
-.daily-button--secondary { background:var(--bg-tertiary); border:1px solid var(--border-strong); color:var(--text-primary); }
-.daily-status { padding:10px 12px; border-radius:8px; }
-.daily-status--error { border:1px solid var(--error); background:var(--error-soft); color:var(--text-primary); }
-.daily-status--success { border:1px solid var(--success); background:var(--success-soft); color:var(--text-primary); }
-.daily-modal-form { display:flex; flex-direction:column; gap:12px; }
-.daily-modal-form label { display:flex; flex-direction:column; gap:6px; }
-.daily-modal-form input { background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:8px; padding:10px; min-height:44px; }
+.daily-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.daily-empty-text {
+  color: var(--glass-text-secondary);
+}
+
+/* ==============================
+   ROTINAS
+   ============================== */
+
+.routine-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  gap: 10px;
+}
+
+.routine-time {
+  font-size: 12px;
+  color: var(--glass-text-secondary);
+}
+
+.routine-time-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* ==============================
+   INPUTS
+   ============================== */
+
+.daily-form-row input,
+.routine-time-row input,
+.daily-modal-form input {
+  background: var(--glass-surface-soft);
+  color: var(--glass-text-primary);
+  border: 1px solid var(--glass-border-default);
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 44px;
+  backdrop-filter: var(--glass-blur);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.daily-form-row input:focus,
+.routine-time-row input:focus,
+.daily-modal-form input:focus {
+  background: var(--glass-surface-medium);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--focus-ring);
+}
+
+/* ==============================
+   MODAL
+   ============================== */
+
+.daily-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+/* NÃO redefinir botão — usar .btn */
+
+.daily-status {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.daily-status--error {
+  background: var(--glass-accent-danger);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+}
+
+.daily-status--success {
+  background: var(--glass-accent-success);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+}
+
+.daily-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.daily-modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ==============================
+   RESPONSIVE
+   ============================== */
 
 @media (max-width: 640px) {
-  .routine-item { flex-direction: column; align-items: flex-start; }
-  .routine-time-row { flex-direction: column; }
+  .routine-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .routine-time-row {
+    flex-direction: column;
+  }
 }

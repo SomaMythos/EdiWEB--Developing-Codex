@@ -43,8 +43,8 @@ export default function ActivitiesModal({
               </div>
             </div>
             <div className="activity-actions">
-              <button className="daily-button daily-button--secondary" onClick={() => onToggleActivity(a.id)}>{a.active ? "Desativar" : "Ativar"}</button>
-              <button className="daily-button daily-button--danger" onClick={() => window.confirm("Excluir atividade permanentemente?") && onDeleteActivity(a.id)}>Excluir</button>
+              <button className="btn btn-secondary" onClick={() => onToggleActivity(a.id)}>{a.active ? "Desativar" : "Ativar"}</button>
+              <button className="btn btn-danger" onClick={() => window.confirm("Excluir atividade permanentemente?") && onDeleteActivity(a.id)}>Excluir</button>
             </div>
           </div>
         ))}
@@ -122,14 +122,14 @@ export default function ActivitiesModal({
           <label><input type="checkbox" checked={newActivity.is_fun} onChange={e => setNewActivity({ ...newActivity, is_fun: e.target.checked })} /> Diversão</label>
         </div>
         {validationErrors.category && <span className="activities-error">{validationErrors.category}</span>}
-        <button className="daily-button daily-button--primary" onClick={onCreateActivity}>Criar</button>
+        <button className="btn btn-primary" onClick={onCreateActivity}>Criar</button>
       </div>
 
       {state.status === "error" && <div className="daily-status daily-status--error">{state.error}</div>}
       {state.status === "success" && state.successMessage && <div className="daily-status daily-status--success">{state.successMessage}</div>}
 
       <div className="daily-modal-actions">
-        <button className="daily-button daily-button--secondary" onClick={onClose}>Fechar</button>
+        <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
       </div>
     </AccessibleModal>
   );

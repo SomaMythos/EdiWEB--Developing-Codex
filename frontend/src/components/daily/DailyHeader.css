@@ -6,45 +6,192 @@
   flex-wrap: wrap;
 }
 
-.daily-header__left { display: flex; flex-direction: column; gap: 12px; }
-.daily-header__title { margin: 0; font-size: 1.6rem; }
-.daily-header__badge { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .06em; display: inline-block; color:#fff; }
-.daily-header__badge.work { background: linear-gradient(135deg,var(--accent-info),var(--accent-primary)); }
-.daily-header__badge.off { background: linear-gradient(135deg,var(--warning-state),var(--accent-primary)); }
-.daily-header__progress-container { width: min(300px, 100%); height: 8px; background: var(--bg-tertiary); border-radius: 6px; overflow: hidden; }
-.daily-header__progress-bar { height: 100%; background: linear-gradient(135deg,var(--accent-success),var(--success)); transition: width .3s ease; }
-.daily-header__progress-text { font-size: 13px; opacity: .9; color:var(--text-secondary); }
-.daily-header__summary-card { display: flex; gap: 24px; flex-wrap: wrap; }
-.daily-header__summary-label { font-size: 12px; color:var(--text-secondary); }
-.daily-header__summary-value { font-size: 16px; font-weight: 700; }
-.daily-header__controls { display:flex; flex-direction:column; gap:12px; align-items:flex-end; }
-.daily-header__actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+.daily-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.daily-header__title {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.daily-header__badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  display: inline-block;
+  color: #fff;
+}
+
+/* BADGES */
+.daily-header__badge.work {
+  background: linear-gradient(
+    135deg,
+    rgba(249,115,22,0.85),
+    rgba(244,63,94,0.75)
+  );
+  box-shadow: 0 0 18px rgba(249,115,22,0.35);
+}
+
+.daily-header__badge.off {
+  background: linear-gradient(
+    135deg,
+    rgba(56,189,248,0.75),
+    rgba(99,102,241,0.65)
+  );
+  box-shadow: 0 0 18px rgba(56,189,248,0.25);
+}
+
+/* PROGRESS */
+
+.daily-header__progress-container {
+  width: min(300px, 100%);
+  height: 8px;
+  background: var(--glass-surface-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.daily-header__progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+
+  background: linear-gradient(
+    90deg,
+    rgba(34,197,94,0.85),
+    rgba(16,185,129,0.75)
+  );
+
+  box-shadow: 0 0 14px rgba(34,197,94,0.35);
+  transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+
+.daily-header__progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -40%;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.4),
+    rgba(255,255,255,0.1),
+    transparent
+  );
+  animation: progressShine 2.8s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+  0% { left: -40%; }
+  100% { left: 120%; }
+}
+
+.daily-header__progress-text {
+  font-size: 13px;
+  opacity: .9;
+  color: var(--glass-text-secondary);
+}
+
+.daily-header__summary-card {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.daily-header__summary-label {
+  font-size: 12px;
+  color: var(--glass-text-secondary);
+}
+
+.daily-header__summary-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.daily-header__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.daily-header__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* INPUT */
 
 .daily-input {
-  background:var(--bg-primary);
-  border:1px solid var(--border-strong);
-  color:var(--text-primary);
-  padding:10px 12px;
-  border-radius:8px;
-  min-height:44px;
-}
-
-.daily-button {
-  padding: 10px 14px;
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+  padding: 10px 12px;
   border-radius: 8px;
-  cursor: pointer;
   min-height: 44px;
-  border: 1px solid transparent;
+  color: var(--glass-text-primary);
 }
 
-.daily-button--primary { background:linear-gradient(135deg,var(--accent-success),var(--success)); color:#fff; font-weight:700; }
-.daily-button--secondary { background:var(--bg-tertiary); border-color:var(--border-strong); color:var(--text-primary); font-weight:600; }
-.daily-button--tertiary { background:transparent; border-color:var(--border); color:var(--text-secondary); }
-.daily-button--danger { background:var(--error-soft); border-color:var(--error); color:var(--text-primary); }
+.daily-header input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.7);
+}
 
-.daily-status { width: 100%; padding: 10px 12px; border-radius: 8px; }
-.daily-status--error { border:1px solid var(--error); background:var(--error-soft); color:var(--text-primary); }
-.daily-status--success { border:1px solid var(--success); background:var(--success-soft); color:var(--text-primary); }
+/* STATUS */
+
+.daily-status {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+}
+
+.daily-status--error {
+  background: var(--glass-accent-danger);
+  border: 1px solid var(--glass-border-accent);
+  color: var(--glass-text-primary);
+}
+
+.daily-header .daily-status--success {
+  position: relative;
+  overflow: hidden;
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  color: var(--glass-text-primary);
+  backdrop-filter: var(--glass-blur);
+}
+
+.daily-status--success::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    500px circle at 15% 50%,
+    rgba(34,197,94,0.18),
+    rgba(34,197,94,0.06) 40%,
+    transparent 70%
+  );
+  opacity: 0.35;
+  animation: successGlow 6s ease-in-out infinite;
+}
+
+@keyframes successGlow {
+  0%,100% { opacity: 0.35; }
+  50% { opacity: 0.55; }
+}
+
+/* RESPONSIVE */
 
 @media (max-width: 900px) {
   .daily-header__controls { align-items: stretch; width: 100%; }
@@ -54,5 +201,5 @@
 @media (max-width: 640px) {
   .daily-header__title { font-size: 1.3rem; }
   .daily-header__summary-card { gap: 16px; }
-  .daily-header__actions .daily-button { flex: 1 1 calc(50% - 8px); }
+  .daily-header__actions .btn { flex: 1 1 calc(50% - 8px); }
 }

@@ -1,0 +1,204 @@
+/* ===========================
+   BOOKS — GLASS IMPLEMENTATION
+   =========================== */
+
+/* ===== Layout ===== */
+
+.books-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.books-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.books-section {
+  margin-top: 20px;
+}
+
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 18px;
+}
+
+/* ===== Book Card ===== */
+
+.book-card-wrapper {
+  position: relative;
+  width: 200px;
+  height: 300px;
+  margin-bottom: 30px;
+}
+
+.book-refresh-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.book-card-wrapper:hover .book-refresh-btn {
+  opacity: 1;
+}
+
+.book-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
+  box-shadow: var(--glass-shadow-medium);
+
+  transition:
+    transform var(--motion-normal),
+    box-shadow var(--motion-normal),
+    border-color var(--motion-fast);
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-strong);
+  border-color: var(--glass-border-strong);
+}
+
+.book-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== Progress Overlay ===== */
+
+.book-progress-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px;
+
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.85),
+    rgba(0,0,0,0.15)
+  );
+}
+
+.book-progress-bar {
+  height: 18px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-subtle);
+
+  position: relative;
+}
+
+.book-progress-fill {
+  height: 100%;
+  background: var(--glass-accent-success);
+  box-shadow: var(--glass-glow-success);
+
+  transition: width 0.6s cubic-bezier(.4,2,.6,1);
+}
+
+.book-progress-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ===== Refresh Button ===== */
+
+.book-refresh-btn {
+  position: absolute;
+  bottom: -18px;
+  right: -18px;
+
+  width: 46px;
+  height: 46px;
+
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+
+  backdrop-filter: var(--glass-blur);
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-subtle);
+
+  box-shadow: var(--glass-shadow-soft);
+
+  opacity: 0;
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-normal);
+}
+
+.book-card-wrapper:hover .book-refresh-btn {
+  opacity: 1;
+}
+
+.book-refresh-btn:hover {
+  transform: rotate(180deg) scale(1.1);
+  box-shadow: var(--glass-glow-success);
+}
+
+.book-refresh-icon {
+  color: var(--glass-accent-success);
+  filter: drop-shadow(0 2px 6px var(--glass-accent-success-soft));
+}
+
+/* ===== Remove Mode ===== */
+
+.book-card-wrapper.remove-mode {
+  cursor: pointer;
+}
+
+.book-card-wrapper.remove-mode .book-card {
+  border-color: var(--danger);
+  box-shadow: 0 0 18px rgba(255, 0, 0, 0.25);
+}
+
+/* ===== Modal ===== */
+
+.book-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--glass-surface-overlay);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+
+.book-modal-card {
+  width: min(560px, 95vw);
+  padding: 20px;
+
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+
+  backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--glass-shadow-strong);
+}
+
+/* ===== Log Entries ===== */
+
+.book-log-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}

@@ -310,14 +310,22 @@ class GoalEngine:
     def list_goals_by_category(category_id):
         db = Database()
         rows = db.fetchall("""
-            SELECT id, title, description, status, deadline, difficulty, created_at, image_path
+            SELECT 
+                id,
+                title,
+                description,
+                status,
+                deadline,
+                difficulty,
+                created_at,
+                completed_at,
+                image_path
             FROM goals
             WHERE category_id = ?
             ORDER BY created_at DESC
         """, (category_id,))
         db.close()
         return rows
-
 
     # =========================
     # HOME OVERVIEW (Estilo WoW)

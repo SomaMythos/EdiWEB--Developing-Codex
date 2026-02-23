@@ -30,7 +30,7 @@ export default function RoutinesModal({
         {!activeRoutine && (
           <div className="daily-empty-state">
             <div className="daily-empty-text">Nenhuma rotina configurada para este tipo de dia.</div>
-            <button ref={createRoutineButtonRef} className="daily-button daily-button--primary" onClick={onCreateRoutine}>
+            <button ref={createRoutineButtonRef} className="btn btn-primary" onClick={onCreateRoutine}>
               Criar rotina {dayType === "work" ? "Work" : "Off"}
             </button>
           </div>
@@ -42,7 +42,7 @@ export default function RoutinesModal({
               <strong>{block.name}</strong>
               <div className="routine-time">{block.start_time} - {block.end_time}</div>
             </div>
-            <button className="daily-button daily-button--secondary" onClick={() => onRemoveBlock(block.id)}>Remover</button>
+            <button className="btn btn-secondary" onClick={() => onRemoveBlock(block.id)}>Remover</button>
           </div>
         ))}
 
@@ -56,7 +56,7 @@ export default function RoutinesModal({
               <input type="time" value={newBlock.start_time} onChange={e => setNewBlock({ ...newBlock, start_time: e.target.value })} />
               <input type="time" value={newBlock.end_time} onChange={e => setNewBlock({ ...newBlock, end_time: e.target.value })} />
             </div>
-            <button className="daily-button daily-button--primary" onClick={onAddBlock}>Adicionar</button>
+            <button className="btn btn-primary" onClick={onAddBlock}>Adicionar</button>
           </>
         )}
 
@@ -64,7 +64,7 @@ export default function RoutinesModal({
         {state.status === "success" && state.successMessage && <div className="daily-status daily-status--success">{state.successMessage}</div>}
 
         <div className="daily-modal-actions">
-          <button className="daily-button daily-button--secondary" onClick={onClose}>Fechar</button>
+          <button className="btn btn-secondary" onClick={onClose}>Fechar</button>
         </div>
     </AccessibleModal>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { booksApi } from '../services/api';
+import "./Books.css";
 
 const Books = () => {
   const [books, setBooks] = useState([]);
@@ -85,10 +86,10 @@ const [removeMode, setRemoveMode] = useState(false);
 
   return (
     <div className="page-container fade-in">
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+<div className="books-header">
   <h1>Leitura</h1>
 
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+  <div className="books-actions">
     <button
       className="btn btn-primary"
       onClick={openLog}
@@ -97,12 +98,7 @@ const [removeMode, setRemoveMode] = useState(false);
     </button>
 
     <button
-      className="btn"
-      style={{
-        background: '#2a0f0f',
-        color: '#ff4d4d',
-        border: '1px solid #552222'
-      }}
+  className={`btn ${removeMode ? 'btn-danger-active' : 'btn-danger-soft'}`}
       onClick={() => setRemoveMode((prev) => !prev)}
     >
       {removeMode ? 'Cancelar remoção' : 'Remover livro'}
@@ -110,7 +106,7 @@ const [removeMode, setRemoveMode] = useState(false);
   </div>
 </div>
 
-<div style={{ marginTop: 12 }}>
+<div className="books-section">
   <button
     className="btn btn-primary"
     type="button"
@@ -127,11 +123,7 @@ const [removeMode, setRemoveMode] = useState(false);
     <div key={type} style={{ marginBottom: 28 }}>
       <h2 style={{ marginBottom: 12 }}>{type}</h2>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: 18
-      }}>
+      <div className="books-grid">
         {items.map((b) => {
           const total = b.total_pages || 0;
           const current = b.current_page || 0;
@@ -143,13 +135,7 @@ const [removeMode, setRemoveMode] = useState(false);
           return (
 <div
   key={b.id}
-  style={{
-    position: 'relative',
-    width: 200,
-    height: 300,
-    marginBottom: 30,
-    cursor: removeMode ? 'pointer' : 'default'
-  }}
+  className={`book-card-wrapper ${removeMode ? 'remove-mode' : ''}`}
   onClick={async () => {
     if (!removeMode) return;
 
@@ -169,17 +155,7 @@ const [removeMode, setRemoveMode] = useState(false);
   }}
 >
   <div
-    style={{
-      position: 'relative',
-      width: '100%',
-      height: '100%',
-      borderRadius: 16,
-      overflow: 'hidden',
-      cursor: 'pointer',
-      background: '#111',
-      boxShadow: '0 3px 3px rgba(0,0,0,0.35)',
-      transition: 'transform 0.25s ease, box-shadow 0.25s ease'
-    }}
+    className="book-card"
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = 'translateY(-3px)';
       e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.45)';
@@ -189,44 +165,14 @@ const [removeMode, setRemoveMode] = useState(false);
       e.currentTarget.style.boxShadow = '0 6px 6px rgba(0,0,0,0.35)';
     }}
   >
-    <img
-      src={b.cover_image || 'https://via.placeholder.com/200x300?text=Sem+Foto'}
-      alt={b.title}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-      }}
-    />
+<img src={b.cover_image || 'https://via.placeholder.com/200x300?text=Sem+Foto'} alt={b.title} className="book-cover" />
 
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        padding: '10px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.15))'
-      }}
-    >
-      <div
-        style={{
-          height: 18,
-          background: '#f2f2f2',
-          borderRadius: 10,
-          overflow: 'hidden',
-          position: 'relative'
-        }}
-      >
+    <div className="book-progress-overlay">
+      <div className="book-progress-bar">
         <div
-          style={{
-            width: `${percent}%`,
-            height: '100%',
-            background: 'linear-gradient(90deg, #9be300, #7ed321)',
-            transition: 'width 0.5s cubic-bezier(.4,2,.6,1)',
-            boxShadow: '0 0 6px rgba(155,227,0,0.6)'
-          }}
-        />
+  className="book-progress-fill"
+  style={{ width: `${percent}%` }}
+/>
 
         <div
           style={{
@@ -240,17 +186,7 @@ const [removeMode, setRemoveMode] = useState(false);
           }}
         />
 
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#111'
-          }}
-        >
+        <div className="book-progress-text">
           {b.current_page || 0}/{b.total_pages || 0}
         </div>
       </div>
@@ -258,7 +194,7 @@ const [removeMode, setRemoveMode] = useState(false);
   </div>
 
   <div
-    className="refresh-emoji"
+    className="book-refresh-btn"
     onClick={(e) => {
       e.stopPropagation();
       openUpdate(b);
@@ -273,7 +209,6 @@ const [removeMode, setRemoveMode] = useState(false);
       display: 'grid',
       placeItems: 'center',
       cursor: 'pointer',
-      opacity: 0,
       backdropFilter: 'blur(6px)',
       background: 'rgba(0,0,0,0.55)',
       boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
@@ -287,23 +222,21 @@ const [removeMode, setRemoveMode] = useState(false);
       e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
     }}
   >
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#a4d80f"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{
-        filter: 'drop-shadow(0 2px 6px rgba(164,216,15,0.6))'
-      }}
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15" />
-    </svg>
+<svg
+  width="22"
+  height="22"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2.2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  className="book-refresh-icon"
+>
+  <polyline points="23 4 23 10 17 10" />
+  <polyline points="1 20 1 14 7 14" />
+  <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15" />
+</svg>
   </div>
 </div>
 );
@@ -314,15 +247,8 @@ const [removeMode, setRemoveMode] = useState(false);
 </div>
 
 {createModalOpen && (
-  <div style={{
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0,0,0,0.5)',
-    display: 'grid',
-    placeItems: 'center',
-    zIndex: 1000
-  }}>
-    <div className="card" style={{ padding: 20, width: 500, maxWidth: '95vw' }}>
+  <div className="book-modal-backdrop">
+    <div className="book-modal-card">
       <h3>Novo livro</h3>
 
       <form
@@ -431,7 +357,7 @@ const [removeMode, setRemoveMode] = useState(false);
 
             <h3>Histórico cronológico</h3>
             {logData.map((row) => (
-              <div key={row.id} style={{ borderBottom: '1px solid #ddd', padding: '6px 0' }}>
+              <div key={row.id} className="book-log-entry">
                 <strong>{row.title}</strong> ({row.book_type}) — +{row.pages_read} págs ({row.start_page}→{row.end_page}) em {new Date(row.read_at).toLocaleString('pt-BR')}
               </div>
             ))}

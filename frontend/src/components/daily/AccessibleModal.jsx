@@ -85,7 +85,7 @@ export default function AccessibleModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`daily-modal ${size === "wide" ? "daily-modal--wide" : ""} ${className}`.trim()}
+        className={`daily-modal glass-scrollbar ${size === "wide" ? "daily-modal--wide" : ""} ${className}`.trim()}
         onMouseDown={event => event.stopPropagation()}
       >
         <h3 id={titleId}>{title}</h3>

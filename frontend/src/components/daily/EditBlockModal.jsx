@@ -79,8 +79,8 @@ export default function EditBlockModal({ show, block, onClose, onSave }) {
         </label>
 
         <div className="daily-modal-actions">
-          <button type="button" className="daily-button daily-button--secondary" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="daily-button daily-button--primary">Salvar</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button type="submit" className="btn btn-primary">Salvar</button>
         </div>
       </form>
     </AccessibleModal>

@@ -1,21 +1,14 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background-color: var(--bg-secondary);
+  background: transparent;
 }
 
 .sidebar {
-  width: 280px;
-  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  height: 100vh;
-  left: 0;
-  top: 0;
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow-soft);
+  background: var(--glass-surface-strong);
+  border-right: 1px solid var(--glass-border-subtle);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-strong);
 }
 
 .sidebar-header {
@@ -83,6 +76,7 @@
 
 .nav-item {
   display: flex;
+  opacity: 1;
   align-items: center;
   gap: 0.65rem;
   padding: 0.7rem 0.9rem;
@@ -99,6 +93,7 @@
 
 .nav-item:hover {
   background-color: var(--surface-2);
+  opacity: 0.9;
   border-color: var(--border);
   color: var(--text-primary);
   transform: translateX(3px);
@@ -106,21 +101,13 @@
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, var(--accent-primary-soft), color-mix(in srgb, var(--surface-1) 80%, transparent));
-  color: var(--primary);
-  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
-  box-shadow: var(--shadow-soft);
+  background: var(--glass-accent-neutral);
+  border: 1px solid var(--glass-border-accent);
+  box-shadow: var(--glass-glow-soft);
+  color: var(--glass-text-primary);
 }
 
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: -0.55rem;
-  width: 0.25rem;
-  height: 1rem;
-  border-radius: var(--radius-full);
-  background: var(--primary);
-}
+
 
 .nav-group {
   display: flex;
@@ -178,7 +165,6 @@
 
 .main-content {
   flex: 1;
-  margin-left: 280px;
   padding: clamp(1rem, 2vw, 1.75rem);
   min-height: 100vh;
 }
