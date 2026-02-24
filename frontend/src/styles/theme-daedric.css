@@ -1,0 +1,120 @@
+.theme-daedric {
+
+/* =========================
+   TOKENS VISUAIS
+========================= */
+
+--focus-ring: 0 0 0 2px #ff1a1a;
+
+/* SURFACES */
+
+--glass-surface-soft: #0e0e0e;
+--glass-surface-medium: #141414;
+--glass-surface-strong: #1a0000;
+--glass-surface-overlay: #050505;
+
+/* INTERACTIONS */
+
+--glass-interactive-hover: #1f0000;
+--glass-interactive-active: #2a0000;
+--glass-interactive-pressed: #330000;
+
+/* TEXT */
+
+--glass-text-primary: #ff2b2b;
+--glass-text-secondary: #cc1f1f;
+--glass-text-muted: #661111;
+--glass-text-accent: #ff0000;
+
+/* BORDERS */
+
+--glass-border-subtle: #330000;
+--glass-border-default: #660000;
+--glass-border-strong: #990000;
+--glass-border-accent: #ff0000;
+
+/* SHADOWS */
+
+--glass-shadow-soft: 0 6px 18px rgba(0,0,0,0.8);
+--glass-shadow-medium: 0 12px 28px rgba(0,0,0,0.9);
+--glass-shadow-strong: 0 24px 60px rgba(0,0,0,1);
+
+/* EFFECTS */
+
+--glass-blur: none;
+--glass-blur-strong: none;
+--glass-shine-overlay: none;
+}
+
+/* ======================================================
+   BODY
+====================================================== */
+
+.theme-daedric body {
+  background-color: #050505;
+  color: var(--glass-text-primary);
+
+  background-image:
+    radial-gradient(800px circle at 50% 20%, rgba(120,0,0,0.15) 0%, transparent 60%),
+    linear-gradient(180deg, #000 0%, #0a0a0a 40%, #000 100%);
+
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+/* ======================================================
+   COMPONENTES VISUAIS
+====================================================== */
+
+.theme-daedric .card {
+  background: var(--glass-surface-medium);
+  border: 2px solid var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-strong);
+}
+
+.theme-daedric .card:hover {
+  border-color: var(--glass-border-accent);
+  box-shadow: 0 0 25px rgba(255,0,0,0.25);
+}
+
+.theme-daedric .input,
+.theme-daedric .modal-form input,
+.theme-daedric .modal-form textarea,
+.theme-daedric .modal-form select {
+  background: #0a0a0a;
+  border: 2px solid var(--glass-border-default);
+  color: var(--glass-text-primary);
+}
+
+.theme-daedric .input:focus,
+.theme-daedric .modal-form input:focus,
+.theme-daedric .modal-form textarea:focus {
+  border-color: var(--glass-border-accent);
+  box-shadow: 0 0 15px rgba(255,0,0,0.4);
+}
+
+.theme-daedric .btn-primary {
+  background: #660000;
+  border: 2px solid #990000;
+  box-shadow: 0 0 20px rgba(255,0,0,0.2);
+}
+
+.theme-daedric .btn-primary:hover {
+  background: #990000;
+  border-color: #ff0000;
+  box-shadow: 0 0 30px rgba(255,0,0,0.4);
+}
+
+.theme-daedric .btn-secondary {
+  background: #111;
+  border: 2px solid #660000;
+}
+
+.theme-daedric .btn-ghost {
+  color: var(--glass-text-secondary);
+}
+
+.theme-daedric .btn-ghost:hover {
+  background: #1a0000;
+  color: var(--glass-text-primary);
+}

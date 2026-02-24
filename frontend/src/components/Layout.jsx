@@ -27,7 +27,6 @@ import './Layout.css';
 const Layout = ({ children }) => {
   const [isHobbyOpen, setIsHobbyOpen] = useState(true);
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { path: '/', icon: Calendar, label: 'Daily' },
@@ -57,14 +56,6 @@ const Layout = ({ children }) => {
           <CheckCircle2 size={32} className="logo-icon" />
           <h1 className="logo-text">EDI</h1>
           <p className="logo-subtitle">Life Manager</p>
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
         </div>
 
 <nav className="sidebar-nav">
@@ -85,18 +76,20 @@ const Layout = ({ children }) => {
   {/* Hobby */}
   <div className="nav-group">
     <button
-      type="button"
-      className={`nav-item nav-parent ${isHobbyActive ? 'active' : ''}`}
-      onClick={() => setIsHobbyOpen((prev) => !prev)}
-    >
-      <Heart size={20} />
-      <span>Hobby</span>
-      {isHobbyOpen ? (
-        <ChevronDown size={16} className="nav-chevron" />
-      ) : (
-        <ChevronRight size={16} className="nav-chevron" />
-      )}
-    </button>
+  type="button"
+  className={`nav-item nav-parent ${isHobbyActive ? 'active' : ''}`}
+  onClick={() => setIsHobbyOpen((prev) => !prev)}
+>
+  <Heart size={20} />
+  <span>Hobby</span>
+  <span className="nav-chevron-wrapper">
+    {isHobbyOpen ? (
+      <ChevronDown size={16} className="nav-chevron" />
+    ) : (
+      <ChevronRight size={16} className="nav-chevron" />
+    )}
+  </span>
+</button>
 
     <div className={`nav-subitems ${isHobbyOpen ? 'expanded' : ''}`}>
       {hobbyItems.map((item) => (

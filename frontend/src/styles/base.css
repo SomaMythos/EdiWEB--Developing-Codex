@@ -1,0 +1,134 @@
+/* ======================================================
+   RESET
+====================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ======================================================
+   TOKENS ESTRUTURAIS (NÃO SKINÁVEIS)
+====================================================== */
+
+:root {
+
+/* MOTION */
+--motion-fast: 150ms;
+--motion-normal: 200ms;
+--motion-smooth: 220ms;
+
+/* SPACING */
+--spacing-xs: 0.25rem;
+--spacing-sm: 0.5rem;
+--spacing-md: 1rem;
+--spacing-lg: 1.5rem;
+--spacing-xl: 2rem;
+--spacing-2xl: 3rem;
+
+/* RADIUS */
+--radius-sm: 0.25rem;
+--radius-md: 0.625rem;
+--radius: 0.5rem;
+--radius-lg: 0.75rem;
+--radius-xl: 1rem;
+--radius-2xl: 1.25rem;
+--radius-full: 9999px;
+
+/* BUTTON STRUCTURE */
+--btn-radius: var(--radius-lg);
+--btn-font-weight: 600;
+
+--btn-padding-sm: 6px 12px;
+--btn-padding-md: 8px 16px;
+--btn-padding-lg: 12px 22px;
+
+--btn-transition:
+  transform var(--motion-fast),
+  box-shadow var(--motion-fast),
+  background var(--motion-fast),
+  filter var(--motion-fast),
+  border-color var(--motion-fast);
+
+--btn-icon-size-sm: 32px;
+--btn-icon-size-md: 38px;
+--btn-icon-size-lg: 44px;
+}
+
+/* ======================================================
+   COMPONENTES (APENAS LAYOUT)
+====================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-weight: var(--btn-font-weight);
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  transition: var(--btn-transition);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  padding: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.btn-icon-sm { width: var(--btn-icon-size-sm); }
+.btn-icon-md { width: var(--btn-icon-size-md); }
+.btn-icon-lg { width: var(--btn-icon-size-lg); }
+
+.btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-sm { padding: var(--btn-padding-sm); }
+.btn-md { padding: var(--btn-padding-md); }
+.btn-lg { padding: var(--btn-padding-lg); }
+
+.card {
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.input,
+.modal-form input,
+.modal-form textarea,
+.modal-form select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  outline: none;
+  appearance: none;
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}

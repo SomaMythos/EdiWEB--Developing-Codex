@@ -1,3 +1,7 @@
+/* ======================================================
+   LAYOUT
+====================================================== */
+
 .settings-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -8,25 +12,33 @@
   gap: var(--spacing-xl);
 }
 
+/* ======================================================
+   SECTION HEADER
+====================================================== */
+
 .section-header {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border-default);
 }
 
 .section-header svg {
-  color: var(--primary);
+  color: var(--glass-text-accent);
 }
 
 .section-header h2 {
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--glass-text-primary);
 }
 
-/* Profile Section */
+/* ======================================================
+   PROFILE
+====================================================== */
+
 .profile-form {
   display: flex;
   flex-direction: column;
@@ -35,11 +47,14 @@
 
 .form-hint {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-muted);
   margin-top: var(--spacing-xs);
 }
 
-/* Metrics Section */
+/* ======================================================
+   METRICS
+====================================================== */
+
 .metrics-form {
   display: flex;
   flex-direction: column;
@@ -54,23 +69,37 @@
   margin-bottom: var(--spacing-xl);
 }
 
+/* Glass metric cards */
 .metric-card {
   padding: var(--spacing-md);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius);
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-soft);
   text-align: center;
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-normal),
+    border-color var(--motion-fast);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-medium);
+  border-color: var(--glass-border-strong);
 }
 
 .metric-label {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
   margin-bottom: var(--spacing-xs);
 }
 
 .metric-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--glass-text-primary);
   margin-bottom: var(--spacing-xs);
 }
 
@@ -80,22 +109,27 @@
 }
 
 .metric-trend.up {
-  color: var(--danger);
+  color: var(--accent-success);
 }
 
 .metric-trend.down {
-  color: var(--secondary);
+  color: var(--error);
 }
+
+/* ======================================================
+   METRICS HISTORY
+====================================================== */
 
 .metrics-history {
   padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border-default);
 }
 
 .metrics-history h3 {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: var(--spacing-md);
+  color: var(--glass-text-primary);
 }
 
 .history-list {
@@ -109,21 +143,38 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius);
+
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--glass-blur);
+
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    border-color var(--motion-fast);
+}
+
+.history-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--glass-border-default);
+  box-shadow: var(--glass-shadow-soft);
 }
 
 .history-date {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-muted);
 }
 
 .history-value {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--glass-text-primary);
 }
 
-/* Export Section */
+/* ======================================================
+   EXPORT SECTION
+====================================================== */
+
 .export-options {
   display: flex;
   flex-direction: column;
@@ -135,19 +186,28 @@
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.2s;
   text-align: left;
   width: 100%;
+  cursor: pointer;
+
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-soft);
+
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-normal),
+    border-color var(--motion-fast),
+    background var(--motion-fast);
 }
 
 .export-button:hover:not(:disabled) {
-  background-color: var(--bg-primary);
-  border-color: var(--primary);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--glass-border-strong);
+  background: var(--glass-interactive-hover);
+  box-shadow: var(--glass-shadow-medium);
 }
 
 .export-button:disabled {
@@ -156,7 +216,7 @@
 }
 
 .export-button svg {
-  color: var(--primary);
+  color: var(--glass-text-accent);
   flex-shrink: 0;
 }
 
@@ -164,13 +224,17 @@
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: var(--spacing-xs);
-  color: var(--text-primary);
+  color: var(--glass-text-primary);
 }
 
 .export-info p {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
 }
+
+/* ======================================================
+   EXPORTING INDICATOR
+====================================================== */
 
 .exporting-indicator {
   display: flex;
@@ -178,56 +242,34 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-xl);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius);
   margin-top: var(--spacing-lg);
+
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-soft);
 }
 
 .exporting-indicator p {
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
 }
 
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+
 @media (max-width: 768px) {
+
   .metrics-summary {
     grid-template-columns: 1fr;
   }
-  
+
   .export-button {
     flex-direction: column;
     text-align: center;
   }
-}
 
-/* ===== Unified settings cards ===== */
-.settings-page .card,
-.metric-card,
-.history-item,
-.export-button,
-.exporting-indicator {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  box-shadow: var(--shadow-soft);
-  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease, opacity var(--motion-fast) ease;
-}
-
-.settings-page .card:hover,
-.metric-card:hover,
-.history-item:hover,
-.export-button:hover:not(:disabled),
-.exporting-indicator:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-elevated);
-  border-color: var(--border-hover);
-}
-
-.metric-card,
-.history-item,
-.exporting-indicator {
-  background: var(--surface-2);
-}
-
-@media (max-width: 768px) {
   .settings-page {
     max-width: 100%;
   }

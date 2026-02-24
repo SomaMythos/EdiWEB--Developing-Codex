@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, AlertCircle, Calendar, TrendingDown } from 'lucide-react';
 import { notificationsApi } from '../services/api';
 import './Notifications.css';
@@ -7,6 +7,10 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+
+const buttonRef = useRef(null);
+const dropdownRef = useRef(null);
+const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     loadNotifications();
@@ -58,8 +62,18 @@ const Notifications = () => {
   return (
     <div className="notifications-container">
       <button 
+		ref={buttonRef}
         className="notifications-button"
-        onClick={() => setShow(!show)}
+        onClick={() => {
+  if (!show && buttonRef.current) {
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.top,
+      left: rect.right + 12
+    });
+  }
+  setShow(!show);
+}}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -68,7 +82,14 @@ const Notifications = () => {
       </button>
 
       {show && (
-        <div className="notifications-dropdown fade-in">
+        <div
+  ref={dropdownRef}
+  className="notifications-dropdown fade-in"
+  style={{
+    top: position.top,
+    left: position.left
+  }}
+>
           <div className="notifications-header">
             <h3>Notificações</h3>
             <button 

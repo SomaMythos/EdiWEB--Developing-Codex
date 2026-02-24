@@ -1,25 +1,47 @@
+/* ======================================================
+   CONTAINER
+====================================================== */
+
 .notifications-container {
   position: relative;
 }
+
+/* ======================================================
+   BUTTON
+====================================================== */
 
 .notifications-button {
   position: relative;
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
+
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+
+  transition:
+    transform var(--motion-fast),
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
 .notifications-button:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--primary);
+  background: var(--glass-interactive-hover);
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--glass-shadow-soft);
 }
+
+/* ======================================================
+   BADGE
+====================================================== */
 
 .notifications-badge {
   position: absolute;
@@ -28,60 +50,90 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-full);
-  background-color: var(--danger);
-  color: white;
+
+  background: var(--error);
+  color: #fff;
+
   font-size: 0.75rem;
   font-weight: 600;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
+/* ======================================================
+   DROPDOWN
+====================================================== */
+
 .notifications-dropdown {
-  position: absolute;
-  bottom: calc(100% + var(--spacing-sm));
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   width: min(380px, calc(100vw - 2rem));
   max-height: 500px;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border);
+
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border-default);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
+  backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--glass-shadow-strong);
+
+  z-index: 2000;
   display: flex;
   flex-direction: column;
 }
+
+/* ======================================================
+   HEADER
+====================================================== */
 
 .notifications-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border-default);
 }
 
 .notifications-header h3 {
   font-size: 1rem;
   font-weight: 600;
+  color: var(--glass-text-primary);
 }
+
+/* Close button */
 
 .close-button {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius);
-  background-color: transparent;
-  border: none;
+  border-radius: var(--radius-md);
+
+  background: transparent;
+  border: 1px solid transparent;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   cursor: pointer;
-  transition: all 0.2s;
+
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 .close-button:hover {
-  background-color: var(--bg-secondary);
+  background: var(--glass-interactive-hover);
+  border-color: var(--glass-border-subtle);
+  transform: scale(1.05);
 }
+
+/* ======================================================
+   CONTENT
+====================================================== */
 
 .notifications-content {
   flex: 1;
@@ -89,23 +141,37 @@
   max-height: 400px;
 }
 
+/* Use your glass scrollbar */
+.notifications-content {
+  scrollbar-width: thin;
+}
+
+/* ======================================================
+   EMPTY / LOADING
+====================================================== */
+
 .notifications-loading,
 .notifications-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
   padding: var(--spacing-2xl);
   gap: var(--spacing-md);
 }
 
 .notifications-empty .empty-icon {
-  color: var(--text-tertiary);
+  color: var(--glass-text-muted);
 }
 
 .notifications-empty p {
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
 }
+
+/* ======================================================
+   LIST
+====================================================== */
 
 .notifications-list {
   display: flex;
@@ -116,8 +182,13 @@
   display: flex;
   gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border);
-  transition: all 0.2s;
+
+  border-bottom: 1px solid var(--glass-border-subtle);
+
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 .notification-item:last-child {
@@ -125,23 +196,31 @@
 }
 
 .notification-item:hover {
-  background-color: var(--bg-secondary);
+  background: var(--glass-interactive-hover);
 }
 
+/* ======================================================
+   VARIANTS
+====================================================== */
+
 .notification-item.notification-warning {
-  background-color: rgba(245, 158, 11, 0.05);
-  border-left: 3px solid var(--warning);
+  background: var(--glass-accent-warning);
+  border-left: 3px solid var(--accent-warning);
 }
 
 .notification-item.notification-primary {
-  background-color: rgba(99, 102, 241, 0.05);
-  border-left: 3px solid var(--primary);
+  background: var(--glass-accent-neutral);
+  border-left: 3px solid var(--glass-text-accent);
 }
 
 .notification-item.notification-success {
-  background-color: rgba(16, 185, 129, 0.05);
-  border-left: 3px solid var(--secondary);
+  background: var(--glass-accent-success);
+  border-left: 3px solid var(--accent-success);
 }
+
+/* ======================================================
+   ICONS
+====================================================== */
 
 .notification-icon {
   flex-shrink: 0;
@@ -151,16 +230,20 @@
 }
 
 .icon-warning {
-  color: var(--warning);
+  color: var(--accent-warning);
 }
 
 .icon-primary {
-  color: var(--primary);
+  color: var(--glass-text-accent);
 }
 
 .icon-success {
-  color: var(--secondary);
+  color: var(--accent-success);
 }
+
+/* ======================================================
+   CONTENT TEXT
+====================================================== */
 
 .notification-content {
   flex: 1;
@@ -171,21 +254,29 @@
 
 .notification-message {
   font-size: 0.875rem;
-  color: var(--text-primary);
+  color: var(--glass-text-primary);
   line-height: 1.5;
 }
 
 .notification-detail {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
 }
+
+/* ======================================================
+   FOOTER
+====================================================== */
 
 .notifications-footer {
   padding: var(--spacing-md) var(--spacing-lg);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border-default);
   display: flex;
   justify-content: flex-end;
 }
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
 
 @media (max-width: 480px) {
   .notifications-dropdown {
