@@ -213,6 +213,7 @@ CREATE TABLE IF NOT EXISTS music_training_sessions (
 CREATE TABLE IF NOT EXISTS music_artists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
+    image_path TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

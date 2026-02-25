@@ -23,6 +23,7 @@ export default function Music() {
   const [expandedArtists, setExpandedArtists] = useState({});
   const [showArtistModal, setShowArtistModal] = useState(false);
   const [newArtistName, setNewArtistName] = useState("");
+  const [newArtistImage, setNewArtistImage] = useState(null);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState("");
   const [selectedArtistId, setSelectedArtistId] = useState(null);
@@ -135,38 +136,34 @@ const [newAlbumImage, setNewAlbumImage] = useState(null);
   };
 
 const createArtist = async () => {
-  console.log("FUNÇÃO DISPAROU");
-  console.log("Valor digitado:", newArtistName);
-
-  if (!newArtistName.trim()) {
-    console.log("Bloqueado por trim");
-    return;
-  }
+  if (!newArtistName.trim()) return;
 
   try {
-    console.log("Criando FormData...");
-
     const formData = new FormData();
     formData.append("name", newArtistName.trim());
 
-    console.log("Enviando request...");
+    if (newArtistImage) {
+      formData.append("image", newArtistImage);
+    }
 
-    const response = await axios.post(
+    await axios.post(
       "http://localhost:8000/api/music/artists",
-      formData
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
 
-    console.log("Resposta recebida:", response);
-
     setNewArtistName("");
+    setNewArtistImage(null);
     setShowArtistModal(false);
     fetchListening();
 
   } catch (err) {
-    console.error("Erro REAL capturado:", err);
+    console.error("Erro ao criar artista:", err);
   }
-
-  console.log("Fim da função");
 };
 
 const createAlbum = async () => {
@@ -194,6 +191,19 @@ const createAlbum = async () => {
 
   } catch (err) {
     console.error("Erro ao criar álbum:", err);
+  }
+};
+
+const confirmAlbum = async (albumId) => {
+  try {
+    await axios.patch(
+      `http://localhost:8000/api/music/albums/${albumId}/confirm`
+    );
+
+    fetchListening();
+
+  } catch (err) {
+    console.error("Erro ao confirmar álbum:", err);
   }
 };
 
@@ -321,8 +331,15 @@ const createAlbum = async () => {
         onClick={() => openAlbumModal(artist.id)}
       >
         <div className="artist-avatar">
-          🎤
-        </div>
+  {artist.image_path ? (
+    <img
+      src={`http://localhost:8000/${artist.image_path}`}
+      alt={artist.name}
+    />
+  ) : (
+    "🎤"
+  )}
+</div>
         <div className="artist-name">
           {artist.name}
         </div>
@@ -386,6 +403,12 @@ const createAlbum = async () => {
               onChange={(e) => setNewArtistName(e.target.value)}
               className="input"
             />
+			<input
+  type="file"
+  accept="image/*"
+  onChange={(e) => setNewArtistImage(e.target.files[0])}
+  className="input"
+/>
             <div className="modal-actions">
               <button
                 className="btn btn-ghost"

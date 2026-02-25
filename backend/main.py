@@ -750,10 +750,32 @@ async def training_history(training_id: int):
 from fastapi import Form
 
 @app.post("/api/music/artists")
-async def create_artist(name: str = Form(...)):
+async def create_artist(
+    name: str = Form(...),
+    image: UploadFile = File(None)
+):
     try:
-        MusicEngine.create_artist(name.strip())
-        return {"success": True}
+        image_path = None
+
+        if image:
+            image_path = _save_upload_file(
+                image,
+                UPLOADS_DIR / "music" / "artists"
+            )
+
+        artist_id = MusicEngine.create_artist(
+            name.strip(),
+            image_path
+        )
+
+        return {
+            "success": True,
+            "data": {
+                "id": artist_id,
+                "image_path": image_path
+            }
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

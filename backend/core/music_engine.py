@@ -62,18 +62,19 @@ class MusicEngine:
     # =============================
 
     @staticmethod
-    def create_artist(name):
+    def create_artist(name, image_path=None):
         with Database() as db:
             db.execute("""
-                INSERT INTO music_artists (name)
-                VALUES (?)
-            """, (name.strip(),))
+                INSERT INTO music_artists (name, image_path)
+                VALUES (?, ?)
+            """, (name.strip(), image_path))
+            return db.lastrowid
 
     @staticmethod
     def list_artists_grouped():
         with Database() as db:
             rows = db.fetchall("""
-                SELECT id, name
+                SELECT id, name, image_path
                 FROM music_artists
                 ORDER BY name COLLATE NOCASE ASC
             """)
