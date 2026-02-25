@@ -185,6 +185,48 @@ CREATE TABLE IF NOT EXISTS reading_sessions (
     FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 
+
+-- =========================
+-- MUSIC - TRAINING
+-- =========================
+
+CREATE TABLE IF NOT EXISTS music_training_tabs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    instrument TEXT NOT NULL, -- guitar | keyboard
+    image_path TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_training_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    training_id INTEGER NOT NULL,
+    bpm INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(training_id) REFERENCES music_training_tabs(id) ON DELETE CASCADE
+);
+
+-- =========================
+-- MUSIC - LISTENING
+-- =========================
+
+CREATE TABLE IF NOT EXISTS music_artists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_albums (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    image_path TEXT,
+    status TEXT DEFAULT 'planned', -- planned | listened
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES music_artists(id) ON DELETE CASCADE
+);
+
+
 -- =========================
 -- PINTURAS E FOTOS
 -- =========================

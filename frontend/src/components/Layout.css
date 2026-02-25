@@ -319,3 +319,22 @@
   padding: clamp(1rem, 2vw, 1.75rem);
   min-height: 100vh;
 }
+
+
+/* ====================================================
+   LOGO
+===================================================== */
+
+.logo-img {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 10px;
+  opacity: 0.80;
+  filter: drop-shadow(0 0 0px rgba(255,240,240,0.45));
+  transition: transform 0.3s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.05);
+}

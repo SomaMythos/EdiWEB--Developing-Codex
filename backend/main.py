@@ -22,6 +22,7 @@ from core.activity_engine import ActivityEngine
 from core.daily_log_engine import DailyLogEngine
 from core.goal_engine import GoalEngine, GoalActivityValidationError
 from core.finance_engine import FinanceEngine
+from core.music_engine import MusicEngine
 from core.routine_engine import RoutineEngine
 from core.analytics_engine import AnalyticsEngine
 from core.daily_override_engine import DailyOverrideEngine
@@ -123,7 +124,8 @@ class ActivityCreate(BaseModel):
     is_fun: int = 0
 
 
-
+class BpmRequest(BaseModel):
+    bpm: int
 
 
 class DailyActivityLog(BaseModel):
@@ -708,6 +710,100 @@ async def list_goals_from_category(category_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ============================================================================
+# MUSIC TRAINING ENDPOINTS
+# ============================================================================
+
+@app.post("/api/music/training")
+async def create_training(
+    name: str = Form(...),
+    instrument: str = Form(...),
+    image: UploadFile = File(...)
+):
+    image_path = _save_upload_file(image, UPLOADS_DIR / "music" / "training")
+
+    tid = MusicEngine.create_training(name, instrument, image_path)
+
+    return {"success": True, "data": {"id": tid, "image_path": image_path}}
+    
+    
+@app.get("/api/music/training")
+async def list_training():
+    return {"success": True, "data": MusicEngine.list_trainings()}
+    
+    
+@app.post("/api/music/training/{training_id}/session")
+async def add_training_session(training_id: int, payload: BpmRequest):
+    MusicEngine.add_training_session(training_id, payload.bpm)
+    return {"success": True}
+
+
+@app.get("/api/music/training/{training_id}/history")
+async def training_history(training_id: int):
+    return {"success": True, "data": MusicEngine.get_training_history(training_id)}
+
+# ============================================================================
+# MUSIC LISTENING ENDPOINTS
+# ============================================================================
+    
+from fastapi import Form
+
+@app.post("/api/music/artists")
+async def create_artist(name: str = Form(...)):
+    try:
+        MusicEngine.create_artist(name.strip())
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@app.get("/api/music/artists")
+async def list_artists():
+    return {"success": True, "data": MusicEngine.list_artists_grouped()}
+    
+    
+@app.post("/api/music/albums")
+async def create_album(
+    artist_id: int = Form(...),
+    name: str = Form(...),
+    image: UploadFile = File(None)
+):
+    image_path = None
+
+    if image:
+        image_path = _save_upload_file(
+            image,
+            UPLOADS_DIR / "music" / "albums"
+        )
+
+    album_id = MusicEngine.create_album(
+        artist_id,
+        name,
+        image_path
+    )
+
+    return {
+        "success": True,
+        "data": {
+            "id": album_id,
+            "image_path": image_path
+        }
+    }
+    
+@app.patch("/api/music/albums/{album_id}/confirm")
+async def confirm_album(album_id: int):
+    MusicEngine.confirm_album(album_id)
+    return {"success": True}
+    
+    
+@app.get("/api/music/albums")
+async def list_albums(status: str = None):
+    return {"success": True, "data": MusicEngine.list_albums(status)}
+
+
+
+    
 
 # ============================================================================
 # ROUTINES ENDPOINTS

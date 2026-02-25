@@ -10,7 +10,7 @@ import Books from './pages/Books';
 import HobbyVisualArts from './pages/HobbyVisualArts';
 import Shopping from './pages/Shopping';
 import Reminders from './pages/Reminders';
-import Music from './pages/Music';
+import Music from "./pages/music/Music";
 import Games from './pages/Games';
 import Watch from './pages/Watch';
 import './index.css';

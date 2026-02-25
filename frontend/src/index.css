@@ -385,3 +385,346 @@ body {
   background-size: cover;
   min-height: 100vh;
 }
+
+/* =========================================================
+   MUSIC
+   ======================================================= */
+
+.music-page {
+  padding: var(--spacing-2xl);
+  animation: fadeInPage 400ms ease;
+}
+
+.music-container {
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) 6vw;
+  border-radius: var(--radius-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  transition: all var(--motion-smooth);
+}
+
+/* ================= HEADER ================= */
+
+.music-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.5px;
+  animation: fadeUp 500ms ease;
+}
+
+.music-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-lg);
+  animation: fadeUp 600ms ease;
+}
+
+.music-toolbar h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.music-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+/* Botão Novo Treino refinado */
+.music-toolbar .btn {
+  height: 48px;
+  padding: 0 22px;
+  transition: transform var(--motion-fast),
+              box-shadow var(--motion-fast),
+              filter var(--motion-fast);
+}
+
+.music-toolbar .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* ================= METRONOME CARD ================= */
+
+.metronome-horizontal {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  height: 52px;
+  padding: 0 var(--spacing-xl);
+
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-soft);
+
+  border-radius: var(--radius-xl);
+  transition: all var(--motion-smooth);
+}
+
+.metronome-horizontal:hover {
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-medium);
+}
+
+.metro-label {
+  font-weight: 600;
+  color: var(--glass-text-secondary);
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.metro-bpm {
+  font-weight: 600;
+  min-width: 85px;
+  font-size: 1rem;
+  color: var(--glass-text-primary);
+  letter-spacing: 0.3px;
+}
+
+.metro-division {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  color: var(--glass-text-primary);
+  transition: all var(--motion-fast);
+}
+
+.metro-division:hover {
+  background: var(--glass-interactive-hover);
+  border-color: var(--glass-border-strong);
+}
+
+.metronome-horizontal .btn {
+  height: 34px;
+  padding: 0 18px;
+}
+
+/* ================= GLASS SLIDER ================= */
+
+.metro-slider {
+  appearance: none;
+  width: 180px;
+  height: 6px;
+  border-radius: var(--radius-full);
+
+  background: linear-gradient(
+    180deg,
+    var(--glass-border-strong),
+    var(--glass-border-subtle)
+  );
+
+  transition: filter var(--motion-fast);
+}
+
+.metro-slider:hover {
+  filter: brightness(1.15);
+}
+
+.metro-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+
+  background: var(--glass-surface-strong);
+  border: 2px solid var(--glass-border-strong);
+
+  box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+  cursor: pointer;
+  transition: transform var(--motion-fast),
+              box-shadow var(--motion-fast);
+}
+
+.metro-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.65);
+}
+
+.metro-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-strong);
+  border: 2px solid var(--glass-border-strong);
+  cursor: pointer;
+}
+
+/* ================= TRAININGS ================= */
+
+.training-section {
+  margin-top: var(--spacing-md);
+  animation: fadeUp 700ms ease;
+}
+
+.training-section-title {
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+  color: var(--glass-text-secondary);
+  letter-spacing: 0.4px;
+}
+
+.training-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+/* Card refinado */
+
+.training-card {
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--motion-normal),
+              box-shadow var(--motion-normal),
+              border-color var(--motion-normal);
+}
+
+.training-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.training-card img {
+  width: 100%;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+  transition: transform var(--motion-normal),
+              filter var(--motion-normal);
+}
+
+.training-card:hover img {
+  transform: scale(1.03);
+  filter: brightness(1.05);
+}
+
+/* Thumb + badge */
+
+.training-thumb {
+  position: relative;
+}
+
+.bpm-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-strong);
+  backdrop-filter: var(--glass-blur);
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--glass-text-primary);
+  transition: all var(--motion-fast);
+}
+
+.training-card:hover .bpm-badge {
+  transform: translateY(-2px);
+}
+
+/* Meta */
+
+.training-meta {
+  font-size: 13px;
+  color: var(--glass-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Botões */
+
+.training-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* ================= MODALS ================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--glass-surface-overlay);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInPage 200ms ease;
+}
+
+.modal-container {
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.history-modal {
+  width: 600px;
+}
+
+.history-chart {
+  margin-top: var(--spacing-md);
+}
+
+/* ================= IMAGE VIEWER ================= */
+
+.image-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--glass-surface-overlay);
+  backdrop-filter: blur(18px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeInPage 200ms ease;
+}
+
+.image-viewer-container {
+  width: 90vw;
+  height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  cursor: grab;
+}
+
+.image-viewer-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+/* ================= ANIMATIONS ================= */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInPage {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -23,6 +23,7 @@ import {
 import Notifications from './Notifications';
 import { useTheme } from '../context/ThemeContext';
 import './Layout.css';
+import logo from '../assets/logo_2.png';
 
 const Layout = ({ children }) => {
   const [isHobbyOpen, setIsHobbyOpen] = useState(true);
@@ -53,10 +54,9 @@ const Layout = ({ children }) => {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <CheckCircle2 size={32} className="logo-icon" />
-          <h1 className="logo-text">EDI</h1>
-          <p className="logo-subtitle">Life Manager</p>
-        </div>
+		<img src={logo} alt="EDI Logo" className="logo-img" />
+		<p className="logo-subtitle">Life Manager</p>
+	  </div>
 
 <nav className="sidebar-nav">
   {/* Daily + Metas */}
