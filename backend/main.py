@@ -23,6 +23,7 @@ from core.daily_log_engine import DailyLogEngine
 from core.goal_engine import GoalEngine, GoalActivityValidationError
 from core.finance_engine import FinanceEngine
 from core.music_engine import MusicEngine
+from core.watch_engine import WatchEngine
 from core.routine_engine import RoutineEngine
 from core.analytics_engine import AnalyticsEngine
 from core.daily_override_engine import DailyOverrideEngine
@@ -825,7 +826,55 @@ async def list_albums(status: str = None):
 
 
 
-    
+# ==============================
+# WATCH
+# ==============================
+
+@app.post("/api/watch/categories")
+async def create_watch_category(name: str = Form(...)):
+    WatchEngine.create_category(name)
+    return {"success": True}
+
+
+@app.get("/api/watch/categories")
+async def list_watch_categories():
+    return {
+        "success": True,
+        "data": WatchEngine.list_categories()
+    }
+
+
+@app.post("/api/watch/items")
+async def create_watch_item(
+    category_id: int = Form(...),
+    name: str = Form(...),
+    image: UploadFile = File(None)
+):
+    image_path = None
+
+    if image:
+        image_path = _save_upload_file(
+            image,
+            UPLOADS_DIR / "watch"
+        )
+
+    WatchEngine.create_item(category_id, name, image_path)
+
+    return {"success": True}
+
+
+@app.patch("/api/watch/items/{item_id}/watched")
+async def mark_watched(item_id: int):
+    WatchEngine.mark_watched(item_id)
+    return {"success": True}
+
+
+@app.get("/api/watch/items/{category_id}")
+async def list_watch_items(category_id: int):
+    return {
+        "success": True,
+        "data": WatchEngine.list_items(category_id)
+    }
 
 # ============================================================================
 # ROUTINES ENDPOINTS

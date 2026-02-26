@@ -89,7 +89,7 @@
       rgba(215,196,173,0.06) 45%,
       transparent 75%
     );
-  opacity: 0.65;
+  opacity: 1;
   filter: blur(20px);
   animation: ambientShift 20s ease-in-out infinite;
 }

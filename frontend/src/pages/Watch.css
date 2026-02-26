@@ -1,0 +1,310 @@
+/* ======================================================
+   WATCH - GLASS PREMIUM SYSTEM
+   ====================================================== */
+
+.watch-page {
+  padding: 48px;
+  animation: fadeUp 600ms ease;
+}
+
+.watch-container {
+  padding: 48px;
+  border-radius: 28px;
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.05),
+    rgba(255,255,255,0.02)
+  );
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(24px);
+  box-shadow:
+    0 10px 60px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ======================================================
+   HEADER
+   ====================================================== */
+
+.watch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.watch-header h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #ffffff, #cfcfcf);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ======================================================
+   CATEGORY BLOCK
+   ====================================================== */
+
+.category-block {
+  margin-bottom: 28px;
+  transition: all 0.4s ease;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 18px 24px;
+  border-radius: 18px;
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.05),
+    rgba(255,255,255,0.02)
+  );
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(18px);
+  transition:
+    transform 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    background 0.35s ease;
+}
+
+.category-header:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.15);
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.03)
+  );
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* ======================================================
+   GRID
+   ====================================================== */
+
+.items-grid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 26px;
+  animation: fadeUp 500ms ease;
+}
+
+/* ======================================================
+   CARD
+   ====================================================== */
+
+.watch-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 18px;
+  background: linear-gradient(
+    160deg,
+    rgba(255,255,255,0.06),
+    rgba(255,255,255,0.02)
+  );
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(20px);
+  transition:
+    transform 0.4s cubic-bezier(.2,.8,.2,1),
+    box-shadow 0.4s ease,
+    border-color 0.4s ease,
+    background 0.4s ease;
+  overflow: hidden;
+}
+
+.watch-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at top left,
+    rgba(255,255,255,0.12),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.watch-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(255,255,255,0.15);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.watch-card:hover::before {
+  opacity: 1;
+}
+
+/* ======================================================
+   WATCHED STATE - LUXURY BEIGE SHIMMER
+   ====================================================== */
+
+.watch-card.watched {
+  position: relative;
+  background: linear-gradient(
+    160deg,
+    rgba(215,196,173,0.22),
+    rgba(255,255,255,0.04)
+  );
+  border: 1px solid rgba(215,196,173,0.45);
+  box-shadow:
+    0 15px 60px rgba(215,196,173,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+  animation: watchedGlow 4s ease-in-out infinite;
+  overflow: hidden;
+}
+
+/* Glow pulsando */
+
+@keyframes watchedGlow {
+  0% {
+    box-shadow:
+      0 12px 40px rgba(215,196,173,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  50% {
+    box-shadow:
+      0 18px 70px rgba(215,196,173,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+  100% {
+    box-shadow:
+      0 12px 40px rgba(215,196,173,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+}
+
+/* ======================================================
+   MICRO SHIMMER DOURADO
+   ====================================================== */
+
+.watch-card.watched::after {
+  content: "";
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 300%;
+  height: 300%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.15) 40%,
+    rgba(215,196,173,0.35) 50%,
+    rgba(255,255,255,0.15) 60%,
+    transparent 100%
+  );
+  transform: rotate(25deg);
+  animation: shimmerMove 6s linear infinite;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Movimento extremamente suave */
+
+@keyframes shimmerMove {
+  0% {
+    transform: translateX(-30%) translateY(-30%) rotate(25deg);
+  }
+  100% {
+    transform: translateX(30%) translateY(30%) rotate(25deg);
+  }
+}
+
+/* ======================================================
+   TEXT REFINEMENT
+   ====================================================== */
+
+.watch-card.watched .watch-meta h4 {
+  color: #f3eadf;
+  font-weight: 600;
+}
+
+.watch-card.watched .watch-meta span {
+  color: rgba(215,196,173,0.9);
+  font-weight: 500;
+}
+/* ======================================================
+   IMAGE
+   ====================================================== */
+
+.watch-image {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.watch-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    transform 0.6s ease,
+    filter 0.6s ease;
+}
+
+.watch-card:hover .watch-image img {
+  transform: scale(1.08);
+  filter: brightness(1.05) contrast(1.05);
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: linear-gradient(135deg, #1c1c1c, #2c2c2c);
+  border-radius: 16px;
+}
+
+/* ======================================================
+   META
+   ====================================================== */
+
+.watch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center; /* 🔥 CENTRALIZADO */
+}
+
+.watch-meta h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  margin: 0;
+}
+
+.watch-meta span {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+/* ======================================================
+   ANIMATIONS
+   ====================================================== */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

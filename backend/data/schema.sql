@@ -228,6 +228,28 @@ CREATE TABLE IF NOT EXISTS music_albums (
 );
 
 
+
+-- =========================
+-- ASSISTIR
+-- =========================
+
+CREATE TABLE watch_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE watch_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    image_path TEXT,
+    watched_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES watch_categories(id)
+);
+
+
 -- =========================
 -- PINTURAS E FOTOS
 -- =========================
