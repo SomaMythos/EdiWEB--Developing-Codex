@@ -24,12 +24,12 @@ import logo from '../assets/logo_2.png';
 
 const Layout = ({ children }) => {
   const [isHobbyOpen, setIsHobbyOpen] = useState(true);
+  const [isShoppingOpen, setIsShoppingOpen] = useState(true);
   const location = useLocation();
 
   const navItems = [
     { path: '/', icon: Calendar, label: 'Daily' },
     { path: '/goals', icon: Target, label: 'Metas' },
-	{ path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
 
 	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
@@ -45,7 +45,12 @@ const Layout = ({ children }) => {
     { path: '/hobby/assistir', icon: Clapperboard, label: 'Assistir' },
   ];
 
+  const shoppingItems = [
+    { path: '/shopping/consumiveis', icon: ShoppingCart, label: 'Consumíveis' },
+  ];
+
   const isHobbyActive = hobbyItems.some((item) => location.pathname === item.path);
+  const isShoppingActive = shoppingItems.some((item) => location.pathname === item.path);
 
   return (
     <div className="layout">
@@ -90,6 +95,40 @@ const Layout = ({ children }) => {
 
     <div className={`nav-subitems ${isHobbyOpen ? 'expanded' : ''}`}>
       {hobbyItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }) =>
+            `nav-item nav-subitem ${isActive ? 'active' : ''}`
+          }
+        >
+          <item.icon size={18} />
+          <span>{item.label}</span>
+        </NavLink>
+      ))}
+    </div>
+  </div>
+
+  {/* Shopping */}
+  <div className="nav-group">
+    <button
+      type="button"
+      className={`nav-item nav-parent ${isShoppingActive ? 'active' : ''}`}
+      onClick={() => setIsShoppingOpen((prev) => !prev)}
+    >
+      <ShoppingCart size={20} />
+      <span>Shopping</span>
+      <span className="nav-chevron-wrapper">
+        {isShoppingOpen ? (
+          <ChevronDown size={16} className="nav-chevron" />
+        ) : (
+          <ChevronRight size={16} className="nav-chevron" />
+        )}
+      </span>
+    </button>
+
+    <div className={`nav-subitems ${isShoppingOpen ? 'expanded' : ''}`}>
+      {shoppingItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
