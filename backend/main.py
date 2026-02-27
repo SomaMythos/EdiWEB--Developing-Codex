@@ -1328,6 +1328,12 @@ from core.book_engine import BookEngine
 from core.painting_engine import PaintingEngine
 from core.progress_photo_engine import ProgressPhotoEngine
 from core.shopping_engine import ShoppingEngine
+from core.consumables_engine import (
+    ConsumablesEngine,
+    ConsumablesConflictError,
+    ConsumablesNotFoundError,
+    ConsumablesValidationError,
+)
 from core.reminder_engine import ReminderEngine
 from core.day_plan_engine import DayPlanEngine
 
@@ -1427,6 +1433,24 @@ class ShoppingItemPayload(BaseModel):
     unit: str = "un"
     priority: int = 3
     notes: Optional[str] = None
+
+
+class ConsumableCategoryPayload(BaseModel):
+    name: str
+
+
+class ConsumableItemPayload(BaseModel):
+    name: str
+    category_id: int
+
+
+class RestockPayload(BaseModel):
+    purchase_date: str
+    price_paid: Optional[float] = None
+
+
+class FinishCyclePayload(BaseModel):
+    ended_at: str
 
 
 class ReminderPayload(BaseModel):
@@ -1765,6 +1789,64 @@ async def shopping_item_create(payload: ShoppingItemPayload):
 @app.get("/api/shopping/stats")
 async def shopping_stats():
     return {"success": True, "data": ShoppingEngine.get_shopping_stats()}
+
+
+@app.get("/api/consumables/categories")
+async def consumable_categories_list():
+    return {"success": True, "data": ConsumablesEngine.list_categories()}
+
+
+@app.post("/api/consumables/categories")
+async def consumable_categories_create(payload: ConsumableCategoryPayload):
+    try:
+        category_id = ConsumablesEngine.create_category(payload.name)
+        return {"success": True, "data": {"id": category_id}}
+    except ConsumablesValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/consumables/items")
+async def consumable_items_list(category_id: Optional[int] = None):
+    try:
+        items = ConsumablesEngine.list_items(category_id)
+        return {"success": True, "data": items}
+    except ConsumablesNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/api/consumables/items")
+async def consumable_items_create(payload: ConsumableItemPayload):
+    try:
+        item_id = ConsumablesEngine.create_item(payload.name, payload.category_id)
+        return {"success": True, "data": {"id": item_id}}
+    except ConsumablesValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except ConsumablesNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/api/consumables/items/{item_id}/restock")
+async def consumable_items_restock(item_id: int, payload: RestockPayload):
+    try:
+        cycle_id = ConsumablesEngine.restock_item(item_id, payload.purchase_date, payload.price_paid)
+        return {"success": True, "data": {"id": cycle_id}}
+    except ConsumablesValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except ConsumablesConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ConsumablesNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/api/consumables/items/{item_id}/finish")
+async def consumable_items_finish(item_id: int, payload: FinishCyclePayload):
+    try:
+        cycle = ConsumablesEngine.finish_open_cycle(item_id, payload.ended_at)
+        return {"success": True, "data": cycle}
+    except ConsumablesValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except ConsumablesNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @app.get("/api/reminders")
