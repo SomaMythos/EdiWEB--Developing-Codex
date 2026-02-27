@@ -250,6 +250,18 @@
   text-align: left;
 }
 
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.nav-chevron-wrapper {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
 .nav-parent:not(.active) {
   box-shadow: none !important;
   background: transparent !important;
