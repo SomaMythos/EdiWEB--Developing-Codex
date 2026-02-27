@@ -1,6 +1,6 @@
 // src/pages/Goals.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Pencil, Star as StarIcon, Trash2 } from 'lucide-react';
+import { Star as StarIcon } from 'lucide-react';
 import { goalsApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import './Goals.css';
@@ -14,26 +14,8 @@ const initialFormState = {
   difficulty: 1,
 };
 
-const formatDateToDisplay = (rawValue = '') => {
-  const digits = rawValue.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
-};
 
-const displayToIsoDate = (displayValue = '') => {
-  const match = displayValue.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (!match) return null;
-  const [, day, month, year] = match;
-  return `${year}-${month}-${day}`;
-};
 
-const isoToDisplayDate = (isoValue = '') => {
-  const match = isoValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return '';
-  const [, year, month, day] = match;
-  return `${day}-${month}-${year}`;
-};
 
 const Star = ({ filled, onClick, size = 18, value }) => (
   <button
@@ -257,7 +239,7 @@ const handleDeleteCategory = async (categoryId) => {
     const payload = {
       title: formData.title,
       description: formData.description,
-      deadline: formData.hasDeadline ? displayToIsoDate(formData.deadline) : null,
+      deadline: formData.hasDeadline ? formData.deadline : null,
       difficulty: formData.difficulty,
       category_id: selectedCategory ? selectedCategory.id : null,
     };
@@ -308,7 +290,7 @@ const handleDeleteCategory = async (categoryId) => {
       title: goal.title || '',
       description: goal.description || '',
       hasDeadline: Boolean(goal.deadline),
-      deadline: goal.deadline ? isoToDisplayDate(goal.deadline.slice(0, 10)) : '',
+      deadline: goal.deadline ? goal.deadline.slice(0, 10) : '',
       difficulty: goal.difficulty || 1,
     });
     setPhotoFile(null);
@@ -599,6 +581,7 @@ const handleDeleteCategory = async (categoryId) => {
                 {!showGoalForm && goals.length === 0 && (
                   <div className="card empty">Nenhuma meta nesta categoria</div>
                 )}
+{console.log("GOALS ARRAY:", goals)}
                 {goals.map((goal) => (
 <div
   key={goal.id}
@@ -659,26 +642,18 @@ const handleDeleteCategory = async (categoryId) => {
 <div className="goal-actions">
   {goal.status !== 'concluida' && (
     <>
-      <button
-        className="goal-icon-btn"
-        onClick={() => handleConcludeGoal(goal.id)}
-        disabled={isConcludingGoalId === goal.id}
-        title="Concluir meta"
-      >
-        <Check size={14} />
-        <span>Concluir</span>
+      <button className="goal-icon-btn" onClick={() => handleConcludeGoal(goal.id)} disabled={isConcludingGoalId === goal.id}>
+        ✅
       </button>
 
-      <button className="goal-icon-btn" onClick={() => handleEditGoal(goal)} title="Editar meta">
-        <Pencil size={14} />
-        <span>Editar</span>
+      <button className="goal-icon-btn" onClick={() => handleEditGoal(goal)}>
+        ✏️
       </button>
     </>
   )}
 
-  <button className="goal-icon-btn delete-btn" onClick={() => setPendingDeleteGoalId(goal.id)} disabled={isDeletingGoal} title="Excluir meta">
-    <Trash2 size={14} />
-    <span>Excluir</span>
+  <button className="goal-icon-btn delete-btn" onClick={() => setPendingDeleteGoalId(goal.id)} disabled={isDeletingGoal}>
+    ❌
   </button>
 </div>
 
