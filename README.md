@@ -1,367 +1,179 @@
 # 🤖 EDI - Life Manager Web
 
-**Personal Assistant & Routine Scheduler - Web Version**
-
-Versão web moderna do EDI Life Manager, desenvolvida com FastAPI (backend) e React (frontend). Esta versão oferece uma interface web responsiva e moderna, mantendo todas as funcionalidades do aplicativo original.
+Aplicação web para gestão de rotina, metas e hobbies, com **backend FastAPI** e **frontend React + Vite**.
 
 ---
 
-## ✨ Novidades da Versão Web
+## 📌 Visão Geral
 
-- 🌐 **Interface Web Moderna**: Design limpo e responsivo com React
-- ⚡ **API REST**: Backend FastAPI com documentação automática
-- 🎨 **UI/UX Aprimorada**: Interface intuitiva e agradável
-- 📱 **Responsivo**: Funciona em desktop, tablet e mobile
-- 🔄 **Real-time Updates**: Atualizações instantâneas da interface
+O projeto está organizado em duas camadas principais:
+
+- **`backend/`**: API REST, regras de negócio (`core/*_engine.py`) e persistência SQLite.
+- **`frontend/`**: Interface SPA com páginas por domínio (Daily, Goals, Dashboard, Financeiro, Hobbies etc.).
+
+Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como referência histórica/migração.
 
 ---
 
-## 🚀 Funcionalidades
+## ✅ Domínios Funcionais Atuais
 
-### ✅ Totalmente Implementadas
-- **Gerenciamento de Atividades**: Crie, edite e organize suas atividades
-- **Tipos de Atividade Customizáveis**: Categorize atividades com tipos personalizados
-- **Log Diário**: Registre e visualize suas atividades do dia
-- **Sistema de Rotinas Completo**: Crie rotinas com blocos de tempo personalizados
-- **Metas (Goals)**: Defina objetivos, vincule atividades e acompanhe progresso
-- **Analytics Avançado**: Visualize estatísticas, tendências e atividades mais frequentes
-- **Notificações Inteligentes**: Alertas para metas paradas, deadlines próximos e resumo diário
-- **Perfil de Usuário**: Gerencie suas informações pessoais (nome, idade, altura)
-- **Métricas Corporais**: Acompanhe peso, calcule IMC e veja tendências
-- **Exportação Completa**: Exporte dados em JSON, CSV ou relatórios personalizados
-- **Dashboard Interativo**: Visualize estatísticas em tempo real
-- **API REST Completa**: Endpoints documentados para todas as funcionalidades
-- **Histórico de Atividades**: Veja seu histórico completo de atividades realizadas
+- **Planejamento diário**: rotina por tipo de dia, geração automática de agenda, marcação de blocos e consistência semanal.
+- **Metas (Goals)**: CRUD completo, categorias, vínculo com atividades, cálculo de progresso e status.
+- **Atividades e log diário**: cadastro, frequências fixas/flexíveis, validação de conflitos de horário e registro diário.
+- **Financeiro**: configuração de renda, despesas fixas, resumo e projeções.
+- **Hobbies**:
+  - Leitura (books + sessões + estatísticas)
+  - Artes visuais (obras, updates com mídia, galeria e pastas de referência)
+  - Música (treinos por BPM, artistas e álbuns)
+  - Games
+  - Assistir (watchlist por categoria)
+- **Shopping**: wishlist, itens comprados e estatísticas.
+- **Lembretes**: CRUD de lembretes e visão de próximos eventos.
+- **Perfil e métricas**: dados de perfil e histórico de métricas corporais.
+- **Analytics / dashboard**: visão diária, semanal e top atividades.
+- **Exportação**: JSON/CSV/relatórios de atividades e metas.
 
-### 🚧 Em Desenvolvimento
-- Gráficos interativos com Chart.js/Recharts
-- PWA (Progressive Web App)
-- Temas customizáveis (dark mode)
-- Sincronização em nuvem
-- Autenticação multi-usuário
+> Para detalhes completos de payloads e respostas, use a documentação Swagger: `http://localhost:8000/docs`.
+
+---
+
+## 🧰 Stack
+
+### Backend
+- FastAPI
+- Uvicorn
+- Pydantic
+- SQLite
+
+### Frontend
+- React 18
+- Vite
+- React Router
+- Axios
+- Lucide React
+- CSS modular + temas
 
 ---
 
 ## 📦 Instalação
 
 ### Pré-requisitos
-- Python 3.8 ou superior
-- Node.js 16 ou superior
-- npm ou yarn
+- Python 3.10+
+- Node.js 18+
+- npm
 
-### Instalação do Backend
+### 1) Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### Instalação do Frontend
+### 2) Frontend
 
 ```bash
 cd frontend
 npm install
 ```
 
+### 3) Variáveis de ambiente (frontend)
 
-### Configuração de Ambiente do Frontend (.env)
-
-No frontend, a URL da API é configurada por `VITE_API_URL`.
-
-1. Crie o arquivo `frontend/.env`:
-
-```bash
-cd frontend
-cp .env.example .env 2>/dev/null || touch .env
-```
-
-2. Defina a variável:
+Crie `frontend/.env` e configure:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-Fallback controlado:
-- Em desenvolvimento (`npm run dev`), se `VITE_API_URL` não estiver definida, o frontend usa `http://localhost:8000/api`.
-- Em produção, o fallback padrão é `/api`.
+Fallbacks:
+- desenvolvimento: `http://localhost:8000/api`
+- produção: `/api`
 
 ---
 
-## 🏃‍♂️ Executando o Projeto
+## ▶️ Executando
 
-### Opção 1: Executar Backend e Frontend Separadamente
+### Opção A — scripts do repositório
 
-**Terminal 1 - Backend:**
+**Linux/macOS**
+```bash
+./start_edi.sh
+```
+
+**Windows**
+```bat
+start_edi.bat
+```
+
+### Opção B — manual
+
+**Terminal 1 (backend)**
 ```bash
 cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Terminal 2 - Frontend:**
+**Terminal 2 (frontend)**
 ```bash
 cd frontend
 npm run dev
 ```
 
-Acesse: http://localhost:3000
-
-### Opção 2: Script de Inicialização
-
-**Windows:**
-```bash
-start_edi.bat
-```
-
-**Linux/Mac:**
-```bash
-chmod +x start_edi.sh
-./start_edi.sh
-```
+Acessos:
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
 
 ---
 
-## 📁 Estrutura do Projeto
+## 🗂️ Estrutura (resumo)
 
-```
-edi-web/
-├── backend/                    # API FastAPI
-│   ├── core/                   # Lógica de negócio (engines)
-│   │   ├── activity_engine.py
-│   │   ├── activity_type_engine.py
-│   │   ├── daily_log_engine.py
-│   │   ├── goal_engine.py
-│   │   ├── routine_engine.py
-│   │   ├── analytics_engine.py
-│   │   ├── notification_engine.py
-│   │   └── export_engine.py
-│   │
-│   ├── data/                   # Camada de dados
-│   │   ├── database.py
-│   │   ├── schema.sql
-│   │   └── lifemanager.db
-│   │
-│   ├── main.py                 # FastAPI app
-│   └── requirements.txt
-│
-├── frontend/                   # React app
+```text
+.
+├── backend/
+│   ├── core/
+│   ├── data/
+│   ├── tests/
+│   └── main.py
+├── frontend/
 │   ├── src/
-│   │   ├── components/         # Componentes React
-│   │   │   └── Layout.jsx
-│   │   │
-│   │   ├── pages/              # Páginas
-│   │   │   ├── Home.jsx
-│   │   │   ├── Activities.jsx
-│   │   │   ├── Goals.jsx
-│   │   │   └── ...
-│   │   │
-│   │   ├── services/           # Serviços/API
-│   │   │   └── api.js
-│   │   │
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   │
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-└── README.md
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── services/
+│   └── docs/
+├── old_EDI/
+├── QUICKSTART.md
+├── FEATURE_INVENTORY.md
+└── TROUBLESHOOTING.md
 ```
 
 ---
 
-## 🔌 API Endpoints
-
-### Documentação Interativa
-Acesse: http://localhost:8000/docs (Swagger UI)
-
-### Principais Endpoints
-
-**Activity Types:**
-- `GET /api/activity-types` - Listar tipos
-- `POST /api/activity-types` - Criar tipo
-
-**Activities:**
-- `GET /api/activities` - Listar atividades
-- `POST /api/activities` - Criar atividade
-- `PATCH /api/activities/{id}/toggle` - Ativar/desativar
-- `GET /api/activities/{id}/progress` - Ver progresso
-
-**Daily Log:**
-- `GET /api/daily-log` - Log de hoje
-- `POST /api/daily-log/register` - Registrar atividade
-- `GET /api/daily-log/{date}` - Log de data específica
-
-**Goals:**
-- `GET /api/goals` - Listar metas
-- `POST /api/goals` - Criar meta
-- `POST /api/goals/link-activity` - Vincular atividade
-- `DELETE /api/goals/{id}/activities/{activity_id}` - Desvincular atividade
-- `GET /api/goals/{id}/progress` - Ver progresso
-- `PATCH /api/goals/{id}/status` - Atualizar status
-
-**Routines:**
-- `GET /api/routines` - Listar rotinas
-- `POST /api/routines` - Criar rotina
-- `GET /api/routines/{id}/blocks` - Ver blocos
-- `POST /api/routines/blocks` - Adicionar bloco
-
-**Analytics:**
-- `GET /api/analytics/today` - Resumo de hoje
-- `GET /api/analytics/last-days/{days}` - Últimos N dias
-- `GET /api/analytics/top-activities` - Atividades mais frequentes
-- `GET /api/analytics/goals-overview` - Visão geral de metas
-
-**Notifications:**
-- `GET /api/notifications` - Todas as notificações
-- `GET /api/notifications/stalled-goals` - Metas paradas
-- `GET /api/notifications/upcoming-deadlines` - Deadlines próximos
-- `GET /api/notifications/daily-summary` - Resumo diário
-
-**Export:**
-- `GET /api/export/json` - Exportar tudo em JSON
-- `GET /api/export/csv` - Exportar tudo em CSV
-- `GET /api/export/activities-report` - Relatório de atividades
-- `GET /api/export/goals-progress` - Progresso de metas
-
-**User Profile:**
-- `GET /api/user/profile` - Ver perfil
-- `POST /api/user/profile` - Criar/atualizar perfil
-- `GET /api/user/metrics` - Histórico de métricas
-- `POST /api/user/metrics` - Adicionar métrica (peso)
-
-**Activity History:**
-- `GET /api/activity-history` - Histórico completo de atividades
-
----
-
-## 🎨 Tecnologias Utilizadas
-
-### Backend
-- **FastAPI**: Framework web moderno e rápido
-- **Uvicorn**: Servidor ASGI
-- **Pydantic**: Validação de dados
-- **SQLite**: Banco de dados
-
-### Frontend
-- **React 18**: Biblioteca UI
-- **Vite**: Build tool
-- **React Router**: Roteamento
-- **Axios**: Cliente HTTP
-- **Lucide React**: Ícones
-- **CSS Custom Properties**: Estilização
-
----
-
-## 🗄️ Banco de Dados
-
-O projeto mantém o mesmo schema SQLite do original:
-
-- **user_profile**: Perfil do usuário
-- **user_metrics**: Métricas corporais
-- **activity_types**: Tipos de atividade
-- **activities**: Atividades cadastradas
-- **daily_logs**: Logs diários
-- **daily_activity_logs**: Registro de atividades realizadas
-- **routines**: Rotinas definidas
-- **routine_blocks**: Blocos de tempo das rotinas
-- **goals**: Metas definidas
-- **goal_activities**: Vínculo entre metas e atividades
-
----
-
-## 🔧 Desenvolvimento
-
-### Backend
+## 🧪 Testes (backend)
 
 ```bash
-# Instalar dependências
 cd backend
-pip install -r requirements.txt
-
-# Executar com reload automático
-uvicorn main:app --reload --port 8000
-
-# Acessar documentação
-# http://localhost:8000/docs
+pytest -q
 ```
 
-### Frontend
-
-```bash
-# Instalar dependências
-cd frontend
-npm install
-
-# Desenvolvimento
-npm run dev
-
-# Build para produção
-npm run build
-
-# Preview do build
-npm run preview
-```
+Arquivos de teste atuais estão em `backend/tests/`.
 
 ---
 
-## 🚀 Deploy
+## 📚 Documentação Complementar
 
-### Backend (Uvicorn/Gunicorn)
-
-```bash
-# Produção com Uvicorn
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
-
-# Com Gunicorn
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
-### Frontend
-
-```bash
-# Build
-npm run build
-
-# A pasta dist/ pode ser servida por qualquer servidor estático
-# Nginx, Apache, Vercel, Netlify, etc.
-```
+- `QUICKSTART.md`: setup rápido e fluxo de primeiros passos.
+- `FEATURE_INVENTORY.md`: mapeamento de domínios (legacy ➜ web).
+- `MIGRATION.md`: notas de migração e compatibilidade.
+- `TROUBLESHOOTING.md`: problemas comuns e soluções.
+- `frontend/docs/color-token-mapping.md`: guia de tokens de cor/temas.
 
 ---
 
-## 📝 Próximos Passos
+## 📝 Status
 
-- [ ] Implementar página de Rotinas completa
-- [ ] Adicionar gráficos e visualizações
-- [ ] Sistema de notificações
-- [ ] Exportação de dados
-- [ ] Temas customizáveis (dark mode)
-- [ ] PWA (Progressive Web App)
-- [ ] Autenticação de usuários
-- [ ] Deploy em cloud
+Versão em evolução contínua com foco em:
+- robustez do fluxo Daily;
+- estabilidade das regras de negócio no backend;
+- melhoria de UX nas páginas de hobby e metas.
 
----
-
-## 🤝 Migração do Kivy
-
-Esta versão web mantém 100% da lógica de negócio do projeto original Kivy:
-- Todos os engines foram preservados
-- Mesmo banco de dados SQLite
-- Mesmas funcionalidades core
-- Compatibilidade total com dados existentes
-
----
-
-## 📄 Licença
-
-Este projeto é de código aberto. Sinta-se livre para usar e modificar conforme necessário.
-
----
-
-## 👤 Autor
-
-**EDI - Life Manager Web**  
-Portado de KivyMD para FastAPI + React
-
-**Versão**: 2.0.0  
-**Última Atualização**: Fevereiro 2026

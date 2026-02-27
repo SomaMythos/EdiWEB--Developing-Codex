@@ -1,161 +1,113 @@
-# 🚀 Guia de Início Rápido - EDI Web
+# 🚀 QUICKSTART — EDI Web
 
-## Instalação Rápida
+## 1) Instalar dependências
 
-### 1. Instalar Dependências do Backend
-
+### Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 2. Instalar Dependências do Frontend
-
+### Frontend
 ```bash
 cd frontend
 npm install
 ```
 
-### 3. Configurar variável de ambiente do Frontend
+## 2) Configurar frontend (`.env`)
 
 ```bash
 cd frontend
 cp .env.example .env 2>/dev/null || touch .env
 ```
 
-No arquivo `frontend/.env`, configure:
+Edite `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-Fallback controlado:
-- Desenvolvimento: `http://localhost:8000/api`
-- Produção: `/api`
+## 3) Subir o projeto
 
-## Executar o Projeto
+### Opção recomendada (script)
 
-### Opção 1: Script Automático (Recomendado)
-
-**Windows:**
-```bash
-start_edi.bat
-```
-
-**Linux/Mac:**
+**Linux/macOS**
 ```bash
 ./start_edi.sh
 ```
 
-### Opção 2: Manual (2 terminais)
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-uvicorn main:app --reload --port 8000
+**Windows**
+```bat
+start_edi.bat
 ```
 
-**Terminal 2 - Frontend:**
+### Opção manual
+
+**Backend**
+```bash
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Frontend**
 ```bash
 cd frontend
 npm run dev
 ```
 
-## Acessar o Aplicativo
+## 4) URLs
 
-- **Frontend**: http://localhost:3000
-- **API Backend**: http://localhost:8000
-- **Documentação API**: http://localhost:8000/docs
+- App: `http://localhost:3000`
+- API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
 
-## Primeiros Passos
+---
 
-1. **Criar Tipos de Atividade**
-   - Acesse a página de Atividades
-   - Antes de criar atividades, você precisa ter tipos
-   - Exemplos: "Exercício", "Estudo", "Trabalho"
+## Primeiros fluxos para validar
 
-2. **Adicionar Atividades**
-   - Clique em "Nova Atividade"
-   - Preencha título, tipo e tempo estimado
-   - As atividades aparecerão na tela inicial
+1. **Daily**
+   - abrir `/`
+   - gerar agenda diária
+   - marcar um bloco como concluído
 
-3. **Registrar Atividades Diárias**
-   - Na tela inicial (Home)
-   - Selecione uma atividade
-   - Defina duração e marque se concluiu
-   - Clique em "Registrar"
+2. **Goals**
+   - criar uma meta
+   - vincular uma atividade
+   - alterar status (ativa/concluída/cancelada)
 
-4. **Criar Metas**
-   - Acesse a página de Metas
-   - Clique em "Nova Meta"
-   - Defina título, descrição e prazo
-   - Vincule atividades relevantes
+3. **Hobbies**
+   - Leitura: criar livro e registrar sessão
+   - Artes visuais: cadastrar obra e enviar update com imagem
+   - Música: criar treino e registrar BPM
 
-## Solução de Problemas
+4. **Financeiro**
+   - configurar renda
+   - adicionar despesa fixa
+   - consultar resumo/projeção
 
-### Backend não inicia
+---
+
+## Problemas comuns
+
+### Porta 8000 ocupada
 ```bash
-# Verifique se o Python está instalado
-python --version
+uvicorn main:app --reload --port 8001
+```
 
-# Reinstale as dependências
+### Porta 3000 ocupada
+Ajuste `frontend/vite.config.js` (`server.port`) e reinicie o frontend.
+
+### Erro de dependência no backend
+```bash
+cd backend
 pip install -r requirements.txt --force-reinstall
 ```
 
-### Frontend não inicia
+### Erro de dependência no frontend
 ```bash
-# Verifique se o Node.js está instalado
-node --version
-
-# Limpe e reinstale
+cd frontend
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-### Porta já em uso
-```bash
-# Backend em outra porta
-uvicorn main:app --reload --port 8001
-
-# Frontend em outra porta (edite vite.config.js)
-```
-
-## Estrutura de Dados
-
-### Banco de Dados
-- Localização: `backend/data/lifemanager.db`
-- Tipo: SQLite
-- Criado automaticamente na primeira execução
-
-### Schema Principal
-- **activities**: Suas atividades
-- **activity_types**: Tipos/categorias
-- **daily_logs**: Registros diários
-- **goals**: Suas metas
-
-## Dicas de Uso
-
-1. **Organize por Tipos**: Crie tipos antes de atividades
-2. **Use Estimativas**: Defina tempos estimados para planejamento
-3. **Registre Regularmente**: Mantenha o log diário atualizado
-4. **Defina Metas**: Use metas para acompanhar objetivos maiores
-5. **Revise Stats**: Acompanhe seu progresso regularmente
-
-## Próximos Passos
-
-- Explore todas as páginas do menu lateral
-- Experimente diferentes tipos de atividades
-- Configure metas de curto e longo prazo
-- Acompanhe suas estatísticas
-
-## Suporte
-
-Para problemas ou dúvidas:
-1. Verifique a documentação completa no README.md
-2. Consulte a API docs em http://localhost:8000/docs
-3. Verifique os logs no terminal
-
----
-
-**Versão**: 2.0.0  
-**Atualizado**: Fevereiro 2026
+Para mais detalhes: `TROUBLESHOOTING.md`.
