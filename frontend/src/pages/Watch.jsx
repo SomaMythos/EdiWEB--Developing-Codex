@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import "./watch.css";
+import "./Watch.css";
 
 
 export default function Watch() {
@@ -170,8 +170,8 @@ export default function Watch() {
 
       {/* CATEGORY MODAL */}
       {showCategoryModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowCategoryModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Nova Categoria</h3>
             <input
               type="text"
@@ -197,8 +197,8 @@ export default function Watch() {
 
       {/* ITEM MODAL */}
       {showItemModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowItemModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Novo Item</h3>
             <input
               type="text"

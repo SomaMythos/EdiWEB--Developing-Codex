@@ -116,7 +116,7 @@
   align-items: center;
 }
 
-.category-header h2 {
+.goal-category-header h2 {
   font-weight: 540;
   letter-spacing: -0.3px;
   color: var(--text-secondary);
@@ -333,7 +333,7 @@
 }
 
 /* CATEGORY VIEW */
-.category-header h2 {
+.goal-category-header h2 {
   font-weight: 500;
   opacity: 0.75;
 }
@@ -426,18 +426,36 @@
 
 .stars-picker {
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  align-items: center;
 }
 
 .star-btn {
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
   cursor: pointer;
   color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
 .star-btn.filled {
   color: var(--accent-warning);
+  background: rgba(250, 204, 21, 0.2);
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
+}
+
+.stars-selected-count {
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 36px;
+  color: var(--glass-text-secondary);
 }
 
 .form-actions {
@@ -525,64 +543,58 @@
 /* container das ações (por padrão escondido) */
 .goal-actions {
   position: absolute;
-  bottom: 12px;   /* gruda no rodapé do CARD */
-  right: 16px;    /* gruda na lateral direita do CARD */
+  bottom: 12px;
+  right: 16px;
   display: flex;
   gap: 8px;
   align-items: center;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
-  pointer-events: none;
-  z-index: 10;    /* acima da estrela */
+  z-index: 10;
 }
 
-/* mostrar ações quando o card estiver hover ou houver foco interno (acessibilidade) */
-.goal-card:hover .goal-actions,
-.goal-card:focus-within .goal-actions {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-/* botões emoji — pequenos e discretos */
-.goal-icon-btn,
-.emoji-btn {
-  background: transparent;   /* ❌ remove fundo */
-  border: none;              /* ❌ remove borda */
-  font-size: 13px;           /* 🔹 menor */
-  cursor: pointer;
-  padding: 2px;              /* 🔹 mais compacto */
-  line-height: 1;
+.goal-icon-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: none;          /* ❌ remove sombra */
-  transition: transform 120ms ease;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--glass-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
 }
 
-/* hover/focus nos botões para feedback */
+.goal-icon-btn svg {
+  flex-shrink: 0;
+}
+
 .goal-icon-btn:hover,
-.goal-icon-btn:focus,
-.emoji-btn:hover,
-.emoji-btn:focus {
-  transform: translateY(-2px);
-  background: var(--bg-primary);
+.goal-icon-btn:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
   outline: none;
 }
 
-/* diminuir ainda mais o ícone do concluir/editar */
-.goal-icon-btn.small {
-  font-size: 14px;
-  padding: 3px 5px;
+.goal-icon-btn.delete-btn {
+  border-color: rgba(200, 70, 70, 0.5);
+  color: #ffb7b7;
+  background: rgba(140, 36, 36, 0.18);
 }
 
+.goal-icon-btn.delete-btn:hover,
+.goal-icon-btn.delete-btn:focus-visible {
+  border-color: rgba(230, 100, 100, 0.8);
+  background: rgba(170, 42, 42, 0.28);
+}
 
-/* foco visível (acessibilidade) */
-.goal-icon-btn:focus,
-.emoji-btn:focus {
-  box-shadow: 0 0 0 3px rgba(100,100,255,0.08);
-  border-radius: 6px;
+.goal-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ===========================
