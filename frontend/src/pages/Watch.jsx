@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import "./watch.css";
+import "./Watch.css";
 
 
 export default function Watch() {
