@@ -263,6 +263,17 @@ export const shoppingApi = {
   stats: () => api.get('/shopping/stats'),
 };
 
+
+export const consumablesApi = {
+  listCategories: () => api.get('/consumables/categories'),
+  createCategory: (data) => api.post('/consumables/categories', data),
+  listItems: (categoryId) => api.get('/consumables/items', { params: { category_id: categoryId } }),
+  createItem: (data) => api.post('/consumables/items', data),
+  getItemDetail: (id) => api.get(`/consumables/items/${id}`),
+  restock: (itemId, data) => api.post(`/consumables/items/${itemId}/restock`, data),
+  finishCycle: (itemId, data) => api.post(`/consumables/items/${itemId}/finish`, data),
+};
+
 // Reminders & Day Plan
 export const remindersApi = {
   list: (status = 'pendente') => api.get('/reminders', { params: { status } }),
