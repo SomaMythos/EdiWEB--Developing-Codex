@@ -13,7 +13,7 @@
    PALETA – WARM SAND ACCENT
 ====================================================== */
 
-:root {
+.layout {
   --sidebar-accent: #d7c4ad;
   --sidebar-accent-strong: #cbb397;
   --sidebar-accent-soft: rgba(215,196,173,0.14);
