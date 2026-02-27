@@ -1803,6 +1803,8 @@ async def consumable_categories_create(payload: ConsumableCategoryPayload):
         return {"success": True, "data": {"id": category_id}}
     except ConsumablesValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except ConsumablesConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
 
 
 @app.get("/api/consumables/items")

@@ -88,6 +88,11 @@
   gap: 0.5rem;
 }
 
+.consumiveis-page .action-card .muted {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 .consumiveis-page .stats-grid {
   margin: 0.5rem 0 1rem;
   display: grid;
@@ -140,5 +145,18 @@
 
   .consumiveis-page .inline-form {
     flex-direction: column;
+  }
+
+  .consumiveis-page .cycle-row span {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .consumiveis-page .cycle-row span::before {
+    content: attr(data-label);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
   }
 }
