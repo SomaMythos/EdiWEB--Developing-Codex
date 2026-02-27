@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from data.database import Database
@@ -21,6 +21,12 @@ class ConsumablesValidationError(ConsumablesError):
 
 
 class ConsumablesEngine:
+    @staticmethod
+    def _to_float(value):
+        if value is None:
+            return None
+        return float(value)
+
     @staticmethod
     def _require_iso_date(value: str, field_name: str) -> str:
         raw = (value or "").strip()
@@ -178,3 +184,101 @@ class ConsumablesEngine:
                 "ended_at": ended_at_iso,
                 "duration_days": duration_days,
             }
+
+    @staticmethod
+    def get_item_detail(item_id: int):
+        item = ConsumablesEngine._get_item(item_id)
+        if not item:
+            raise ConsumablesNotFoundError("Item não encontrado")
+
+        with Database() as db:
+            cycles = db.fetchall(
+                """
+                SELECT id, item_id, purchase_date, price_paid, ended_at, duration_days, created_at
+                FROM consumable_cycles
+                WHERE item_id = ?
+                ORDER BY purchase_date DESC, id DESC
+                """,
+                (item_id,),
+            )
+
+            aggregate = db.fetchone(
+                """
+                SELECT
+                    COUNT(*) AS total_purchases,
+                    AVG(price_paid) AS avg_price,
+                    AVG(CASE WHEN ended_at IS NOT NULL THEN duration_days END) AS avg_duration_days,
+                    MIN(purchase_date) AS first_purchase_date
+                FROM consumable_cycles
+                WHERE item_id = ?
+                """,
+                (item_id,),
+            )
+
+            open_cycle = db.fetchone(
+                """
+                SELECT id, item_id, purchase_date, price_paid, ended_at, duration_days, created_at
+                FROM consumable_cycles
+                WHERE item_id = ? AND ended_at IS NULL
+                ORDER BY purchase_date DESC, id DESC
+                LIMIT 1
+                """,
+                (item_id,),
+            )
+
+        cycles_list = [dict(cycle) for cycle in cycles]
+        item_data = dict(item)
+
+        aggregate_data = dict(aggregate) if aggregate else {}
+
+        total_purchases = int(aggregate_data.get("total_purchases") or 0)
+        avg_price = ConsumablesEngine._to_float(aggregate_data.get("avg_price"))
+        avg_duration_days = ConsumablesEngine._to_float(aggregate_data.get("avg_duration_days"))
+
+        last_price_delta = None
+        last_price_delta_percent = None
+        if len(cycles_list) >= 2:
+            latest_price = ConsumablesEngine._to_float(cycles_list[0].get("price_paid"))
+            previous_price = ConsumablesEngine._to_float(cycles_list[1].get("price_paid"))
+            if latest_price is not None and previous_price is not None:
+                last_price_delta = latest_price - previous_price
+                if previous_price != 0:
+                    last_price_delta_percent = (last_price_delta / previous_price) * 100
+
+        purchase_frequency_per_month = None
+        first_purchase_date = aggregate_data.get("first_purchase_date")
+        if total_purchases > 0 and first_purchase_date:
+            first_purchase = date.fromisoformat(first_purchase_date)
+            days_since_first_purchase = (date.today() - first_purchase).days
+            months_since_first_purchase = days_since_first_purchase / 30 if days_since_first_purchase > 0 else 0
+            if months_since_first_purchase > 0:
+                purchase_frequency_per_month = total_purchases / months_since_first_purchase
+
+        monthly_avg_spend = None
+        annual_avg_spend = None
+        if avg_price is not None and avg_duration_days is not None and avg_duration_days > 0:
+            monthly_avg_spend = avg_price / (avg_duration_days / 30)
+            annual_avg_spend = monthly_avg_spend * 12
+
+        predicted_end_date = None
+        if open_cycle and avg_duration_days is not None and avg_duration_days > 0:
+            open_purchase_date = date.fromisoformat(open_cycle["purchase_date"])
+            predicted_end_date = (open_purchase_date + timedelta(days=round(avg_duration_days))).isoformat()
+
+        stats = {
+            "total_purchases": total_purchases,
+            "avg_price": avg_price,
+            "last_price_delta": last_price_delta,
+            "last_price_delta_percent": last_price_delta_percent,
+            "avg_duration_days": avg_duration_days,
+            "purchase_frequency_per_month": purchase_frequency_per_month,
+            "monthly_avg_spend": monthly_avg_spend,
+            "annual_avg_spend": annual_avg_spend,
+            "predicted_end_date": predicted_end_date,
+        }
+
+        return {
+            "item": item_data,
+            "cycles": cycles_list,
+            "stats": stats,
+        }

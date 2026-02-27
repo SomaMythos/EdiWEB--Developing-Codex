@@ -1814,6 +1814,15 @@ async def consumable_items_list(category_id: Optional[int] = None):
         raise HTTPException(status_code=404, detail=str(exc))
 
 
+@app.get("/api/consumables/items/{item_id}")
+async def consumable_item_detail(item_id: int):
+    try:
+        detail = ConsumablesEngine.get_item_detail(item_id)
+        return {"success": True, "data": detail}
+    except ConsumablesNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
 @app.post("/api/consumables/items")
 async def consumable_items_create(payload: ConsumableItemPayload):
     try:
