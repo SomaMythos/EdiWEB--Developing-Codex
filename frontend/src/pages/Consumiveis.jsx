@@ -127,13 +127,16 @@ const Consumiveis = () => {
     }
   }, [filteredItems, selectedItemId]);
 
-  const withSubmit = async (action) => {
+  const withSubmit = async (action, options = {}) => {
     setIsSubmitting(true);
     setFeedback({ type: '', message: '' });
     try {
-      await action();
+      const result = await action();
       await loadBaseData();
-      await loadItemDetail(selectedItemId);
+      const targetItemId = options.refreshItemId ?? result?.refreshItemId ?? selectedItemId;
+      if (targetItemId) {
+        await loadItemDetail(targetItemId);
+      }
     } catch (error) {
       console.error('Erro na operação de consumíveis', error);
       const message = error?.response?.data?.detail || 'Não foi possível concluir a operação.';
@@ -169,16 +172,18 @@ const Consumiveis = () => {
       }
       setItemName('');
       setFeedback({ type: 'success', message: 'Item consumível criado com sucesso.' });
+      return { refreshItemId: newItemId };
     });
   };
 
   const handleRestock = async () => {
-    if (!selectedItemId || !restockDate || !restockPrice) return;
+    if (!selectedItemId || !restockDate) return;
 
     await withSubmit(async () => {
+      const normalizedPrice = restockPrice === '' ? null : Number(restockPrice);
       await consumablesApi.restock(selectedItemId, {
         purchase_date: restockDate,
-        price_paid: Number(restockPrice),
+        price_paid: normalizedPrice,
       });
       setRestockPrice('');
       setFeedback({ type: 'success', message: 'Restoque registrado com sucesso.' });
@@ -196,6 +201,7 @@ const Consumiveis = () => {
 
   const stats = itemDetail?.stats || {};
   const cycles = itemDetail?.cycles || [];
+  const hasOpenCycle = cycles.some((cycle) => cycle.ended_at == null);
 
   return (
     <div className="page-container fade-in consumiveis-page">
@@ -301,13 +307,14 @@ const Consumiveis = () => {
               <div className="actions-grid">
                 <div className="action-card">
                   <h4>Restocar</h4>
+                  <p className="muted">Preço é opcional para registrar compras sem valor.</p>
                   <input className="input" type="date" value={restockDate} onChange={(event) => setRestockDate(event.target.value)} />
                   <input
                     className="input"
                     type="number"
                     step="0.01"
                     min="0"
-                    placeholder="Preço pago"
+                    placeholder="Preço pago (opcional)"
                     value={restockPrice}
                     onChange={(event) => setRestockPrice(event.target.value)}
                   />
@@ -317,7 +324,8 @@ const Consumiveis = () => {
                 <div className="action-card">
                   <h4>Marcar como finalizado</h4>
                   <input className="input" type="date" value={finishDate} onChange={(event) => setFinishDate(event.target.value)} />
-                  <button type="button" className="btn btn-secondary" onClick={handleFinishCycle} disabled={isSubmitting}>Finalizar ciclo</button>
+                  {!hasOpenCycle ? <p className="muted">Sem ciclo aberto para finalizar.</p> : null}
+                  <button type="button" className="btn btn-secondary" onClick={handleFinishCycle} disabled={isSubmitting || !hasOpenCycle}>Finalizar ciclo</button>
                 </div>
               </div>
 
@@ -338,10 +346,10 @@ const Consumiveis = () => {
               <div className="cycles-list">
                 {cycles.map((cycle) => (
                   <div key={cycle.id} className="cycle-row">
-                    <span>{formatDate(cycle.purchase_date)}</span>
-                    <span>{formatCurrency(cycle.price_paid)}</span>
-                    <span>{formatDate(cycle.ended_at)}</span>
-                    <span>{cycle.duration_days == null ? '—' : `${formatNumber(cycle.duration_days)} dias`}</span>
+                    <span data-label="Compra">{formatDate(cycle.purchase_date)}</span>
+                    <span data-label="Preço">{formatCurrency(cycle.price_paid)}</span>
+                    <span data-label="Fim">{formatDate(cycle.ended_at)}</span>
+                    <span data-label="Duração">{cycle.duration_days == null ? 'Em aberto' : `${formatNumber(cycle.duration_days)} dias`}</span>
                   </div>
                 ))}
                 {cycles.length === 0 ? <p className="muted">Sem ciclos registrados.</p> : null}

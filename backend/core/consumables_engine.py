@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from sqlite3 import IntegrityError
 from typing import Optional
 
 from data.database import Database
@@ -50,6 +51,21 @@ class ConsumablesEngine:
         return (ended - started).days
 
     @staticmethod
+    def _normalize_price(value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+
+        try:
+            normalized = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ConsumablesValidationError("price_paid deve ser numérico") from exc
+
+        if normalized < 0:
+            raise ConsumablesValidationError("price_paid não pode ser negativo")
+
+        return normalized
+
+    @staticmethod
     def _get_category(category_id: int):
         with Database() as db:
             return db.fetchone("SELECT id, name, created_at FROM consumable_categories WHERE id = ?", (category_id,))
@@ -74,7 +90,10 @@ class ConsumablesEngine:
             raise ConsumablesValidationError("name é obrigatório")
 
         with Database() as db:
-            db.execute("INSERT INTO consumable_categories (name) VALUES (?)", (normalized_name,))
+            try:
+                db.execute("INSERT INTO consumable_categories (name) VALUES (?)", (normalized_name,))
+            except IntegrityError as exc:
+                raise ConsumablesConflictError("Já existe uma categoria com esse nome") from exc
             return db.lastrowid
 
     @staticmethod
@@ -124,6 +143,7 @@ class ConsumablesEngine:
             raise ConsumablesNotFoundError("Item não encontrado")
 
         purchase_date_iso = ConsumablesEngine._require_iso_date(purchase_date, "purchase_date")
+        normalized_price = ConsumablesEngine._normalize_price(price_paid)
 
         with Database() as db:
             open_cycle = db.fetchone(
@@ -138,7 +158,7 @@ class ConsumablesEngine:
                 INSERT INTO consumable_cycles (item_id, purchase_date, price_paid)
                 VALUES (?, ?, ?)
                 """,
-                (item_id, purchase_date_iso, price_paid),
+                (item_id, purchase_date_iso, normalized_price),
             )
             return db.lastrowid
 

@@ -100,6 +100,36 @@ def test_create_category_and_item_with_validations(monkeypatch, tmp_path):
     assert category_not_found_exc.value.detail == "Categoria não encontrada"
 
 
+
+
+def test_create_category_duplicate_name_returns_conflict(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    _run(consumable_categories_create(ConsumableCategoryPayload(name="Higiene")))
+
+    with pytest.raises(HTTPException) as exc_info:
+        _run(consumable_categories_create(ConsumableCategoryPayload(name="Higiene")))
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == "Já existe uma categoria com esse nome"
+
+
+def test_restock_validates_negative_price(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    _run(consumable_categories_create(ConsumableCategoryPayload(name="Higiene")))
+    _run(consumable_items_create(ConsumableItemPayload(name="Shampoo", category_id=1)))
+
+    with pytest.raises(HTTPException) as exc_info:
+        _run(consumable_items_restock(1, RestockPayload(purchase_date="2024-01-01", price_paid=-1.0)))
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "price_paid não pode ser negativo"
+
 def test_restock_is_blocked_when_open_cycle_exists(monkeypatch, tmp_path):
     db_path = tmp_path / "lifemanager.db"
     _prepare_db(db_path)
