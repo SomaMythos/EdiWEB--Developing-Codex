@@ -246,10 +246,10 @@ const handleDeleteCategory = async (categoryId) => {
   const handleSubmitGoal = async (e) => {
     e.preventDefault();
 
-    if (formData.hasDeadline && formData.deadline && !/^\d{2}-\d{2}-\d{4}$/.test(formData.deadline)) {
+    if (formData.hasDeadline && formData.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(formData.deadline)) {
       setUploadFeedback({
         type: 'error',
-        message: 'Use o formato DD-MM-YYYY.',
+        message: 'Use o formato YYYY-MM-DD (ano com 4 dígitos).',
       });
       return;
     }
@@ -552,7 +552,7 @@ const handleDeleteCategory = async (categoryId) => {
                           type="text"
                           value={formData.deadline}
                           onChange={(e) => {
-                            const normalizedValue = formatDateToDisplay(e.target.value);
+                            const normalizedValue = e.target.value.replace(/[^\d-]/g, '').slice(0, 10);
                             setFormData({
                               ...formData,
                               deadline: normalizedValue,
@@ -561,8 +561,8 @@ const handleDeleteCategory = async (categoryId) => {
                           }}
                           inputMode="numeric"
                           maxLength={10}
-                          pattern="\d{2}-\d{2}-\d{4}"
-                          placeholder="DD-MM-YYYY"
+                          pattern="\d{4}-\d{2}-\d{2}"
+                          placeholder="YYYY-MM-DD"
                         />
                       </div>
 
