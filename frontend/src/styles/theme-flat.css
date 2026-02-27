@@ -28,6 +28,14 @@
 --glass-interactive-active: #383838;
 --glass-interactive-pressed: #404040;
 
+
+/* SIDEBAR */
+--sidebar-accent: #4ade80;
+--sidebar-accent-strong: #22c55e;
+--sidebar-accent-soft: rgba(74, 222, 128, 0.14);
+--sidebar-accent-glow: rgba(74, 222, 128, 0.2);
+--sidebar-accent-feather: rgba(74, 222, 128, 0.3);
+
 /* EFFECTS */
 --glass-blur: none;
 --glass-blur-strong: none;

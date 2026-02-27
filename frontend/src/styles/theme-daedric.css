@@ -39,6 +39,14 @@
 --glass-shadow-medium: 0 12px 28px rgba(0,0,0,0.9);
 --glass-shadow-strong: 0 24px 60px rgba(0,0,0,1);
 
+
+/* SIDEBAR */
+--sidebar-accent: #ff2b2b;
+--sidebar-accent-strong: #cc1f1f;
+--sidebar-accent-soft: rgba(255, 43, 43, 0.16);
+--sidebar-accent-glow: rgba(255, 0, 0, 0.24);
+--sidebar-accent-feather: rgba(153, 0, 0, 0.45);
+
 /* EFFECTS */
 
 --glass-blur: none;

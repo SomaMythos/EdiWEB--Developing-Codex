@@ -1,41 +1,62 @@
 .theme-glass {
+/* ======================================================
+   SKIN PADRÃO (REFERÊNCIA)
+   ------------------------------------------------------
+   Como criar uma nova skin:
+   1) Copie este arquivo para `src/styles/theme-nome.css`.
+   2) Renomeie o seletor para `.theme-nome`.
+   3) Ajuste os tokens abaixo mantendo os mesmos nomes.
+   4) Importe o novo arquivo em `src/main.jsx`.
+   5) Adicione uma opção no seletor de skins em Settings.
+====================================================== */
 
-/* TOKENS VISUAIS */
-
+/* FOCO GLOBAL: anel de foco para inputs, botões e elementos acessíveis. */
 --focus-ring: 0 0 0 1px rgba(248,242,220,0.25);
 
+/* SUPERFÍCIES: camadas de fundo base (cards, painéis e overlays). */
 --glass-surface-soft: rgba(20, 22, 28, 0.45);
 --glass-surface-medium: rgba(22, 25, 32, 0.60);
 --glass-surface-strong: rgba(28, 32, 40, 0.75);
 --glass-surface-overlay: rgba(10, 12, 16, 0.82);
 
+/* INTERAÇÕES: estados de hover/active/pressed para áreas clicáveis. */
 --glass-interactive-hover: rgba(255,255,255,0.06);
 --glass-interactive-active: rgba(255,255,255,0.10);
 --glass-interactive-pressed: rgba(255,255,255,0.14);
 
+/* TEXTO: contraste principal, secundário, discreto e destaque. */
 --glass-text-primary: rgba(255,255,255,0.96);
 --glass-text-secondary: rgba(255,255,255,0.82);
 --glass-text-muted: rgba(255,255,255,0.58);
 --glass-text-accent: #facc15;
 
+/* BORDAS: intensidade de borda para hierarquia visual. */
 --glass-border-subtle: rgba(255,255,255,0.04);
 --glass-border-default: rgba(255,255,255,0.08);
 --glass-border-strong: rgba(255,255,255,0.15);
 --glass-border-accent: rgba(255,255,255,0.22);
 
+/* SOMBRAS: profundidade para componentes e estados elevados. */
 --glass-shadow-soft: 0 8px 24px rgba(0,0,0,0.45);
 --glass-shadow-medium: 0 14px 36px rgba(0,0,0,0.55);
 --glass-shadow-strong: 0 24px 60px rgba(0,0,0,0.65);
 
+/* EFEITOS: blur e brilho para estilo glassmorphism. */
 --glass-blur: blur(14px);
 --glass-blur-strong: blur(22px);
-
 --glass-shine-overlay: linear-gradient(
   120deg,
   rgba(255,255,255,0.06) 0%,
   rgba(255,255,255,0.02) 40%,
   transparent 80%
 );
+
+/* SIDEBAR: acento principal usado no Layout (logo, hover e item ativo). */
+--sidebar-accent: #d7c4ad;
+--sidebar-accent-strong: #cbb397;
+--sidebar-accent-soft: rgba(215,196,173,0.14);
+--sidebar-accent-glow: rgba(215,196,173,0.15);
+--sidebar-accent-feather: rgba(215,196,173,0.58);
 }
 
 /* COMPONENTES VISUAIS */

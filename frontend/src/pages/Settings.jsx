@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, Download, FileText, Database, Save, TrendingDown, Image } from 'lucide-react';
+import { User, Download, FileText, Database, Save, TrendingDown, Image, Palette } from 'lucide-react';
 import { userApi, exportApi } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 import './Settings.css';
 
 const Settings = () => {
@@ -22,6 +23,7 @@ const Settings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const { theme, setTheme, availableThemes } = useTheme();
 
   useEffect(() => {
     loadData();
@@ -370,6 +372,37 @@ const Settings = () => {
               </div>
             </div>
           )}
+        </div>
+
+
+        {/* Skin Selector */}
+        <div className="skin-section card">
+          <div className="section-header">
+            <Palette size={24} />
+            <h2>Aparência</h2>
+          </div>
+
+          <div className="form-group">
+            <label className="label" htmlFor="skin-select">Skin do sistema</label>
+            <select
+              id="skin-select"
+              className="input"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+            >
+              {availableThemes.map((skinName) => (
+                <option key={skinName} value={skinName}>
+                  {skinName === 'theme-glass'
+                    ? 'Glass (padrão)'
+                    : skinName.replace('theme-', '').replace(/^./, (c) => c.toUpperCase())}
+                </option>
+              ))}
+            </select>
+            <p className="form-hint">
+              As skins são carregadas de <code>src/styles</code>. Use o arquivo
+              <code> theme-glass.css </code> como referência para criar variações.
+            </p>
+          </div>
         </div>
 
         {/* Export Data */}
