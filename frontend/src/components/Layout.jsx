@@ -17,11 +17,8 @@ import {
   Gamepad2,
   Clapperboard,
   DollarSign,
-  Moon,
-  Sun,
 } from 'lucide-react';
 import Notifications from './Notifications';
-import { useTheme } from '../context/ThemeContext';
 import './Layout.css';
 import logo from '../assets/logo_2.png';
 
