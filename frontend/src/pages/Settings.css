@@ -278,11 +278,3 @@
     gap: var(--spacing-md);
   }
 }
-
-.skin-section code {
-  padding: 0 0.3rem;
-  border-radius: var(--radius-sm);
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-subtle);
-  color: var(--glass-text-primary);
-}

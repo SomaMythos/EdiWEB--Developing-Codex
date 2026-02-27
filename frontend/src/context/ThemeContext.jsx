@@ -1,13 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-const THEME_STORAGE_KEY = 'edi-theme-skin';
-const DEFAULT_THEME = 'theme-glass';
-const AVAILABLE_THEMES = ['theme-glass', 'theme-daedric', 'theme-flat'];
+const THEME_STORAGE_KEY = 'edi-theme';
 const ThemeContext = createContext(null);
 
 const getInitialTheme = () => {
   const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-  return AVAILABLE_THEMES.includes(storedTheme) ? storedTheme : DEFAULT_THEME;
+  return storedTheme === 'dark' ? 'dark' : 'light';
 };
 
 export const ThemeProvider = ({ children }) => {
@@ -15,15 +13,13 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-    document.documentElement.classList.remove(...AVAILABLE_THEMES);
-    document.documentElement.classList.add(theme);
+    document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   const value = useMemo(
     () => ({
       theme,
-      setTheme,
-      availableThemes: AVAILABLE_THEMES,
+      toggleTheme: () => setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light')),
     }),
     [theme],
   );

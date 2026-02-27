@@ -5,7 +5,6 @@ import { ThemeProvider } from './context/ThemeContext.jsx'
 import './styles/base.css'
 import './styles/theme-glass.css'
 import "./styles/theme-daedric.css"
-import './styles/theme-flat.css'
 import "./components/Layout.css"
 
 ReactDOM.createRoot(document.getElementById('root')).render(
