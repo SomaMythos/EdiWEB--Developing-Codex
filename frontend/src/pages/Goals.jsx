@@ -17,8 +17,14 @@ const initialFormState = {
 
 
 
-const Star = ({ filled, onClick, size = 18 }) => (
-  <button type="button" className={`star-btn ${filled ? 'filled' : ''}`} onClick={onClick} aria-label="star">
+const Star = ({ filled, onClick, size = 18, value }) => (
+  <button
+    type="button"
+    className={`star-btn ${filled ? 'filled' : ''}`}
+    onClick={onClick}
+    aria-label={`Selecionar ${value} estrela${value > 1 ? 's' : ''}`}
+    aria-pressed={filled}
+  >
     <StarIcon size={size} />
   </button>
 );
@@ -221,6 +227,14 @@ const handleDeleteCategory = async (categoryId) => {
   // -------- Goal form handlers (create / edit) --------
   const handleSubmitGoal = async (e) => {
     e.preventDefault();
+
+    if (formData.hasDeadline && formData.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(formData.deadline)) {
+      setUploadFeedback({
+        type: 'error',
+        message: 'Use o formato YYYY-MM-DD (ano com 4 dígitos).',
+      });
+      return;
+    }
 
     const payload = {
       title: formData.title,
@@ -471,7 +485,7 @@ const handleDeleteCategory = async (categoryId) => {
 
         {mode === 'category' && selectedCategory && (
           <>
-            <div className="category-header">
+            <div className="goal-category-header">
               <h2>{selectedCategory.name}</h2>
             </div>
 
@@ -503,17 +517,34 @@ const handleDeleteCategory = async (categoryId) => {
                         <label>Dificuldade</label>
                         <div className="stars-picker">
                           {[1, 2, 3, 4, 5].map((v) => (
-                            <Star key={v} filled={v <= (formData.difficulty || 1)} onClick={() => setDifficulty(v)} />
+                            <Star
+                              key={v}
+                              value={v}
+                              filled={v <= (formData.difficulty || 1)}
+                              onClick={() => setDifficulty(v)}
+                            />
                           ))}
+                          <span className="stars-selected-count">{formData.difficulty || 1}/5</span>
                         </div>
                       </div>
 
                       <div className="form-row">
                         <label>Prazo (opcional)</label>
                         <input
-                          type="date"
+                          type="text"
                           value={formData.deadline}
-                          onChange={(e) => setFormData({ ...formData, deadline: e.target.value, hasDeadline: !!e.target.value })}
+                          onChange={(e) => {
+                            const normalizedValue = e.target.value.replace(/[^\d-]/g, '').slice(0, 10);
+                            setFormData({
+                              ...formData,
+                              deadline: normalizedValue,
+                              hasDeadline: !!normalizedValue,
+                            });
+                          }}
+                          inputMode="numeric"
+                          maxLength={10}
+                          pattern="\d{4}-\d{2}-\d{2}"
+                          placeholder="YYYY-MM-DD"
                         />
                       </div>
 
