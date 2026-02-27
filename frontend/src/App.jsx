@@ -13,7 +13,6 @@ import Reminders from './pages/Reminders';
 import Music from "./pages/music/Music";
 import Games from './pages/Games';
 import Watch from './pages/Watch';
-import './index.css';
 
 function App() {
   return (
