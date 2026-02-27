@@ -266,12 +266,19 @@ export const shoppingApi = {
 
 export const consumablesApi = {
   listCategories: () => api.get('/consumables/categories'),
-  createCategory: (data) => api.post('/consumables/categories', data),
-  listItems: (categoryId) => api.get('/consumables/items', { params: { category_id: categoryId } }),
-  createItem: (data) => api.post('/consumables/items', data),
-  getItemDetail: (id) => api.get(`/consumables/items/${id}`),
-  restock: (itemId, data) => api.post(`/consumables/items/${itemId}/restock`, data),
-  finishCycle: (itemId, data) => api.post(`/consumables/items/${itemId}/finish`, data),
+  createCategory: ({ name }) => api.post('/consumables/categories', { name }),
+
+  listItems: (categoryId = undefined) => api.get('/consumables/items', {
+    params: categoryId ? { category_id: categoryId } : {},
+  }),
+  createItem: ({ name, category_id }) => api.post('/consumables/items', { name, category_id }),
+  getItemDetail: (itemId) => api.get(`/consumables/items/${itemId}`),
+
+  restock: (itemId, { purchase_date, price_paid }) => api.post(`/consumables/items/${itemId}/restock`, {
+    purchase_date,
+    price_paid,
+  }),
+  finishCycle: (itemId, { ended_at }) => api.post(`/consumables/items/${itemId}/finish`, { ended_at }),
 };
 
 // Reminders & Day Plan

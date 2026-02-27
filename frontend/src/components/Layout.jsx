@@ -9,6 +9,7 @@ import {
   BookOpen,
   Palette,
   ShoppingCart,
+  ListChecks,
   Bell,
   ChevronDown,
   ChevronRight,
@@ -46,6 +47,7 @@ const Layout = ({ children }) => {
   ];
 
   const shoppingItems = [
+    { path: '/shopping', icon: ListChecks, label: 'Wishlist' },
     { path: '/shopping/consumiveis', icon: ShoppingCart, label: 'Consumíveis' },
   ];
 

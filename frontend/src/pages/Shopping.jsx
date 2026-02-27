@@ -177,8 +177,8 @@ const Shopping = () => {
     <div className="shopping-page page-container fade-in">
       <header className="page-header">
         <div>
-          <h1>Shopping</h1>
-          <p className="subtitle">Organize necessidades e desejos com orçamento rápido</p>
+          <h1>Wishlist</h1>
+          <p className="subtitle">Lista de desejos e necessidades pontuais (separada do módulo de consumíveis)</p>
         </div>
       </header>
 
