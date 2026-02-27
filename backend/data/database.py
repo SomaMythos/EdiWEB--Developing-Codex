@@ -39,6 +39,29 @@ def column_exists(db, table_name, column_name):
     return any(column["name"] == column_name for column in columns)
 
 
+
+
+def index_exists(db, index_name):
+    row = db.fetchone(
+        "SELECT 1 FROM sqlite_master WHERE type='index' AND name=?",
+        (index_name,),
+    )
+    return row is not None
+
+
+def trigger_exists(db, trigger_name):
+    row = db.fetchone(
+        "SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?",
+        (trigger_name,),
+    )
+    return row is not None
+
+
+def read_migration_sql(filename: str) -> str:
+    migration_path = Path(__file__).resolve().parent / "migrations" / filename
+    return migration_path.read_text(encoding="utf-8")
+
+
 def apply_migrations(db):
     """Aplica migrações idempotentes e aditivas para bancos existentes."""
     migration_log: List[Dict[str, str]] = []
@@ -49,7 +72,7 @@ def apply_migrations(db):
             migration_log.append({"name": name, "status": "skipped"})
             return
 
-        db.execute(sql)
+        db.conn.executescript(sql)
         logger.info("[migrations] APPLIED %s", name)
         migration_log.append({"name": name, "status": "applied"})
 
@@ -519,8 +542,20 @@ def apply_migrations(db):
         )
         """,
     )
-    
-    
+
+    run_migration(
+        "v20260227_add_consumables_tables",
+        lambda: (
+            table_exists(db, "consumable_categories")
+            and table_exists(db, "consumable_items")
+            and table_exists(db, "consumable_cycles")
+            and index_exists(db, "idx_consumable_cycles_open_item")
+            and trigger_exists(db, "trg_consumable_cycles_no_delete")
+            and trigger_exists(db, "trg_consumable_cycles_close_only")
+        ),
+        read_migration_sql("20260227_add_consumables_tables.sql"),
+    )
+
     run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
