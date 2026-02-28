@@ -19,44 +19,27 @@ const createId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const normalizeNote = (note) => ({
-  id: note.id || createId(),
-  title: note.title || 'Sem título',
-  titleColor: note.titleColor || TITLE_COLORS[0],
-  content: note.content || '',
-  createdAt: note.createdAt || new Date().toISOString(),
-  isExpanded: Boolean(note.isExpanded),
-  isEditing: Boolean(note.isEditing),
-});
-
 const Anotacoes = () => {
   const [newTitle, setNewTitle] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [notes, setNotes] = useState([]);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setIsHydrated(true);
-        return;
-      }
+      if (!raw) return;
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        setNotes(parsed.map(normalizeNote));
+        setNotes(parsed);
       }
     } catch (error) {
       console.error('Erro ao carregar anotações:', error);
-    } finally {
-      setIsHydrated(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!isHydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  }, [notes, isHydrated]);
+  }, [notes]);
 
   const sortedNotes = useMemo(() => {
     const cloned = [...notes];
@@ -79,6 +62,7 @@ const Anotacoes = () => {
         titleColor: TITLE_COLORS[0],
         content: '',
         createdAt: now,
+        updatedAt: now,
         isExpanded: true,
         isEditing: true,
       },
@@ -88,7 +72,9 @@ const Anotacoes = () => {
   };
 
   const updateNote = (id, updater) => {
-    setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, ...updater(note) } : note)));
+    setNotes((prev) =>
+      prev.map((note) => (note.id === id ? { ...note, ...updater(note), updatedAt: new Date().toISOString() } : note))
+    );
   };
 
   const toggleExpand = (id) => {
@@ -99,10 +85,15 @@ const Anotacoes = () => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
-  const getPreview = (content) => {
-    const compact = content.trim().replace(/\s+/g, ' ');
-    if (!compact) return 'Sem conteúdo ainda.';
-    return compact.length > 90 ? `${compact.slice(0, 90)}...` : compact;
+  const formatCreatedAt = (isoDate) => {
+    try {
+      return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(new Date(isoDate));
+    } catch {
+      return isoDate;
+    }
   };
 
   return (
@@ -151,9 +142,9 @@ const Anotacoes = () => {
                 </button>
 
                 <h2 style={{ color: note.titleColor }}>{note.title}</h2>
-              </div>
 
-              {!note.isExpanded && <p className="note-preview">{getPreview(note.content)}</p>}
+                <span className="note-created">{formatCreatedAt(note.createdAt)}</span>
+              </div>
 
               {note.isExpanded && (
                 <>
