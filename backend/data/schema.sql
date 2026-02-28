@@ -454,14 +454,13 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE TABLE IF NOT EXISTS notification_preferences (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    enable_sound INTEGER DEFAULT 1,
-    inbox_only_unread INTEGER DEFAULT 1,
-    default_sound_key TEXT DEFAULT 'default',
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    feature_key TEXT NOT NULL UNIQUE,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+    quiet_hours TEXT,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-
-INSERT OR IGNORE INTO notification_preferences (id) VALUES (1);
 
 -- =========================
 -- GOAL CATEGORIES (NOVA FEATURE)

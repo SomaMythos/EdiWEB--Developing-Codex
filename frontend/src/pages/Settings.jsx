@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Download, FileText, Database, Save, TrendingDown, Image } from 'lucide-react';
-import { userApi, exportApi } from '../services/api';
+import { User, Download, FileText, Database, Save, TrendingDown, Image, Bell } from 'lucide-react';
+import { userApi, exportApi, notificationsApi } from '../services/api';
 import './Settings.css';
 
 const Settings = () => {
@@ -22,6 +22,16 @@ const Settings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState([]);
+
+  const notificationFeatures = [
+    { key: 'goals', label: 'Metas' },
+    { key: 'daily', label: 'Resumo diário' },
+    { key: 'consumables', label: 'Consumíveis' },
+    { key: 'shopping', label: 'Compras' },
+    { key: 'custom', label: 'Customizadas' }
+  ];
 
   useEffect(() => {
     loadData();
@@ -29,9 +39,10 @@ const Settings = () => {
 
   const loadData = async () => {
     try {
-      const [profileRes, metricsRes] = await Promise.all([
+      const [profileRes, metricsRes, notificationPrefsRes] = await Promise.all([
         userApi.getProfile(),
-        userApi.getMetrics()
+        userApi.getMetrics(),
+        notificationsApi.getPreferences()
       ]);
 
       const profileData = profileRes.data.data;
@@ -47,6 +58,7 @@ const Settings = () => {
       }
 
       setMetrics(metricsRes.data.data || []);
+      setNotificationPrefs(notificationPrefsRes.data.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -133,6 +145,47 @@ const Settings = () => {
       alert('Erro ao exportar dados');
     } finally {
       setExporting(false);
+    }
+  };
+
+
+  const getNotificationPreference = (featureKey) => {
+    return notificationPrefs.find((item) => item.feature_key === featureKey) || {
+      feature_key: featureKey,
+      enabled: true,
+      channels: ['in_app', 'sound'],
+      quiet_hours: null
+    };
+  };
+
+  const handleToggleNotificationFeature = async (featureKey, enabled) => {
+    const updatedPrefs = notificationFeatures.map((feature) => {
+      if (feature.key === featureKey) {
+        return {
+          ...getNotificationPreference(feature.key),
+          feature_key: feature.key,
+          enabled
+        };
+      }
+
+      return {
+        ...getNotificationPreference(feature.key),
+        feature_key: feature.key
+      };
+    });
+
+    setNotificationPrefs(updatedPrefs);
+    setSavingNotifications(true);
+
+    try {
+      const response = await notificationsApi.savePreferences(updatedPrefs);
+      setNotificationPrefs(response.data.data || updatedPrefs);
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+      alert('Erro ao salvar preferências de notificação');
+      loadData();
+    } finally {
+      setSavingNotifications(false);
     }
   };
 
@@ -370,6 +423,40 @@ const Settings = () => {
               </div>
             </div>
           )}
+        </div>
+
+
+        <div className="notifications-section card">
+          <div className="section-header">
+            <Bell size={24} />
+            <h2>Notificações</h2>
+          </div>
+
+          <div className="notification-feature-list">
+            {notificationFeatures.map((feature) => {
+              const pref = getNotificationPreference(feature.key);
+              return (
+                <div key={feature.key} className="notification-feature-item">
+                  <div>
+                    <p className="notification-feature-title">{feature.label}</p>
+                    <p className="notification-feature-desc">
+                      {pref.enabled ? 'Notificações ativas para esta feature.' : 'Notificações desativadas para esta feature.'}
+                    </p>
+                  </div>
+
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={!!pref.enabled}
+                      disabled={savingNotifications}
+                      onChange={(e) => handleToggleNotificationFeature(feature.key, e.target.checked)}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Export Data */}

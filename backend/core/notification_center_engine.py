@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from core.daily_log_engine import DailyLogEngine
 from core.goal_engine import GoalEngine
@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 class NotificationCenterEngine:
     DEFAULT_STATUS = "unread"
+    DEFAULT_CHANNELS = ["in_app", "sound"]
+    SUPPORTED_FEATURES = ["goals", "daily", "consumables", "shopping", "custom"]
 
     @staticmethod
     def list_notifications(
@@ -123,34 +125,83 @@ class NotificationCenterEngine:
     @staticmethod
     def get_preferences():
         with Database() as db:
-            row = db.fetchone("SELECT * FROM notification_preferences WHERE id = 1")
-        return dict(row) if row else {
-            "id": 1,
-            "enable_sound": 1,
-            "inbox_only_unread": 1,
-            "default_sound_key": "default",
-            "updated_at": None,
+            rows = db.fetchall(
+                """
+                SELECT feature_key, enabled, channels, quiet_hours, updated_at
+                FROM notification_preferences
+                """
+            )
+
+        existing = {
+            row["feature_key"]: NotificationCenterEngine._serialize_preference_row(dict(row))
+            for row in rows
         }
 
+        changed = False
+        for feature_key in NotificationCenterEngine.SUPPORTED_FEATURES:
+            if feature_key not in existing:
+                existing[feature_key] = NotificationCenterEngine._default_feature_preference(feature_key)
+                changed = True
+
+        if changed:
+            NotificationCenterEngine.save_preferences(list(existing.values()))
+
+        return [existing[feature] for feature in NotificationCenterEngine.SUPPORTED_FEATURES]
+
     @staticmethod
-    def save_preferences(payload: Dict[str, Any]):
-        with Database() as db:
-            db.execute(
-                """
-                INSERT INTO notification_preferences (id, enable_sound, inbox_only_unread, default_sound_key, updated_at)
-                VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(id) DO UPDATE SET
-                    enable_sound = excluded.enable_sound,
-                    inbox_only_unread = excluded.inbox_only_unread,
-                    default_sound_key = excluded.default_sound_key,
-                    updated_at = CURRENT_TIMESTAMP
-                """,
-                (
-                    1 if payload.get("enable_sound", True) else 0,
-                    1 if payload.get("inbox_only_unread", True) else 0,
-                    payload.get("default_sound_key") or "default",
-                ),
+    def save_preferences(payload: List[Dict[str, Any]]):
+        normalized_payload = []
+        for item in payload:
+            feature_key = item.get("feature_key")
+            if feature_key not in NotificationCenterEngine.SUPPORTED_FEATURES:
+                continue
+            normalized_payload.append(
+                {
+                    "feature_key": feature_key,
+                    "enabled": bool(item.get("enabled", True)),
+                    "channels": NotificationCenterEngine._normalize_channels(item.get("channels")),
+                    "quiet_hours": item.get("quiet_hours"),
+                }
             )
+
+        if not normalized_payload:
+            normalized_payload = [
+                NotificationCenterEngine._default_feature_preference(feature_key)
+                for feature_key in NotificationCenterEngine.SUPPORTED_FEATURES
+            ]
+
+        with Database() as db:
+            for item in normalized_payload:
+                db.execute(
+                    """
+                    INSERT INTO notification_preferences (feature_key, enabled, channels, quiet_hours, updated_at)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(feature_key) DO UPDATE SET
+                        enabled = excluded.enabled,
+                        channels = excluded.channels,
+                        quiet_hours = excluded.quiet_hours,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        item["feature_key"],
+                        1 if item["enabled"] else 0,
+                        json.dumps(item["channels"], ensure_ascii=False),
+                        json.dumps(item["quiet_hours"], ensure_ascii=False)
+                        if item["quiet_hours"] is not None
+                        else None,
+                    ),
+                )
+
+    @staticmethod
+    def is_feature_enabled(feature_key: str, require_channel: str = "in_app"):
+        normalized_key = NotificationCenterEngine._normalize_feature_key(feature_key)
+        prefs = {item["feature_key"]: item for item in NotificationCenterEngine.get_preferences()}
+        pref = prefs.get(normalized_key)
+        if not pref:
+            return True
+        if not pref.get("enabled", True):
+            return False
+        return require_channel in pref.get("channels", [])
 
     @staticmethod
     def generate_system_notifications(days_ahead: int = 7):
@@ -237,6 +288,11 @@ class NotificationCenterEngine:
 
     @staticmethod
     def _insert_notification(payload: Dict[str, Any], unique_key: Optional[str] = None):
+        source_feature = payload.get("source_feature") or "system"
+        feature_key = NotificationCenterEngine._normalize_feature_key(source_feature)
+        if not NotificationCenterEngine.is_feature_enabled(feature_key=feature_key, require_channel="in_app"):
+            return None
+
         notification_type = payload.get("notification_type", "generic")
         meta = payload.get("meta") or {}
         try:
@@ -268,7 +324,7 @@ class NotificationCenterEngine:
                 (
                     notification_type,
                     notification_type,
-                    payload.get("source_feature") or "system",
+                    source_feature,
                     payload.get("title"),
                     payload.get("message"),
                     payload.get("severity") or "info",
@@ -281,6 +337,63 @@ class NotificationCenterEngine:
                 ),
             )
             return db.lastrowid
+
+    @staticmethod
+    def _default_feature_preference(feature_key: str):
+        return {
+            "feature_key": feature_key,
+            "enabled": True,
+            "channels": list(NotificationCenterEngine.DEFAULT_CHANNELS),
+            "quiet_hours": None,
+            "updated_at": None,
+        }
+
+    @staticmethod
+    def _serialize_preference_row(row: Dict[str, Any]):
+        channels = NotificationCenterEngine.DEFAULT_CHANNELS
+        if row.get("channels"):
+            try:
+                parsed_channels = json.loads(row.get("channels"))
+                if isinstance(parsed_channels, list):
+                    channels = NotificationCenterEngine._normalize_channels(parsed_channels)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                channels = list(NotificationCenterEngine.DEFAULT_CHANNELS)
+
+        quiet_hours = None
+        if row.get("quiet_hours"):
+            try:
+                quiet_hours = json.loads(row.get("quiet_hours"))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                quiet_hours = None
+
+        return {
+            "feature_key": row.get("feature_key"),
+            "enabled": bool(row.get("enabled", 1)),
+            "channels": channels,
+            "quiet_hours": quiet_hours,
+            "updated_at": row.get("updated_at"),
+        }
+
+    @staticmethod
+    def _normalize_channels(channels: Any):
+        if not isinstance(channels, list):
+            channels = list(NotificationCenterEngine.DEFAULT_CHANNELS)
+
+        allowed_channels = {"in_app", "sound"}
+        normalized = [channel for channel in channels if channel in allowed_channels]
+        return normalized or ["in_app"]
+
+    @staticmethod
+    def _normalize_feature_key(source_feature: Optional[str]):
+        if source_feature in NotificationCenterEngine.SUPPORTED_FEATURES:
+            return source_feature
+
+        mapping = {
+            "manual": "custom",
+            "system": "custom",
+            "legacy_notifications": "custom",
+        }
+        return mapping.get(source_feature or "custom", "custom")
 
     @staticmethod
     def _unique_key(notification: Dict[str, Any]):

@@ -1117,10 +1117,11 @@ class NotificationStatusPayload(BaseModel):
     status: str
 
 
-class NotificationPreferencePayload(BaseModel):
-    enable_sound: bool = True
-    inbox_only_unread: bool = True
-    default_sound_key: str = "default"
+class NotificationFeaturePreferencePayload(BaseModel):
+    feature_key: str
+    enabled: bool = True
+    channels: list[str] = ["in_app", "sound"]
+    quiet_hours: Optional[dict] = None
 
 
 @app.get("/api/notifications")
@@ -1185,12 +1186,12 @@ async def notifications_get_preferences():
 
 
 @app.put("/api/notifications/preferences")
-async def notifications_save_preferences(payload: NotificationPreferencePayload):
+async def notifications_save_preferences(payload: list[NotificationFeaturePreferencePayload]):
     try:
         from core.notification_center_engine import NotificationCenterEngine
 
-        NotificationCenterEngine.save_preferences(payload.dict())
-        return {"success": True}
+        NotificationCenterEngine.save_preferences([item.dict() for item in payload])
+        return {"success": True, "data": NotificationCenterEngine.get_preferences()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
