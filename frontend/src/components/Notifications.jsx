@@ -22,7 +22,7 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const res = await notificationsApi.getAll();
+      const res = await notificationsApi.list({ include_generated: true, status: 'unread' });
       setNotifications(res.data.data || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -113,26 +113,26 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
               </div>
             ) : (
               <div className="notifications-list">
-                {notifications.map((notification, index) => (
+                {notifications.map((notification) => (
                   <div 
-                    key={index} 
-                    className={`notification-item ${getNotificationClass(notification.type)}`}
+                    key={notification.id} 
+                    className={`notification-item ${getNotificationClass((notification.notification_type || notification.type))}`}
                   >
                     <div className="notification-icon">
-                      {getNotificationIcon(notification.type)}
+                      {getNotificationIcon((notification.notification_type || notification.type))}
                     </div>
                     <div className="notification-content">
                       <p className="notification-message">
                         {notification.message}
                       </p>
-                      {notification.days_remaining !== undefined && (
+                      {notification.meta?.days_remaining !== undefined && (
                         <span className="notification-detail">
-                          {notification.days_remaining} dias restantes
+                          {notification.meta.days_remaining} dias restantes
                         </span>
                       )}
-                      {notification.total_activities !== undefined && (
+                      {notification.meta?.completion_rate !== undefined && (
                         <span className="notification-detail">
-                          Taxa de conclusão: {Math.round(notification.completion_rate)}%
+                          Taxa de conclusão: {Math.round(notification.meta.completion_rate)}%
                         </span>
                       )}
                     </div>

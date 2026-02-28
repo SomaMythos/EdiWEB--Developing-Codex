@@ -436,14 +436,32 @@ CREATE TABLE IF NOT EXISTS daily_plan_blocks (
 -- =========================
 CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,
+    notification_type TEXT NOT NULL,
+    type TEXT,
+    source_feature TEXT DEFAULT 'system',
     title TEXT,
     message TEXT,
+    severity TEXT DEFAULT 'info',
+    status TEXT DEFAULT 'unread',
+    scheduled_for TEXT,
     meta TEXT,
+    sound_key TEXT,
+    color_token TEXT,
     unique_key TEXT UNIQUE,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    read_at TEXT
+    read_at TEXT,
+    completed_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    enable_sound INTEGER DEFAULT 1,
+    inbox_only_unread INTEGER DEFAULT 1,
+    default_sound_key TEXT DEFAULT 'default',
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO notification_preferences (id) VALUES (1);
 
 -- =========================
 -- GOAL CATEGORIES (NOVA FEATURE)

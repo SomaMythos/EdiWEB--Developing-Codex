@@ -13,7 +13,7 @@
 | Games | *(novo no web)* | (usa persistência geral no backend) | (sem namespace dedicado no `main.py`) | `/hobby/games` → `frontend/src/pages/Games.jsx` |
 | Assistir (watchlist) | *(novo no web)* | `backend/core/watch_engine.py` | `/api/watch/categories`, `/api/watch/items`, `/api/watch/items/{item_id}/watched` | `/hobby/assistir` → `frontend/src/pages/Watch.jsx` |
 | Shopping | `core/shopping_engine.py` | `backend/core/shopping_engine.py` | `/api/shopping/wishlist`, `/api/shopping/items`, `/api/shopping/stats` | `/shopping` → `frontend/src/pages/Shopping.jsx` |
-| Lembretes | `core/reminder_engine.py` | `backend/core/reminder_engine.py` | `/api/reminders`, `/api/reminders/{id}/complete`, `/api/reminders/upcoming` | `/reminders` → `frontend/src/pages/Reminders.jsx` |
+| Notificações (domínio único) | `core/notification_center_engine.py` (com adapter legado em `core/reminder_engine.py`) | `backend/core/notification_center_engine.py` | `/api/notifications`, `/api/notifications/custom`, `/api/notifications/{id}/status`, `/api/notifications/preferences` (legado: `/api/reminders/...`) | `/notifications` → `frontend/src/pages/Notifications.jsx` (legado: `/reminders` redireciona) |
 | Perfil e métricas | `core/user_profile_engine.py` | `backend/core/user_profile_engine.py` | `/api/profile`, `/api/profile/metrics`, `/api/user/profile`, `/api/user/metrics` | `/settings` + cards no dashboard |
 
 ## Observações

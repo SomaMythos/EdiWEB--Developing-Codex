@@ -102,10 +102,12 @@ export const analyticsApi = {
 
 // Notifications
 export const notificationsApi = {
-  getAll: () => api.get('/notifications'),
-  getStalledGoals: () => api.get('/notifications/stalled-goals'),
-  getUpcomingDeadlines: (days = 7) => api.get(`/notifications/upcoming-deadlines?days=${days}`),
-  getDailySummary: () => api.get('/notifications/daily-summary'),
+  list: (params = {}) => api.get('/notifications', { params }),
+  getAll: () => api.get('/notifications', { params: { include_generated: true } }),
+  createCustom: (data) => api.post('/notifications/custom', data),
+  updateStatus: (id, status) => api.patch(`/notifications/${id}/status`, { status }),
+  getPreferences: () => api.get('/notifications/preferences'),
+  savePreferences: (data) => api.put('/notifications/preferences', data),
 };
 
 // Export
