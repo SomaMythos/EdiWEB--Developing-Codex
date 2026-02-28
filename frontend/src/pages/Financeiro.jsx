@@ -1,6 +1,6 @@
 // src/pages/Financeiro.jsx
 import React, { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, WalletCards } from 'lucide-react';
 import { financeApi } from '../services/api';
 import './Financeiro.css';
 import {
@@ -24,9 +24,11 @@ const getCSSVar = (name, fallback = '#22c55e') => {
 
 const Financeiro = () => {
   const [showConfig, setShowConfig] = useState(false);
+  const [showSpendModal, setShowSpendModal] = useState(false);
   const [summary, setSummary] = useState(null);
   const [config, setConfig] = useState({});
   const [gastosFixos, setGastosFixos] = useState([]);
+  const [gastosAvulsos, setGastosAvulsos] = useState([]);
   const [projection, setProjection] = useState([]);
   
   const chartColors = {
@@ -48,9 +50,25 @@ const Financeiro = () => {
     monthly_value: ''
   });
 
+  const [novoGastoAvulso, setNovoGastoAvulso] = useState({
+    name: '',
+    value: ''
+  });
+
   useEffect(() => {
     loadAll();
+    loadGastosAvulsos();
   }, []);
+
+  const loadGastosAvulsos = () => {
+    try {
+      const savedLogs = localStorage.getItem('finance_spent_logs');
+      setGastosAvulsos(savedLogs ? JSON.parse(savedLogs) : []);
+    } catch (error) {
+      console.error('Erro ao carregar gastos avulsos:', error);
+      setGastosAvulsos([]);
+    }
+  };
 
   const loadAll = async () => {
     try {
@@ -144,6 +162,44 @@ const Financeiro = () => {
     }
   };
 
+  const handleSpend = async () => {
+    const name = novoGastoAvulso.name.trim();
+    const value = Number(novoGastoAvulso.value);
+
+    if (!name || !value || value <= 0) return;
+
+    const currentReserve = Number(config?.reserve_current ?? summary?.current ?? 0);
+    const updatedReserve = currentReserve - value;
+
+    const updatedConfig = {
+      ...config,
+      reserve_current: updatedReserve
+    };
+
+    const spendLog = {
+      id: Date.now(),
+      name,
+      value,
+      date: new Date().toISOString()
+    };
+
+    try {
+      await financeApi.saveConfig(updatedConfig);
+
+      const updatedLogs = [spendLog, ...gastosAvulsos];
+      localStorage.setItem('finance_spent_logs', JSON.stringify(updatedLogs));
+      setGastosAvulsos(updatedLogs);
+
+      setConfig(updatedConfig);
+      setNovoGastoAvulso({ name: '', value: '' });
+      setShowSpendModal(false);
+
+      await loadSummary();
+    } catch (error) {
+      console.error('Erro ao registrar gasto avulso:', error);
+    }
+  };
+
   // total de gastos fixos
   const totalGastosFixos = (gastosFixos || []).reduce((acc, g) => acc + (Number(g.monthly_value) || 0), 0);
 
@@ -178,9 +234,15 @@ const Financeiro = () => {
     <div className="finance-page">
       <div className="finance-header">
         <h1>Financeiro</h1>
-        <button className="icon-btn" onClick={() => setShowConfig(true)}>
-          <Settings size={22} />
-        </button>
+        <div className="finance-header-actions">
+          <button className="icon-btn icon-btn-warning" onClick={() => setShowSpendModal(true)}>
+            <WalletCards size={22} />
+            <span>Gastar</span>
+          </button>
+          <button className="icon-btn" onClick={() => setShowConfig(true)}>
+            <Settings size={22} />
+          </button>
+        </div>
       </div>
 
       {/* DASHBOARD (cards principais) */}
@@ -378,6 +440,69 @@ const Financeiro = () => {
           </div>
         </div>
       </div>
+
+      <div className="card finance-card finance-card--spaced">
+        <h3>Gastos Avulsos</h3>
+        <div className="finance-expenses-list">
+          {gastosAvulsos.length === 0 && <div>Nenhum gasto avulso registrado.</div>}
+
+          {gastosAvulsos.map((gasto) => (
+            <div key={gasto.id} className="finance-expense-inline-row">
+              <div className="finance-expense-name">{gasto.name}</div>
+              <div className="finance-expense-meta">
+                <span>R$ {Number(gasto.value).toLocaleString('pt-BR')}</span>
+                <span>{new Date(gasto.date).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {showSpendModal && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>Registrar gasto</h3>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Nome</label>
+                <input
+                  type="text"
+                  value={novoGastoAvulso.name}
+                  onChange={(e) =>
+                    setNovoGastoAvulso({ ...novoGastoAvulso, name: e.target.value })
+                  }
+                  placeholder="Ex: Uber, Farmácia..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Valor</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={novoGastoAvulso.value}
+                  onChange={(e) =>
+                    setNovoGastoAvulso({ ...novoGastoAvulso, value: e.target.value })
+                  }
+                  placeholder="0,00"
+                />
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowSpendModal(false)}>
+                Cancelar
+              </button>
+
+              <button className="btn finance-btn-warning" onClick={handleSpend}>
+                Gastar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CONFIG */}
       {showConfig && (
