@@ -28,7 +28,7 @@ Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como re
   - Games
   - Assistir (watchlist por categoria)
 - **Shopping**: wishlist, itens comprados e estatísticas.
-- **Lembretes**: CRUD de lembretes e visão de próximos eventos.
+- **Notificações**: central única para lembretes custom, alertas de metas e resumo diário, com preferências de inbox.
 - **Perfil e métricas**: dados de perfil e histórico de métricas corporais.
 - **Analytics / dashboard**: visão diária, semanal e top atividades.
 - **Exportação**: JSON/CSV/relatórios de atividades e metas.

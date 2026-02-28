@@ -1099,59 +1099,98 @@ async def finance_projection(months: int = 120):
 # NOTIFICATIONS ENDPOINTS
 # ============================================================================
 
+
+class CustomNotificationPayload(BaseModel):
+    notification_type: str = "custom_reminder"
+    source_feature: str = "manual"
+    title: str
+    message: Optional[str] = None
+    severity: str = "info"
+    status: str = "unread"
+    scheduled_for: Optional[str] = None
+    meta: Optional[dict] = None
+    sound_key: Optional[str] = None
+    color_token: Optional[str] = None
+
+
+class NotificationStatusPayload(BaseModel):
+    status: str
+
+
+class NotificationPreferencePayload(BaseModel):
+    enable_sound: bool = True
+    inbox_only_unread: bool = True
+    default_sound_key: str = "default"
+
+
 @app.get("/api/notifications")
-async def get_all_notifications():
-    """Get all notifications"""
+async def notifications_list(
+    status: Optional[str] = None,
+    notification_type: Optional[str] = None,
+    source_feature: Optional[str] = None,
+    severity: Optional[str] = None,
+    include_read: bool = False,
+    include_generated: bool = True,
+):
     try:
-        from core.notification_engine import NotificationEngine
-        notifications = NotificationEngine.get_all_notifications()
+        from core.notification_center_engine import NotificationCenterEngine
+
+        if include_generated:
+            NotificationCenterEngine.generate_system_notifications()
+
+        notifications = NotificationCenterEngine.list_notifications(
+            status=status,
+            notification_type=notification_type,
+            source_feature=source_feature,
+            severity=severity,
+            include_read=include_read,
+        )
         return {"success": True, "data": notifications}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/notifications/stalled-goals")
-async def get_stalled_goals(include_read: bool = False):
-    """Get stalled goals notifications"""
+@app.post("/api/notifications/custom")
+async def notifications_create_custom(payload: CustomNotificationPayload):
     try:
-        from core.notification_engine import NotificationEngine
-        NotificationEngine.check_stalled_goals(store=True)
-        stalled = [
-            n for n in NotificationEngine.list_notifications(include_read=include_read)
-            if n.get("type") == "stalled_goal"
-        ]
-        return {"success": True, "data": stalled}
+        from core.notification_center_engine import NotificationCenterEngine
+
+        notification_id = NotificationCenterEngine.create_custom_notification(payload.dict())
+        return {"success": True, "data": {"id": notification_id}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/notifications/upcoming-deadlines")
-async def get_upcoming_deadlines(days: int = 7, include_read: bool = False):
-    """Get upcoming deadlines"""
+@app.patch("/api/notifications/{notification_id}/status")
+async def notifications_update_status(notification_id: int, payload: NotificationStatusPayload):
     try:
-        from core.notification_engine import NotificationEngine
-        NotificationEngine.check_upcoming_deadlines(days_ahead=days, store=True)
-        deadlines = [
-            n for n in NotificationEngine.list_notifications(include_read=include_read)
-            if n.get("type") == "upcoming_deadline"
-        ]
-        return {"success": True, "data": deadlines}
+        from core.notification_center_engine import NotificationCenterEngine
+
+        NotificationCenterEngine.update_notification_status(notification_id, payload.status)
+        return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/notifications/daily-summary")
-async def get_daily_notification_summary(include_read: bool = False):
-    """Get daily summary notification"""
+@app.get("/api/notifications/preferences")
+async def notifications_get_preferences():
     try:
-        from core.notification_engine import NotificationEngine
-        NotificationEngine.get_daily_summary(store=True)
-        summaries = [
-            n for n in NotificationEngine.list_notifications(include_read=include_read)
-            if n.get("type") == "daily_summary"
-        ]
-        summary = summaries[0] if summaries else None
-        return {"success": True, "data": summary}
+        from core.notification_center_engine import NotificationCenterEngine
+
+        return {"success": True, "data": NotificationCenterEngine.get_preferences()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/notifications/preferences")
+async def notifications_save_preferences(payload: NotificationPreferencePayload):
+    try:
+        from core.notification_center_engine import NotificationCenterEngine
+
+        NotificationCenterEngine.save_preferences(payload.dict())
+        return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

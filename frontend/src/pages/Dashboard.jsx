@@ -7,7 +7,7 @@ import {
   financeApi,
   goalsApi,
   profileApi,
-  remindersApi,
+  notificationsApi,
   shoppingApi,
 } from '../services/api';
 import './Stats.css';
@@ -23,7 +23,7 @@ const Dashboard = () => {
   const [goalsOverview, setGoalsOverview] = useState([]);
   const [moduleSummary, setModuleSummary] = useState({
     goals: 0,
-    reminders: 0,
+    notifications: 0,
     shoppingPending: 0,
     financeFixedExpenses: 0,
   });
@@ -33,7 +33,7 @@ const Dashboard = () => {
       { path: '/goals', label: 'Metas' },
       { path: '/financeiro', label: 'Financeiro' },
       { path: '/shopping', label: 'Shopping' },
-      { path: '/reminders', label: 'Lembretes' },
+      { path: '/notifications', label: 'Notificações' },
       { path: '/', label: 'Daily' },
     ],
     []
@@ -66,7 +66,7 @@ const Dashboard = () => {
       topActivitiesRes,
       goalsOverviewRes,
       goalsRes,
-      remindersRes,
+      notificationsRes,
       shoppingStatsRes,
       financeExpensesRes,
     ] = await Promise.allSettled([
@@ -77,7 +77,7 @@ const Dashboard = () => {
       analyticsApi.getTopActivities(5),
       analyticsApi.getGoalsOverview(),
       goalsApi.list(),
-      remindersApi.list('pendente'),
+      notificationsApi.list({ status: 'unread', include_generated: true }),
       shoppingApi.stats(),
       financeApi.listFixedExpenses(),
     ]);
@@ -91,7 +91,7 @@ const Dashboard = () => {
 
     setModuleSummary({
       goals: goalsRes.status === 'fulfilled' ? (goalsRes.value?.data?.data || []).length : 0,
-      reminders: remindersRes.status === 'fulfilled' ? (remindersRes.value?.data?.data || []).length : 0,
+      notifications: notificationsRes.status === 'fulfilled' ? (notificationsRes.value?.data?.data || []).length : 0,
       shoppingPending:
         shoppingStatsRes.status === 'fulfilled' ? Number(shoppingStatsRes.value?.data?.data?.unbought_items || 0) : 0,
       financeFixedExpenses:
@@ -186,7 +186,7 @@ const Dashboard = () => {
         <h2>Integração dos outros menus</h2>
         <div className="overview-grid">
           <div className="stat-card"><div className="stat-icon primary"><Target size={24} /></div><div className="stat-content"><p className="stat-label">Metas cadastradas</p><p className="stat-value">{moduleSummary.goals}</p></div></div>
-          <div className="stat-card"><div className="stat-icon warning"><Calendar size={24} /></div><div className="stat-content"><p className="stat-label">Lembretes pendentes</p><p className="stat-value">{moduleSummary.reminders}</p></div></div>
+          <div className="stat-card"><div className="stat-icon warning"><Calendar size={24} /></div><div className="stat-content"><p className="stat-label">Notificações pendentes</p><p className="stat-value">{moduleSummary.notifications}</p></div></div>
           <div className="stat-card"><div className="stat-icon success"><Activity size={24} /></div><div className="stat-content"><p className="stat-label">Itens faltando no Shopping</p><p className="stat-value">{moduleSummary.shoppingPending}</p></div></div>
           <div className="stat-card"><div className="stat-icon primary"><Clock size={24} /></div><div className="stat-content"><p className="stat-label">Gastos fixos cadastrados</p><p className="stat-value">{moduleSummary.financeFixedExpenses}</p></div></div>
         </div>

@@ -8,7 +8,7 @@ import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
 import Books from './pages/Books';
 import HobbyVisualArts from './pages/HobbyVisualArts';
-import Reminders from './pages/Reminders';
+import NotificationsPage from './pages/Notifications';
 import Music from "./pages/music/Music";
 import Games from './pages/Games';
 import Watch from './pages/Watch';
@@ -32,7 +32,8 @@ function App() {
   <Route path="/hobby/assistir" element={<Watch />} />
   <Route path="/shopping" element={<Shopping />} />
   <Route path="/shopping/consumiveis" element={<Consumiveis />} />
-  <Route path="/reminders" element={<Reminders />} />
+  <Route path="/notifications" element={<NotificationsPage />} />
+  <Route path="/reminders" element={<Navigate to="/notifications" replace />} />
   <Route path="/settings" element={<Settings />} />
 </Routes>
       </Layout>

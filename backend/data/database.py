@@ -83,15 +83,103 @@ def apply_migrations(db):
         """
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            type TEXT NOT NULL,
+            notification_type TEXT NOT NULL,
+            type TEXT,
+            source_feature TEXT DEFAULT 'system',
             title TEXT,
             message TEXT,
+            severity TEXT DEFAULT 'info',
+            status TEXT DEFAULT 'unread',
+            scheduled_for TEXT,
             meta TEXT,
+            sound_key TEXT,
+            color_token TEXT,
             unique_key TEXT UNIQUE,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            read_at TEXT
+            read_at TEXT,
+            completed_at TEXT
         )
         """,
+    )
+
+    run_migration(
+        "create_notification_preferences_table",
+        lambda: table_exists(db, "notification_preferences"),
+        """
+        CREATE TABLE IF NOT EXISTS notification_preferences (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            enable_sound INTEGER DEFAULT 1,
+            inbox_only_unread INTEGER DEFAULT 1,
+            default_sound_key TEXT DEFAULT 'default',
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        INSERT OR IGNORE INTO notification_preferences (id) VALUES (1);
+        """,
+    )
+
+    run_migration(
+        "notifications_add_notification_type",
+        lambda: column_exists(db, "notifications", "notification_type"),
+        "ALTER TABLE notifications ADD COLUMN notification_type TEXT",
+    )
+
+    run_migration(
+        "notifications_add_source_feature",
+        lambda: column_exists(db, "notifications", "source_feature"),
+        "ALTER TABLE notifications ADD COLUMN source_feature TEXT DEFAULT 'system'",
+    )
+
+    run_migration(
+        "notifications_add_severity",
+        lambda: column_exists(db, "notifications", "severity"),
+        "ALTER TABLE notifications ADD COLUMN severity TEXT DEFAULT 'info'",
+    )
+
+    run_migration(
+        "notifications_add_status",
+        lambda: column_exists(db, "notifications", "status"),
+        "ALTER TABLE notifications ADD COLUMN status TEXT DEFAULT 'unread'",
+    )
+
+    run_migration(
+        "notifications_add_scheduled_for",
+        lambda: column_exists(db, "notifications", "scheduled_for"),
+        "ALTER TABLE notifications ADD COLUMN scheduled_for TEXT",
+    )
+
+    run_migration(
+        "notifications_add_sound_key",
+        lambda: column_exists(db, "notifications", "sound_key"),
+        "ALTER TABLE notifications ADD COLUMN sound_key TEXT",
+    )
+
+    run_migration(
+        "notifications_add_color_token",
+        lambda: column_exists(db, "notifications", "color_token"),
+        "ALTER TABLE notifications ADD COLUMN color_token TEXT",
+    )
+
+    run_migration(
+        "notifications_add_completed_at",
+        lambda: column_exists(db, "notifications", "completed_at"),
+        "ALTER TABLE notifications ADD COLUMN completed_at TEXT",
+    )
+
+    db.execute(
+        """
+        UPDATE notifications
+        SET
+            notification_type = COALESCE(notification_type, type, 'legacy_notification'),
+            type = COALESCE(type, notification_type),
+            source_feature = COALESCE(source_feature, 'legacy_notifications'),
+            severity = COALESCE(severity, 'info'),
+            status = CASE
+                WHEN status IS NOT NULL THEN status
+                WHEN read_at IS NOT NULL THEN 'read'
+                ELSE 'unread'
+            END
+        """
     )
 
     run_migration(
@@ -174,6 +262,50 @@ def apply_migrations(db):
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
         """,
+    )
+
+    db.execute(
+        """
+        INSERT OR IGNORE INTO notifications (
+            notification_type,
+            type,
+            source_feature,
+            title,
+            message,
+            severity,
+            status,
+            scheduled_for,
+            meta,
+            sound_key,
+            color_token,
+            unique_key,
+            created_at,
+            completed_at,
+            read_at
+        )
+        SELECT
+            'custom_reminder',
+            'custom_reminder',
+            'manual',
+            r.title,
+            r.description,
+            'info',
+            CASE WHEN r.status = 'concluido' THEN 'completed' ELSE 'unread' END,
+            r.due_date,
+            json_object(
+                'priority', COALESCE(r.priority, 3),
+                'category', COALESCE(r.category, 'pessoal'),
+                'reminder_days_before', COALESCE(r.reminder_days_before, 7),
+                'legacy_source', 'reminders'
+            ),
+            'default',
+            'accent',
+            'reminder:' || r.id,
+            r.created_at,
+            CASE WHEN r.status = 'concluido' THEN COALESCE(r.completed_at, r.created_at) ELSE NULL END,
+            CASE WHEN r.status = 'concluido' THEN COALESCE(r.completed_at, r.created_at) ELSE NULL END
+        FROM reminders r
+        """
     )
 
     run_migration(
