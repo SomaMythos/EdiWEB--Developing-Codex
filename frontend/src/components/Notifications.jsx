@@ -23,6 +23,7 @@ const TYPE_TO_SEVERITY = {
   consumable_restock_due: 'warning',
   consumable_overdue: 'critical',
   custom_reminder: 'info',
+  custom_notification: 'info',
 };
 
 const TYPE_ICON_MAP = {
@@ -33,6 +34,7 @@ const TYPE_ICON_MAP = {
   consumable_restock_due: AlertTriangle,
   consumable_overdue: AlertOctagon,
   custom_reminder: Bell,
+  custom_notification: Bell,
 };
 
 const SEVERITY_ICON_MAP = {

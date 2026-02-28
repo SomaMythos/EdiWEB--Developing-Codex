@@ -106,6 +106,7 @@ export const notificationsApi = {
   listConsumables: (params = {}) => api.get('/notifications/consumables', { params }),
   getAll: () => api.get('/notifications', { params: { include_generated: true } }),
   createCustom: (data) => api.post('/notifications/custom', data),
+  updateCustom: (id, data) => api.put(`/notifications/custom/${id}`, data),
   updateStatus: (id, status) => api.patch(`/notifications/${id}/status`, { status }),
   getPreferences: () => api.get('/notifications/preferences'),
   savePreferences: (data) => api.put('/notifications/preferences', data),
