@@ -42,14 +42,23 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-premium-border);
   border-radius: var(--radius);
-  transition: all 0.2s;
+  background: var(--glass-premium-bg-base);
+  backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .top-activity-item:hover {
-  background-color: var(--bg-secondary);
-  border-color: var(--primary);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+}
+
+.top-activity-item:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .activity-rank {
@@ -98,9 +107,12 @@
 
 .goal-overview-card {
   padding: var(--spacing-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-premium-border);
   border-radius: var(--radius);
-  transition: all 0.2s;
+  background: var(--glass-premium-bg-base);
+  backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .goal-overview-card.stalled {
@@ -109,7 +121,14 @@
 }
 
 .goal-overview-card:hover {
-  box-shadow: var(--shadow-md);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+}
+
+.goal-overview-card:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .goal-overview-header {
@@ -161,13 +180,23 @@
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-premium-border);
   border-radius: var(--radius);
-  transition: all 0.2s;
+  background: var(--glass-premium-bg-base);
+  backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .daily-item:hover {
-  background-color: var(--bg-secondary);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+}
+
+.daily-item:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .daily-date {
@@ -290,10 +319,12 @@
 .goals-overview-section,
 .daily-breakdown,
 .dashboard-profile-form {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
   padding: clamp(0.9rem, 1.3vw, 1.2rem);
 }
 
@@ -301,9 +332,9 @@
 .goal-overview-card,
 .top-activity-item,
 .daily-item {
-  background: var(--surface-2);
+  background: var(--glass-premium-bg-base);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-premium-border);
   transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
@@ -312,8 +343,16 @@
 .top-activity-item:hover,
 .daily-item:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--border-hover);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  border-color: var(--glass-premium-border-strong);
+}
+
+.stat-card:active,
+.goal-overview-card:active,
+.top-activity-item:active,
+.daily-item:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .dashboard-quick-actions .btn {

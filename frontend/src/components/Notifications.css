@@ -16,9 +16,11 @@
   height: 40px;
   border-radius: var(--radius-full);
 
-  background: var(--glass-surface-medium);
-  border: 1px solid var(--glass-border-default);
-  backdrop-filter: var(--glass-blur);
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
 
   display: flex;
   align-items: center;
@@ -33,10 +35,15 @@
 }
 
 .notifications-button:hover {
-  background: var(--glass-interactive-hover);
-  border-color: var(--glass-border-strong);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
   transform: translateY(-1px);
-  box-shadow: var(--glass-shadow-soft);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+}
+
+.notifications-button:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 /* ======================================================
@@ -74,11 +81,12 @@
   min-width: min(320px, calc(100vw - 2rem));
   max-height: 500px;
 
-  background: var(--glass-surface-strong);
-  border: 1px solid var(--glass-border-default);
+  background: var(--glass-premium-bg-raised);
+  border: 1px solid var(--glass-premium-border-strong);
   border-radius: var(--radius-lg);
-  backdrop-filter: var(--glass-blur-strong);
-  box-shadow: var(--glass-shadow-strong);
+  backdrop-filter: var(--glass-premium-blur-raised);
+  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
 
   z-index: 9999;
   display: flex;
@@ -95,7 +103,7 @@
   align-items: center;
 
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--glass-border-default);
+  border-bottom: 1px solid var(--glass-premium-border);
 }
 
 .notifications-header h3 {
@@ -127,7 +135,7 @@
 }
 
 .close-button:hover {
-  background: var(--glass-interactive-hover);
+  background: var(--glass-premium-bg-raised);
   border-color: var(--glass-border-subtle);
   transform: scale(1.05);
 }
@@ -184,7 +192,7 @@
   gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
 
-  border-bottom: 1px solid var(--glass-border-subtle);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
   transition:
     background var(--motion-fast),
@@ -199,7 +207,7 @@
 }
 
 .notification-item:hover {
-  background: var(--glass-interactive-hover);
+  background: var(--glass-premium-bg-raised);
 }
 
 /* ======================================================
@@ -315,7 +323,7 @@
 
 .notifications-footer {
   padding: var(--spacing-md) var(--spacing-lg);
-  border-top: 1px solid var(--glass-border-default);
+  border-top: 1px solid var(--glass-premium-border);
   display: flex;
   justify-content: flex-end;
 }
