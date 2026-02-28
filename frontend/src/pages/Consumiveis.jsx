@@ -39,8 +39,9 @@ const Consumiveis = () => {
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [activeCategoryId, setActiveCategoryId] = useState('all');
-  const [selectedItemId, setSelectedItemId] = useState(null);
-  const [itemDetail, setItemDetail] = useState(null);
+  const [itemDetailsById, setItemDetailsById] = useState({});
+  const [openPanelItemId, setOpenPanelItemId] = useState(null);
+  const [openStatsItemId, setOpenStatsItemId] = useState(null);
 
   const [categoryName, setCategoryName] = useState('');
   const [itemName, setItemName] = useState('');
@@ -51,7 +52,7 @@ const Consumiveis = () => {
   const [finishDate, setFinishDate] = useState(getToday());
 
   const [isLoadingBase, setIsLoadingBase] = useState(false);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isLoadingDetailId, setIsLoadingDetailId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
@@ -69,10 +70,6 @@ const Consumiveis = () => {
       setCategories(categoryData);
       setItems(itemData);
 
-      if (!selectedItemId && itemData.length > 0) {
-        setSelectedItemId(itemData[0].id);
-      }
-
       if (!itemCategoryId && categoryData.length > 0) {
         setItemCategoryId(String(categoryData[0].id));
       }
@@ -84,21 +81,27 @@ const Consumiveis = () => {
     }
   };
 
-  const loadItemDetail = async (itemId) => {
+  const loadItemDetail = async (itemId, forceReload = false) => {
     if (!itemId) {
-      setItemDetail(null);
-      return;
+      return null;
     }
 
-    setIsLoadingDetail(true);
+    if (!forceReload && itemDetailsById[itemId]) {
+      return itemDetailsById[itemId];
+    }
+
+    setIsLoadingDetailId(itemId);
     try {
       const response = await consumablesApi.getItemDetail(itemId);
-      setItemDetail(response.data.data || null);
+      const detail = response.data.data || null;
+      setItemDetailsById((previous) => ({ ...previous, [itemId]: detail }));
+      return detail;
     } catch (error) {
       console.error('Erro ao carregar detalhe do item', error);
       setFeedback({ type: 'error', message: 'Não foi possível carregar o detalhe do item.' });
+      return null;
     } finally {
-      setIsLoadingDetail(false);
+      setIsLoadingDetailId((current) => (current === itemId ? null : current));
     }
   };
 
@@ -106,26 +109,10 @@ const Consumiveis = () => {
     loadBaseData();
   }, []);
 
-  useEffect(() => {
-    loadItemDetail(selectedItemId);
-  }, [selectedItemId]);
-
   const filteredItems = useMemo(() => {
     if (activeCategoryId === 'all') return items;
     return items.filter((item) => String(item.category_id) === String(activeCategoryId));
   }, [items, activeCategoryId]);
-
-  useEffect(() => {
-    if (filteredItems.length === 0) {
-      setSelectedItemId(null);
-      return;
-    }
-
-    const selectedStillVisible = filteredItems.some((item) => item.id === selectedItemId);
-    if (!selectedStillVisible) {
-      setSelectedItemId(filteredItems[0].id);
-    }
-  }, [filteredItems, selectedItemId]);
 
   const withSubmit = async (action, options = {}) => {
     setIsSubmitting(true);
@@ -133,9 +120,9 @@ const Consumiveis = () => {
     try {
       const result = await action();
       await loadBaseData();
-      const targetItemId = options.refreshItemId ?? result?.refreshItemId ?? selectedItemId;
+      const targetItemId = options.refreshItemId ?? result?.refreshItemId ?? openPanelItemId;
       if (targetItemId) {
-        await loadItemDetail(targetItemId);
+        await loadItemDetail(targetItemId, true);
       }
     } catch (error) {
       console.error('Erro na operação de consumíveis', error);
@@ -167,21 +154,33 @@ const Consumiveis = () => {
         category_id: Number(itemCategoryId),
       });
       const newItemId = response.data.data?.id;
-      if (newItemId) {
-        setSelectedItemId(newItemId);
-      }
       setItemName('');
       setFeedback({ type: 'success', message: 'Item consumível criado com sucesso.' });
       return { refreshItemId: newItemId };
     });
   };
 
-  const handleRestock = async () => {
-    if (!selectedItemId || !restockDate) return;
+  const handleOpenPanel = async (itemId) => {
+    await loadItemDetail(itemId);
+    setOpenPanelItemId(itemId);
+  };
+
+  const handleToggleStats = async (itemId) => {
+    if (openStatsItemId === itemId) {
+      setOpenStatsItemId(null);
+      return;
+    }
+
+    await loadItemDetail(itemId);
+    setOpenStatsItemId(itemId);
+  };
+
+  const handleRestock = async (itemId) => {
+    if (!itemId || !restockDate) return;
 
     await withSubmit(async () => {
       const normalizedPrice = restockPrice === '' ? null : Number(restockPrice);
-      await consumablesApi.restock(selectedItemId, {
+      await consumablesApi.restock(itemId, {
         purchase_date: restockDate,
         price_paid: normalizedPrice,
       });
@@ -190,17 +189,36 @@ const Consumiveis = () => {
     });
   };
 
-  const handleFinishCycle = async () => {
-    if (!selectedItemId || !finishDate) return;
+  const handleFinishCycle = async (itemId) => {
+    if (!itemId || !finishDate) return;
 
     await withSubmit(async () => {
-      await consumablesApi.finishCycle(selectedItemId, { ended_at: finishDate });
+      await consumablesApi.finishCycle(itemId, { ended_at: finishDate });
       setFeedback({ type: 'success', message: 'Ciclo finalizado com sucesso.' });
     });
   };
 
-  const stats = itemDetail?.stats || {};
-  const cycles = itemDetail?.cycles || [];
+  const groupedItems = useMemo(() => {
+    const scopedItems = filteredItems;
+    const grouped = scopedItems.reduce((accumulator, item) => {
+      const key = item.category_id;
+      if (!accumulator[key]) {
+        accumulator[key] = {
+          categoryId: item.category_id,
+          categoryName: item.category_name || 'Sem categoria',
+          items: [],
+        };
+      }
+      accumulator[key].items.push(item);
+      return accumulator;
+    }, {});
+
+    return Object.values(grouped).sort((a, b) => a.categoryName.localeCompare(b.categoryName, 'pt-BR'));
+  }, [filteredItems]);
+
+  const panelDetail = openPanelItemId ? itemDetailsById[openPanelItemId] : null;
+  const stats = panelDetail?.stats || {};
+  const cycles = panelDetail?.cycles || [];
   const hasOpenCycle = cycles.some((cycle) => cycle.ended_at == null);
 
   return (
@@ -277,31 +295,66 @@ const Consumiveis = () => {
         <article className="card span-2">
           <h3>Itens consumíveis</h3>
           {isLoadingBase ? <p className="muted">Carregando itens...</p> : null}
-          <div className="items-list">
-            {filteredItems.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={`item-row ${selectedItemId === item.id ? 'active' : ''}`}
-                onClick={() => setSelectedItemId(item.id)}
-              >
-                <strong>{item.name}</strong>
-                <span>{item.category_name}</span>
-              </button>
+          <div className="items-by-category">
+            {groupedItems.map((group) => (
+              <section key={group.categoryId} className="category-group">
+                <h4>{group.categoryName}</h4>
+                <div className="items-list">
+                  {group.items.map((item) => {
+                    const detail = itemDetailsById[item.id] || {};
+                    const itemStats = detail.stats || {};
+                    const isTooltipOpen = openStatsItemId === item.id;
+
+                    return (
+                      <div key={item.id} className="item-row">
+                        <strong>{item.name}</strong>
+                        <span>{item.category_name}</span>
+
+                        <div className="item-actions">
+                          <button type="button" className="btn btn-secondary" onClick={() => handleOpenPanel(item.id)}>
+                            Painel do item
+                          </button>
+                          <button type="button" className="btn btn-primary" onClick={() => handleToggleStats(item.id)}>
+                            Estatísticas e previsões
+                          </button>
+                        </div>
+
+                        {isTooltipOpen ? (
+                          <div className="stats-tooltip" role="dialog" aria-label={`Estatísticas de ${item.name}`}>
+                            {isLoadingDetailId === item.id ? <p className="muted">Carregando...</p> : null}
+                            {isLoadingDetailId !== item.id ? (
+                              <>
+                                <div><span>Total de compras</span><strong>{itemStats.total_purchases ?? 0}</strong></div>
+                                <div><span>Preço médio</span><strong>{formatCurrency(itemStats.avg_price)}</strong></div>
+                                <div><span>Duração média (dias)</span><strong>{formatNumber(itemStats.avg_duration_days)}</strong></div>
+                                <div><span>Término previsto</span><strong>{formatDate(itemStats.predicted_end_date)}</strong></div>
+                              </>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
           </div>
           {!isLoadingBase && filteredItems.length === 0 ? <p className="muted">Nenhum item para o filtro atual.</p> : null}
         </article>
 
-        <article className="card span-2">
-          <h3>Painel do item</h3>
-          {!selectedItemId ? <p className="muted">Selecione um item para visualizar detalhes.</p> : null}
-          {isLoadingDetail ? <p className="muted">Carregando detalhe...</p> : null}
+        {openPanelItemId ? (
+          <div className="consumiveis-modal-backdrop" onClick={() => setOpenPanelItemId(null)}>
+            <article className="card consumiveis-modal-card span-2" onClick={(event) => event.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Painel do item</h3>
+                <button type="button" className="btn btn-secondary" onClick={() => setOpenPanelItemId(null)}>Fechar</button>
+              </div>
+              {isLoadingDetailId === openPanelItemId ? <p className="muted">Carregando detalhe...</p> : null}
 
-          {!isLoadingDetail && itemDetail ? (
+              {isLoadingDetailId !== openPanelItemId && panelDetail ? (
             <>
               <p className="panel-title">
-                <strong>{itemDetail.item.name}</strong> · {itemDetail.item.category_name}
+                <strong>{panelDetail.item.name}</strong> · {panelDetail.item.category_name}
               </p>
 
               <div className="actions-grid">
@@ -318,14 +371,14 @@ const Consumiveis = () => {
                     value={restockPrice}
                     onChange={(event) => setRestockPrice(event.target.value)}
                   />
-                  <button type="button" className="btn btn-primary" onClick={handleRestock} disabled={isSubmitting}>Restocar</button>
+                  <button type="button" className="btn btn-primary" onClick={() => handleRestock(openPanelItemId)} disabled={isSubmitting}>Restocar</button>
                 </div>
 
                 <div className="action-card">
                   <h4>Marcar como finalizado</h4>
                   <input className="input" type="date" value={finishDate} onChange={(event) => setFinishDate(event.target.value)} />
                   {!hasOpenCycle ? <p className="muted">Sem ciclo aberto para finalizar.</p> : null}
-                  <button type="button" className="btn btn-secondary" onClick={handleFinishCycle} disabled={isSubmitting || !hasOpenCycle}>Finalizar ciclo</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => handleFinishCycle(openPanelItemId)} disabled={isSubmitting || !hasOpenCycle}>Finalizar ciclo</button>
                 </div>
               </div>
 
@@ -355,8 +408,10 @@ const Consumiveis = () => {
                 {cycles.length === 0 ? <p className="muted">Sem ciclos registrados.</p> : null}
               </div>
             </>
-          ) : null}
-        </article>
+              ) : null}
+            </article>
+          </div>
+        ) : null}
       </section>
     </div>
   );

@@ -40,6 +40,16 @@
   color: #fff;
 }
 
+.consumiveis-page .items-by-category {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.consumiveis-page .category-group h4 {
+  margin-bottom: 0.5rem;
+}
+
 .consumiveis-page .items-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -47,6 +57,7 @@
 }
 
 .consumiveis-page .item-row {
+  position: relative;
   border: 1px solid var(--glass-border-default);
   border-radius: 12px;
   background: var(--glass-surface-medium);
@@ -56,17 +67,42 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  cursor: pointer;
-}
-
-.consumiveis-page .item-row.active {
-  border-color: var(--glass-border-strong);
-  box-shadow: 0 0 0 1px var(--glass-border-strong);
 }
 
 .consumiveis-page .item-row span {
   color: var(--glass-text-secondary);
   font-size: 0.85rem;
+}
+
+.consumiveis-page .item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.consumiveis-page .stats-tooltip {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  border-radius: 12px;
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.4rem;
+  z-index: 10;
+}
+
+.consumiveis-page .stats-tooltip div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.consumiveis-page .stats-tooltip span {
+  color: var(--glass-text-secondary);
 }
 
 .consumiveis-page .panel-title {
@@ -133,6 +169,31 @@
   padding: 0.55rem;
   background: var(--glass-surface-medium);
   color: var(--glass-text-primary);
+}
+
+.consumiveis-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.consumiveis-page .consumiveis-modal-card {
+  max-width: 1000px;
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.consumiveis-page .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 @media (max-width: 900px) {
