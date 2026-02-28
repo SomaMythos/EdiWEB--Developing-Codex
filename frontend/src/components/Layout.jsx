@@ -35,7 +35,7 @@ const Layout = ({ children }) => {
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
 	{ path: '/anotacoes', icon: StickyNote, label: 'Anotações' },
 
-	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
+	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/notifications', icon: Bell, label: 'Notificações' },
     { path: '/settings', icon: Settings, label: 'Configurações' },
   ];

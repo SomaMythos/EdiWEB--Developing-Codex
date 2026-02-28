@@ -1,0 +1,387 @@
+.dashboard-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-header h1 {
+  display: flex;
+  align-items: center;
+}
+
+.period-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-overview,
+.dashboard-summary,
+.top-activities-section,
+.goals-overview-section,
+.daily-breakdown {
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-overview h2,
+.dashboard-summary h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+/* Top Activities */
+.top-activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.top-activity-item {
+  display: grid;
+  grid-template-columns: 40px 1fr 150px;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--elevation-1-border);
+  border-radius: var(--radius);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.top-activity-item:hover {
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
+}
+
+.top-activity-item:active {
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
+}
+
+.activity-rank {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.activity-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.activity-info p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.activity-bar {
+  height: 8px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.activity-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.3s ease;
+}
+
+/* Goals Overview */
+.goals-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.goal-overview-card {
+  padding: var(--spacing-md);
+  border: 1px solid var(--elevation-1-border);
+  border-radius: var(--radius);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.goal-overview-card.stalled {
+  border-color: var(--warning);
+  background-color: var(--accent-warning-soft);
+}
+
+.goal-overview-card:hover {
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
+}
+
+.goal-overview-card:active {
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
+}
+
+.goal-overview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.goal-overview-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.goal-overview-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stalled-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--warning);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Daily Breakdown */
+.daily-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.daily-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 200px;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md);
+  border: 1px solid var(--elevation-1-border);
+  border-radius: var(--radius);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.daily-item:hover {
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
+}
+
+.daily-item:active {
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
+}
+
+.daily-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.daily-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.daily-stat {
+  display: flex;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+}
+
+.daily-stat .stat-label {
+  color: var(--text-secondary);
+}
+
+.daily-stat .stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.daily-stat .stat-value.success {
+  color: var(--secondary);
+}
+
+.daily-completion {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.completion-bar {
+  flex: 1;
+  height: 8px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.completion-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-success), var(--success));
+  transition: width 0.3s ease;
+}
+
+.completion-rate {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 45px;
+  text-align: right;
+}
+
+@media (max-width: 968px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .daily-item {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .daily-stats {
+    flex-wrap: wrap;
+  }
+  
+  .daily-completion {
+    width: 100%;
+  }
+  
+  .top-activity-item {
+    grid-template-columns: 40px 1fr;
+  }
+  
+  .activity-bar {
+    grid-column: 1 / -1;
+  }
+}
+
+
+.dashboard-title-icon {
+  margin-right: var(--spacing-sm);
+  vertical-align: middle;
+}
+
+.dashboard-profile-form {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.dashboard-quick-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md);
+}
+
+.dashboard-period-grid {
+  margin-bottom: var(--spacing-md);
+}
+
+.dashboard-loading {
+  opacity: 0.7;
+  margin-top: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+/* ===== Dashboard/Card visual consistency ===== */
+.dashboard-overview,
+.dashboard-summary,
+.top-activities-section,
+.goals-overview-section,
+.daily-breakdown,
+.dashboard-profile-form {
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1-shadow);
+  padding: clamp(0.9rem, 1.3vw, 1.2rem);
+}
+
+.stat-card,
+.goal-overview-card,
+.top-activity-item,
+.daily-item {
+  background: var(--elevation-1-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease, border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+
+.stat-card:hover,
+.goal-overview-card:hover,
+.top-activity-item:hover,
+.daily-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2-shadow);
+  border-color: var(--elevation-2-border);
+}
+
+.stat-card:active,
+.goal-overview-card:active,
+.top-activity-item:active,
+.daily-item:active {
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
+}
+
+.dashboard-quick-actions .btn {
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease;
+}
+
+@media (max-width: 768px) {
+  .dashboard-overview,
+  .dashboard-summary,
+  .top-activities-section,
+  .goals-overview-section,
+  .dashboard-profile-form {
+    padding: 0.85rem;
+  }
+}
