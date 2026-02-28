@@ -10,7 +10,7 @@ import {
   notificationsApi,
   shoppingApi,
 } from '../services/api';
-import './Stats.css';
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -107,17 +107,24 @@ const Dashboard = () => {
 
   const saveProfile = async (e) => {
     e.preventDefault();
-    await profileApi.save(profile);
+    const payload = {
+      ...profile,
+      birth_date: profile.birth_date || null,
+      height: profile.height === '' ? null : Number(profile.height),
+    };
+    await profileApi.save(payload);
     loadData();
   };
 
+  const topExecutions = topActivities[0]?.executions || 0;
+
   return (
-    <div className="page-container fade-in stats-page">
-      <header className="stats-header">
+    <div className="page-container fade-in dashboard-page">
+      <header className="dashboard-header">
         <div>
           <h1>
             <Home size={28} className="dashboard-title-icon" />
-            Dashboard + Estatísticas
+            Dashboard
           </h1>
           <p>Tudo em um só lugar: desempenho, visão geral e atalhos dos outros menus.</p>
         </div>
@@ -160,16 +167,16 @@ const Dashboard = () => {
         </button>
       </form>
 
-      <div className="stats-overview">
+      <div className="dashboard-overview">
         <h2>Resumo de Hoje</h2>
         <div className="overview-grid">
           <div className="stat-card">
             <div className="stat-icon primary"><Activity size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Atividades concluídas</p><p className="stat-value">{overview?.completed_activities || todayData?.completed || 0}</p></div>
+            <div className="stat-content"><p className="stat-label">Atividades concluídas</p><p className="stat-value">{overview?.activities?.completed || todayData?.completed || 0}</p></div>
           </div>
           <div className="stat-card">
             <div className="stat-icon success"><Award size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Metas concluídas</p><p className="stat-value">{overview?.completed_goals || 0}</p></div>
+            <div className="stat-content"><p className="stat-label">Metas concluídas</p><p className="stat-value">{overview?.goals?.completed || 0}</p></div>
           </div>
           <div className="stat-card">
             <div className="stat-icon warning"><TrendingUp size={24} /></div>
@@ -177,12 +184,12 @@ const Dashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon primary"><Clock size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Tempo executado</p><p className="stat-value">{formatMinutes(todayData?.executed_time || overview?.total_duration || 0)}</p></div>
+            <div className="stat-content"><p className="stat-label">Tempo executado</p><p className="stat-value">{formatMinutes(todayData?.executed_time || overview?.activities?.total_minutes || 0)}</p></div>
           </div>
         </div>
       </div>
 
-      <div className="period-summary">
+      <div className="dashboard-summary">
         <h2>Integração dos outros menus</h2>
         <div className="overview-grid">
           <div className="stat-card"><div className="stat-icon primary"><Target size={24} /></div><div className="stat-content"><p className="stat-label">Metas cadastradas</p><p className="stat-value">{moduleSummary.goals}</p></div></div>
@@ -215,7 +222,7 @@ const Dashboard = () => {
               <div key={`${activity.title}-${index}`} className="top-activity-item">
                 <div className="activity-rank">{index + 1}</div>
                 <div className="activity-info"><h3>{activity.title}</h3><p>{activity.executions} execuções</p></div>
-                <div className="activity-bar"><div className="activity-bar-fill" style={{ width: `${(activity.executions / topActivities[0].executions) * 100}%` }} /></div>
+                <div className="activity-bar"><div className="activity-bar-fill" style={{ width: `${topExecutions > 0 ? (activity.executions / topExecutions) * 100 : 0}%` }} /></div>
               </div>
             ))}
           </div>
