@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.daily_log_engine import DailyLogEngine
+from core.consumables_engine import ConsumablesEngine
 from core.goal_engine import GoalEngine
 from data.database import Database
 
@@ -207,7 +208,20 @@ class NotificationCenterEngine:
     def generate_system_notifications(days_ahead: int = 7):
         NotificationCenterEngine._check_stalled_goals()
         NotificationCenterEngine._check_upcoming_deadlines(days_ahead=days_ahead)
+        NotificationCenterEngine._check_consumables(days_ahead=days_ahead)
         NotificationCenterEngine._store_daily_summary()
+
+    @staticmethod
+    def _check_consumables(days_ahead: int = 7):
+        try:
+            risk_notifications = ConsumablesEngine.detect_restock_risks(window_days=days_ahead)
+            for payload in risk_notifications:
+                NotificationCenterEngine._insert_notification(
+                    payload,
+                    unique_key=payload.get("unique_key"),
+                )
+        except Exception as exc:
+            logger.error("Erro ao verificar risco de consumíveis: %s", exc)
 
     @staticmethod
     def _check_stalled_goals():

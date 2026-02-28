@@ -22,6 +22,9 @@ class ConsumablesValidationError(ConsumablesError):
 
 
 class ConsumablesEngine:
+    DEFAULT_RISK_WINDOW_DAYS = 7
+    DEFAULT_MIN_HISTORY_CYCLES = 2
+
     @staticmethod
     def _to_float(value):
         if value is None:
@@ -302,3 +305,110 @@ class ConsumablesEngine:
             "cycles": cycles_list,
             "stats": stats,
         }
+
+    @staticmethod
+    def detect_restock_risks(
+        window_days: int = DEFAULT_RISK_WINDOW_DAYS,
+        include_insufficient_history: bool = False,
+        min_history_cycles: int = DEFAULT_MIN_HISTORY_CYCLES,
+        reference_date: Optional[date] = None,
+    ):
+        today = reference_date or date.today()
+
+        with Database() as db:
+            rows = db.fetchall(
+                """
+                SELECT
+                    i.id AS item_id,
+                    i.name AS item_name,
+                    c.name AS category_name,
+                    oc.id AS open_cycle_id,
+                    oc.purchase_date AS open_purchase_date,
+                    stats.closed_cycles_count,
+                    stats.avg_duration_days
+                FROM consumable_items i
+                JOIN consumable_categories c ON c.id = i.category_id
+                JOIN consumable_cycles oc ON oc.item_id = i.id AND oc.ended_at IS NULL
+                LEFT JOIN (
+                    SELECT
+                        item_id,
+                        COUNT(CASE WHEN ended_at IS NOT NULL THEN 1 END) AS closed_cycles_count,
+                        AVG(CASE WHEN ended_at IS NOT NULL THEN duration_days END) AS avg_duration_days
+                    FROM consumable_cycles
+                    GROUP BY item_id
+                ) stats ON stats.item_id = i.id
+                ORDER BY c.name, i.name
+                """
+            )
+
+        notifications = []
+        for row in rows:
+            item_id = row["item_id"]
+            item_name = row["item_name"]
+            category_name = row["category_name"]
+            purchase_date = date.fromisoformat(row["open_purchase_date"])
+            closed_cycles_count = int(row["closed_cycles_count"] or 0)
+            avg_duration_days = row["avg_duration_days"]
+
+            if avg_duration_days is None or closed_cycles_count < min_history_cycles:
+                if include_insufficient_history:
+                    notifications.append(
+                        {
+                            "notification_type": "consumable_insufficient_history",
+                            "source_feature": "consumables",
+                            "title": item_name,
+                            "message": f"Histórico insuficiente para prever reposição de '{item_name}'",
+                            "severity": "info",
+                            "meta": {
+                                "item_id": item_id,
+                                "item_name": item_name,
+                                "category_name": category_name,
+                                "predicted_end_date": None,
+                                "days_remaining": None,
+                            },
+                            "color_token": "primary",
+                            "unique_key": f"consumable_insufficient_history:{item_id}:{purchase_date.isoformat()}",
+                        }
+                    )
+                continue
+
+            predicted_end_date = purchase_date + timedelta(days=round(float(avg_duration_days)))
+            days_remaining = (predicted_end_date - today).days
+            risk_type = None
+            severity = "warning"
+            message = None
+            color_token = "warning"
+
+            if days_remaining < 0:
+                risk_type = "consumable_overdue"
+                severity = "critical"
+                color_token = "danger"
+                message = f"'{item_name}' está com ciclo vencido há {abs(days_remaining)} dias"
+            elif days_remaining <= window_days:
+                risk_type = "consumable_restock_due"
+                message = f"Reposição de '{item_name}' prevista para {predicted_end_date.isoformat()}"
+
+            if not risk_type:
+                continue
+
+            notifications.append(
+                {
+                    "notification_type": risk_type,
+                    "source_feature": "consumables",
+                    "title": item_name,
+                    "message": message,
+                    "severity": severity,
+                    "scheduled_for": predicted_end_date.isoformat(),
+                    "meta": {
+                        "item_id": item_id,
+                        "item_name": item_name,
+                        "category_name": category_name,
+                        "predicted_end_date": predicted_end_date.isoformat(),
+                        "days_remaining": days_remaining,
+                    },
+                    "color_token": color_token,
+                    "unique_key": f"{risk_type}:{item_id}:{predicted_end_date.isoformat()}",
+                }
+            )
+
+        return notifications

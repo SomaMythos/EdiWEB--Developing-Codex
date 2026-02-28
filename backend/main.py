@@ -1124,6 +1124,26 @@ class NotificationFeaturePreferencePayload(BaseModel):
     quiet_hours: Optional[dict] = None
 
 
+@app.get("/api/notifications/consumables")
+async def notifications_consumables(
+    include_read: bool = False,
+    include_generated: bool = True,
+):
+    try:
+        from core.notification_center_engine import NotificationCenterEngine
+
+        if include_generated:
+            NotificationCenterEngine.generate_system_notifications()
+
+        notifications = NotificationCenterEngine.list_notifications(
+            source_feature="consumables",
+            include_read=include_read,
+        )
+        return {"success": True, "data": notifications}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/notifications")
 async def notifications_list(
     status: Optional[str] = None,
