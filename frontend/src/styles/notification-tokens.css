@@ -1,0 +1,26 @@
+:root {
+  --notification-info-bg: var(--glass-accent-neutral);
+  --notification-info-border: var(--glass-text-accent);
+  --notification-info-icon: var(--glass-text-accent);
+  --notification-info-text: var(--glass-text-primary);
+
+  --notification-success-bg: var(--glass-accent-success);
+  --notification-success-border:  #22c55e;
+  --notification-success-icon:  #22c55e;
+  --notification-success-text: var(--glass-text-primary);
+
+  --notification-warning-bg: var(--glass-accent-warning);
+  --notification-warning-border:  #f59e0b;
+  --notification-warning-icon:  #f59e0b;
+  --notification-warning-text: var(--glass-text-primary);
+
+  --notification-critical-bg: var(--glass-accent-danger);
+  --notification-critical-border:  #ef4444;
+  --notification-critical-icon:  #ef4444;
+  --notification-critical-text: var(--glass-text-primary);
+
+  --notification-neutral-bg: var(--glass-surface-medium);
+  --notification-neutral-border: var(--glass-border-default);
+  --notification-neutral-icon: var(--glass-text-secondary);
+  --notification-neutral-text: var(--glass-text-primary);
+}
