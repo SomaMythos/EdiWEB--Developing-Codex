@@ -11,6 +11,12 @@ import {
   AlertOctagon,
 } from 'lucide-react';
 import { notificationsApi } from '../services/api';
+import {
+  getNewNotifications,
+  loadSoundPreferences,
+  notificationSoundPlayer,
+  resolveSoundKey,
+} from '../services/notificationSound';
 import './Notifications.css';
 
 const NOTIFICATION_SEVERITY_TAXONOMY = ['info', 'success', 'warning', 'critical', 'neutral'];
@@ -62,6 +68,16 @@ const getNotificationClass = (notification) => {
   return `notification-severity-${severity}`;
 };
 
+const normalizeNotification = (notification) => {
+  const severity = getNotificationSeverity(notification);
+  return {
+    ...notification,
+    severity,
+    sound_key: notification.sound_key || resolveSoundKey(notification, severity),
+  };
+};
+
+
 const getNotificationIcon = (notification) => {
   const type = getNotificationType(notification);
   const severity = getNotificationSeverity(notification);
@@ -77,6 +93,8 @@ const Notifications = () => {
 
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
+  const knownNotificationIdsRef = useRef(new Set());
+  const initializedRef = useRef(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -89,7 +107,21 @@ const Notifications = () => {
     setLoading(true);
     try {
       const res = await notificationsApi.list({ include_generated: true, status: 'unread' });
-      setNotifications(res.data.data || []);
+      const nextNotifications = (res.data.data || []).map(normalizeNotification);
+      if (initializedRef.current) {
+        const newNotifications = getNewNotifications(nextNotifications, knownNotificationIdsRef.current);
+        if (newNotifications.length > 0) {
+          notificationSoundPlayer.playBatch({
+            notifications: newNotifications,
+            getSeverity: getNotificationSeverity,
+            preferences: loadSoundPreferences(),
+          });
+        }
+      }
+
+      knownNotificationIdsRef.current = new Set(nextNotifications.map((item) => item.id));
+      initializedRef.current = true;
+      setNotifications(nextNotifications);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {

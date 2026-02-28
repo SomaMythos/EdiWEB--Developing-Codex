@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, Download, FileText, Database, Save, TrendingDown, Image, Bell } from 'lucide-react';
 import { userApi, exportApi, notificationsApi } from '../services/api';
+import {
+  DEFAULT_SOUND_PREFERENCES,
+  loadSoundPreferences,
+  saveSoundPreferences,
+} from '../services/notificationSound';
 import './Settings.css';
 
 const Settings = () => {
@@ -24,6 +29,7 @@ const Settings = () => {
   const [exporting, setExporting] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState([]);
+  const [soundPrefs, setSoundPrefs] = useState(DEFAULT_SOUND_PREFERENCES);
 
   const notificationFeatures = [
     { key: 'goals', label: 'Metas' },
@@ -59,6 +65,7 @@ const Settings = () => {
 
       setMetrics(metricsRes.data.data || []);
       setNotificationPrefs(notificationPrefsRes.data.data || []);
+      setSoundPrefs(loadSoundPreferences());
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -200,6 +207,12 @@ const Settings = () => {
     }
     return age;
   };
+
+  const handleSoundPrefChange = (changes) => {
+    const updated = saveSoundPreferences({ ...soundPrefs, ...changes });
+    setSoundPrefs(updated);
+  };
+
 
   const getWeightTrend = () => {
     if (metrics.length < 2) return null;
@@ -458,6 +471,85 @@ const Settings = () => {
             })}
           </div>
         </div>
+
+          <div className="notification-sound-settings">
+            <h3>Som das notificações</h3>
+
+            <div className="notification-sound-row">
+              <div>
+                <p className="notification-feature-title">Som habilitado</p>
+                <p className="notification-feature-desc">Ativa ou desativa todos os sons de notificação.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={!!soundPrefs.enabled}
+                  onChange={(e) => handleSoundPrefChange({ enabled: e.target.checked })}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+
+            <div className="notification-sound-row">
+              <div>
+                <p className="notification-feature-title">Volume</p>
+                <p className="notification-feature-desc">Ajuste o volume de 0% a 100%.</p>
+              </div>
+              <div className="notification-volume-control">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={soundPrefs.volume}
+                  onChange={(e) => handleSoundPrefChange({ volume: Number(e.target.value) })}
+                  disabled={!soundPrefs.enabled}
+                />
+                <span>{Math.round(soundPrefs.volume * 100)}%</span>
+              </div>
+            </div>
+
+            <div className="notification-sound-row">
+              <div>
+                <p className="notification-feature-title">Quiet hours</p>
+                <p className="notification-feature-desc">Silencia sons durante o horário configurado.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={!!soundPrefs.quietHoursEnabled}
+                  onChange={(e) => handleSoundPrefChange({ quietHoursEnabled: e.target.checked })}
+                  disabled={!soundPrefs.enabled}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+
+            {soundPrefs.quietHoursEnabled && (
+              <div className="quiet-hours-grid">
+                <label className="label">
+                  Início
+                  <input
+                    type="time"
+                    className="input"
+                    value={soundPrefs.quietHoursStart}
+                    onChange={(e) => handleSoundPrefChange({ quietHoursStart: e.target.value })}
+                    disabled={!soundPrefs.enabled}
+                  />
+                </label>
+                <label className="label">
+                  Fim
+                  <input
+                    type="time"
+                    className="input"
+                    value={soundPrefs.quietHoursEnd}
+                    onChange={(e) => handleSoundPrefChange({ quietHoursEnd: e.target.value })}
+                    disabled={!soundPrefs.enabled}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
 
         {/* Export Data */}
         <div className="export-section card">

@@ -349,3 +349,41 @@
 .switch input:checked + .slider:before {
   transform: translateX(22px);
 }
+
+
+.notification-sound-settings {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--glass-border-default);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.notification-sound-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-lg);
+  gap: var(--spacing-md);
+}
+
+.notification-volume-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 180px;
+}
+
+.notification-volume-control input {
+  width: 120px;
+}
+
+.quiet-hours-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
