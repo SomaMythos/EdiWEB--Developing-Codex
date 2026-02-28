@@ -7,3 +7,16 @@
 .reminders-card {
   padding: var(--spacing-md);
 }
+
+.consumable-notification-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.consumable-notification-row:last-child {
+  border-bottom: none;
+}

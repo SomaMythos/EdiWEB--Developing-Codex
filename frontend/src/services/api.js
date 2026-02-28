@@ -103,6 +103,7 @@ export const analyticsApi = {
 // Notifications
 export const notificationsApi = {
   list: (params = {}) => api.get('/notifications', { params }),
+  listConsumables: (params = {}) => api.get('/notifications/consumables', { params }),
   getAll: () => api.get('/notifications', { params: { include_generated: true } }),
   createCustom: (data) => api.post('/notifications/custom', data),
   updateStatus: (id, status) => api.patch(`/notifications/${id}/status`, { status }),
