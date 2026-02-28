@@ -1,21 +1,26 @@
 .daily-modal-overlay {
   position: fixed;
   inset: 0;
-  background: var(--glass-surface-overlay);
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0.45) 0%, rgba(3, 6, 12, 0.78) 100%);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 16px;
+  animation: overlay-fade var(--motion-normal) var(--ease-standard);
 }
 
 .daily-modal {
+  position: relative;
+  overflow: hidden;
   background: var(--glass-premium-bg-raised);
   border: 1px solid var(--glass-premium-border-strong);
   color: var(--glass-text-primary);
-  backdrop-filter: var(--glass-premium-blur-raised);
-  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  backdrop-filter: var(--glass-premium-blur-active);
+  -webkit-backdrop-filter: var(--glass-premium-blur-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
   padding: 24px;
   border-radius: 12px;
   width: min(480px, 100%);
@@ -24,6 +29,17 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: modal-pop var(--motion-smooth) var(--ease-emphasized);
+}
+
+.daily-modal::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: var(--glass-shine-overlay);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .daily-modal--wide {
