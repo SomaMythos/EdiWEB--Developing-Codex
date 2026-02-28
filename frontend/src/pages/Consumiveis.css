@@ -26,9 +26,9 @@
 }
 
 .consumiveis-page .chip {
-  border: 1px solid var(--border-color);
-  background: var(--card-bg);
-  color: var(--text-primary);
+  border: 1px solid var(--glass-border-default);
+  background: var(--glass-surface-medium);
+  color: var(--glass-text-primary);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
@@ -47,9 +47,10 @@
 }
 
 .consumiveis-page .item-row {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border-default);
   border-radius: 12px;
-  background: var(--surface-bg);
+  background: var(--glass-surface-medium);
+  color: var(--glass-text-primary);
   padding: 0.75rem;
   text-align: left;
   display: flex;
@@ -59,12 +60,12 @@
 }
 
 .consumiveis-page .item-row.active {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 1px var(--accent-color);
+  border-color: var(--glass-border-strong);
+  box-shadow: 0 0 0 1px var(--glass-border-strong);
 }
 
 .consumiveis-page .item-row span {
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -80,7 +81,8 @@
 }
 
 .consumiveis-page .action-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border-default);
+  background: var(--glass-surface-soft);
   border-radius: 12px;
   padding: 0.75rem;
   display: flex;
@@ -101,8 +103,9 @@
 }
 
 .consumiveis-page .stats-grid div {
-  background: var(--surface-bg);
-  border: 1px solid var(--border-color);
+  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-border-default);
+  color: var(--glass-text-primary);
   border-radius: 10px;
   padding: 0.55rem;
   display: flex;
@@ -111,7 +114,7 @@
 }
 
 .consumiveis-page .stats-grid span {
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
   font-size: 0.8rem;
 }
 
@@ -125,10 +128,11 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border-default);
   border-radius: 10px;
   padding: 0.55rem;
-  background: var(--surface-bg);
+  background: var(--glass-surface-medium);
+  color: var(--glass-text-primary);
 }
 
 @media (max-width: 900px) {
@@ -155,7 +159,7 @@
 
   .consumiveis-page .cycle-row span::before {
     content: attr(data-label);
-    color: var(--text-secondary);
+    color: var(--glass-text-secondary);
     font-size: 0.8rem;
     font-weight: 500;
   }
