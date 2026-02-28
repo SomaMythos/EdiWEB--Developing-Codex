@@ -104,17 +104,43 @@ def apply_migrations(db):
 
     run_migration(
         "create_notification_preferences_table",
-        lambda: table_exists(db, "notification_preferences"),
+        lambda: table_exists(db, "notification_preferences") and column_exists(db, "notification_preferences", "feature_key"),
         """
         CREATE TABLE IF NOT EXISTS notification_preferences (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            enable_sound INTEGER DEFAULT 1,
-            inbox_only_unread INTEGER DEFAULT 1,
-            default_sound_key TEXT DEFAULT 'default',
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            feature_key TEXT NOT NULL UNIQUE,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+            quiet_hours TEXT,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+    )
+
+    run_migration(
+        "migrate_notification_preferences_single_row_to_feature_rows",
+        lambda: not table_exists(db, "notification_preferences") or column_exists(db, "notification_preferences", "feature_key"),
+        """
+        ALTER TABLE notification_preferences RENAME TO notification_preferences_legacy;
+
+        CREATE TABLE notification_preferences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            feature_key TEXT NOT NULL UNIQUE,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+            quiet_hours TEXT,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
-        INSERT OR IGNORE INTO notification_preferences (id) VALUES (1);
+        INSERT INTO notification_preferences (feature_key, enabled, channels)
+        VALUES
+            ('goals', 1, '["in_app","sound"]'),
+            ('daily', 1, '["in_app","sound"]'),
+            ('consumables', 1, '["in_app","sound"]'),
+            ('shopping', 1, '["in_app","sound"]'),
+            ('custom', 1, '["in_app","sound"]');
+
+        DROP TABLE notification_preferences_legacy;
         """,
     )
 
