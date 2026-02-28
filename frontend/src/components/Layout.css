@@ -70,7 +70,8 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.05),
     inset 0 -60px 120px rgba(0,0,0,0.55);
-  overflow: hidden;
+  overflow-y: hidden;
+  overflow-x: visible;
   animation: sidebarFloat 0.6s ease;
 }
 
