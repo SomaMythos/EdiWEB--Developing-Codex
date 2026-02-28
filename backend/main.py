@@ -14,7 +14,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, conint, field_validator
 from typing import Literal, Optional, List
 from datetime import datetime
 
@@ -1058,7 +1058,7 @@ async def finance_get_config():
 
 @app.post("/api/finance/config")
 async def finance_save_config(payload: FinanceConfigPayload):
-    FinanceEngine.save_config(payload.dict())
+    FinanceEngine.save_config(payload.model_dump())
     return {"success": True}
 
 
@@ -1101,16 +1101,42 @@ async def finance_projection(months: int = 120):
 
 
 class CustomNotificationPayload(BaseModel):
-    notification_type: str = "custom_reminder"
-    source_feature: str = "manual"
     title: str
     message: Optional[str] = None
     severity: Literal["info", "success", "warning", "critical", "neutral"] = "info"
-    status: str = "unread"
     scheduled_for: Optional[str] = None
     meta: Optional[dict] = None
     sound_key: Optional[str] = None
     color_token: Optional[str] = None
+
+    @field_validator("title")
+    def validate_title(cls, value):
+        normalized = (value or "").strip()
+        if not normalized:
+            raise ValueError("title é obrigatório")
+        return normalized
+
+    @field_validator("message")
+    def validate_message(cls, value):
+        if value is None:
+            return None
+        normalized = value.strip()
+        if len(normalized) > 500:
+            raise ValueError("message excede o limite de 500 caracteres")
+        return normalized
+
+    @field_validator("scheduled_for")
+    def validate_scheduled_for(cls, value):
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        try:
+            datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("scheduled_for deve ser uma data/hora válida (ISO-8601)") from exc
+        return normalized
 
 
 class NotificationStatusPayload(BaseModel):
@@ -1176,8 +1202,25 @@ async def notifications_create_custom(payload: CustomNotificationPayload):
     try:
         from core.notification_center_engine import NotificationCenterEngine
 
-        notification_id = NotificationCenterEngine.create_custom_notification(payload.dict())
+        data = payload.model_dump()
+        data["notification_type"] = "custom_notification"
+        data["source_feature"] = "custom"
+        data["status"] = "unread"
+        notification_id = NotificationCenterEngine.create_custom_notification(data)
         return {"success": True, "data": {"id": notification_id}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/notifications/custom/{notification_id}")
+async def notifications_update_custom(notification_id: int, payload: CustomNotificationPayload):
+    try:
+        from core.notification_center_engine import NotificationCenterEngine
+
+        NotificationCenterEngine.update_custom_notification(notification_id, payload.model_dump())
+        return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1842,7 +1885,7 @@ async def shopping_items(category: Optional[str] = None):
 
 @app.post("/api/shopping/items")
 async def shopping_item_create(payload: ShoppingItemPayload):
-    iid = ShoppingEngine.add_item(**payload.dict())
+    iid = ShoppingEngine.add_item(**payload.model_dump())
     return {"success": True, "data": {"id": iid}}
 
 
@@ -1927,7 +1970,7 @@ async def reminders_list(status: str = "pendente"):
 
 @app.post("/api/reminders")
 async def reminders_create(payload: ReminderPayload):
-    rid = ReminderEngine.add_reminder(**payload.dict())
+    rid = ReminderEngine.add_reminder(**payload.model_dump())
     return {"success": True, "data": {"id": rid}}
 
 

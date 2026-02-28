@@ -89,8 +89,8 @@ class NotificationCenterEngine:
     @staticmethod
     def create_custom_notification(payload: Dict[str, Any]):
         data = {
-            "notification_type": payload.get("notification_type") or "custom_reminder",
-            "source_feature": payload.get("source_feature") or "manual",
+            "notification_type": payload.get("notification_type") or "custom_notification",
+            "source_feature": payload.get("source_feature") or "custom",
             "title": payload.get("title"),
             "message": payload.get("message"),
             "severity": NotificationCenterEngine._normalize_severity(payload.get("severity")),
@@ -104,6 +104,38 @@ class NotificationCenterEngine:
         return NotificationCenterEngine._insert_notification(data, unique_key=unique_key)
 
     @staticmethod
+    def update_custom_notification(notification_id: int, payload: Dict[str, Any]):
+        with Database() as db:
+            result = db.execute(
+                """
+                UPDATE notifications
+                SET
+                    title = ?,
+                    message = ?,
+                    severity = ?,
+                    scheduled_for = ?,
+                    sound_key = ?,
+                    color_token = ?,
+                    meta = ?
+                WHERE id = ?
+                    AND notification_type = 'custom_notification'
+                    AND source_feature = 'custom'
+                """,
+                (
+                    payload.get("title"),
+                    payload.get("message"),
+                    NotificationCenterEngine._normalize_severity(payload.get("severity")),
+                    payload.get("scheduled_for"),
+                    payload.get("sound_key"),
+                    payload.get("color_token"),
+                    json.dumps(payload.get("meta") or {}, ensure_ascii=False),
+                    notification_id,
+                ),
+            )
+            if result.rowcount == 0:
+                raise ValueError("Notificação custom não encontrada")
+
+    @staticmethod
     def _normalize_severity(value: Optional[str]) -> str:
         if value in NotificationCenterEngine.SUPPORTED_SEVERITIES:
             return value
@@ -111,11 +143,11 @@ class NotificationCenterEngine:
 
     @staticmethod
     def update_notification_status(notification_id: int, status: str):
-        allowed = {"unread", "read", "completed"}
+        allowed = {"unread", "read", "completed", "canceled"}
         if status not in allowed:
             raise ValueError(f"Invalid status: {status}")
 
-        read_at = "CURRENT_TIMESTAMP" if status in {"read", "completed"} else "NULL"
+        read_at = "CURRENT_TIMESTAMP" if status in {"read", "completed", "canceled"} else "NULL"
         completed_at = "CURRENT_TIMESTAMP" if status == "completed" else "NULL"
 
         with Database() as db:

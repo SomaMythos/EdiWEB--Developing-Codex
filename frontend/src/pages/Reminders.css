@@ -20,3 +20,48 @@
 .consumable-notification-row:last-child {
   border-bottom: none;
 }
+
+.notifications-form-grid {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.notifications-form-grid textarea.input {
+  min-height: 96px;
+}
+
+.notifications-form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.form-error {
+  color: #ef4444;
+  margin: 0;
+}
+
+.notification-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-row:last-child {
+  border-bottom: none;
+}
+
+.notification-meta {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.notification-row-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
