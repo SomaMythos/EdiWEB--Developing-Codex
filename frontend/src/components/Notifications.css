@@ -80,7 +80,7 @@
   backdrop-filter: var(--glass-blur-strong);
   box-shadow: var(--glass-shadow-strong);
 
-  z-index: 2000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
 }

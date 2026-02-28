@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Bell,
   X,
@@ -253,7 +254,7 @@ const Notifications = () => {
         )}
       </button>
 
-      {show && (
+      {show && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
           className="notifications-dropdown fade-in"
@@ -323,7 +324,8 @@ const Notifications = () => {
               Atualizar
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
