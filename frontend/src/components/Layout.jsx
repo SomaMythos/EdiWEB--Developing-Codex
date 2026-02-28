@@ -18,6 +18,7 @@ import {
   Gamepad2,
   Clapperboard,
   DollarSign,
+  StickyNote,
 } from 'lucide-react';
 import Notifications from './Notifications';
 import './Layout.css';
@@ -32,6 +33,7 @@ const Layout = ({ children }) => {
     { path: '/', icon: Calendar, label: 'Daily' },
     { path: '/goals', icon: Target, label: 'Metas' },
 	{ path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
+	{ path: '/anotacoes', icon: StickyNote, label: 'Anotações' },
 
 	{ path: '/dashboard', icon: BarChart3, label: 'Dashboard + Estatísticas' },
     { path: '/notifications', icon: Bell, label: 'Notificações' },
