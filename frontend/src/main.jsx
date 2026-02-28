@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import './styles/theme-glass.css'
+import './styles/notification-tokens.css'
 import "./styles/theme-daedric.css"
 
 ReactDOM.createRoot(document.getElementById('root')).render(

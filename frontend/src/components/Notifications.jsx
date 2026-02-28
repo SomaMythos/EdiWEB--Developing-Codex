@@ -1,20 +1,84 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, AlertCircle, Calendar, TrendingDown } from 'lucide-react';
+import {
+  Bell,
+  X,
+  AlertCircle,
+  Calendar,
+  TrendingDown,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  AlertOctagon,
+} from 'lucide-react';
 import { notificationsApi } from '../services/api';
 import './Notifications.css';
+
+const NOTIFICATION_SEVERITY_TAXONOMY = ['info', 'success', 'warning', 'critical', 'neutral'];
+
+const TYPE_TO_SEVERITY = {
+  stalled_goal: 'warning',
+  upcoming_deadline: 'info',
+  daily_summary: 'success',
+  consumable_insufficient_history: 'info',
+  consumable_restock_due: 'warning',
+  consumable_overdue: 'critical',
+  custom_reminder: 'info',
+};
+
+const TYPE_ICON_MAP = {
+  stalled_goal: AlertCircle,
+  upcoming_deadline: Calendar,
+  daily_summary: TrendingDown,
+  consumable_insufficient_history: Info,
+  consumable_restock_due: AlertTriangle,
+  consumable_overdue: AlertOctagon,
+  custom_reminder: Bell,
+};
+
+const SEVERITY_ICON_MAP = {
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  critical: AlertOctagon,
+  neutral: Bell,
+};
+
+const getNotificationType = (notification) => notification.notification_type || notification.type || 'generic';
+
+const getNotificationSeverity = (notification) => {
+  const normalizedSeverity = notification?.severity?.toLowerCase();
+  if (NOTIFICATION_SEVERITY_TAXONOMY.includes(normalizedSeverity)) {
+    return normalizedSeverity;
+  }
+
+  const type = getNotificationType(notification);
+  return TYPE_TO_SEVERITY[type] || 'neutral';
+};
+
+const getNotificationClass = (notification) => {
+  const severity = getNotificationSeverity(notification);
+  return `notification-severity-${severity}`;
+};
+
+const getNotificationIcon = (notification) => {
+  const type = getNotificationType(notification);
+  const severity = getNotificationSeverity(notification);
+  const IconComponent = TYPE_ICON_MAP[type] || SEVERITY_ICON_MAP[severity] || SEVERITY_ICON_MAP.neutral;
+
+  return <IconComponent size={20} className={`notification-icon-severity-${severity}`} />;
+};
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
-const buttonRef = useRef(null);
-const dropdownRef = useRef(null);
-const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     loadNotifications();
-    // Reload notifications every 5 minutes
     const interval = setInterval(loadNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -31,49 +95,23 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
     }
   };
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'stalled_goal':
-        return <AlertCircle size={20} className="icon-warning" />;
-      case 'upcoming_deadline':
-        return <Calendar size={20} className="icon-primary" />;
-      case 'daily_summary':
-        return <TrendingDown size={20} className="icon-success" />;
-      default:
-        return <Bell size={20} />;
-    }
-  };
-
-  const getNotificationClass = (type) => {
-    switch (type) {
-      case 'stalled_goal':
-        return 'notification-warning';
-      case 'upcoming_deadline':
-        return 'notification-primary';
-      case 'daily_summary':
-        return 'notification-success';
-      default:
-        return '';
-    }
-  };
-
   const unreadCount = notifications.length;
 
   return (
     <div className="notifications-container">
-      <button 
-		ref={buttonRef}
+      <button
+        ref={buttonRef}
         className="notifications-button"
         onClick={() => {
-  if (!show && buttonRef.current) {
-    const rect = buttonRef.current.getBoundingClientRect();
-    setPosition({
-      top: rect.top,
-      left: rect.right + 12
-    });
-  }
-  setShow(!show);
-}}
+          if (!show && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setPosition({
+              top: rect.top,
+              left: rect.right + 12,
+            });
+          }
+          setShow(!show);
+        }}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -83,16 +121,16 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
 
       {show && (
         <div
-  ref={dropdownRef}
-  className="notifications-dropdown fade-in"
-  style={{
-    top: position.top,
-    left: position.left
-  }}
->
+          ref={dropdownRef}
+          className="notifications-dropdown fade-in"
+          style={{
+            top: position.top,
+            left: position.left,
+          }}
+        >
           <div className="notifications-header">
             <h3>Notificações</h3>
-            <button 
+            <button
               className="close-button"
               onClick={() => setShow(false)}
             >
@@ -114,12 +152,12 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
             ) : (
               <div className="notifications-list">
                 {notifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`notification-item ${getNotificationClass((notification.notification_type || notification.type))}`}
+                  <div
+                    key={notification.id}
+                    className={`notification-item ${getNotificationClass(notification)}`}
                   >
                     <div className="notification-icon">
-                      {getNotificationIcon((notification.notification_type || notification.type))}
+                      {getNotificationIcon(notification)}
                     </div>
                     <div className="notification-content">
                       <p className="notification-message">
@@ -143,7 +181,7 @@ const [position, setPosition] = useState({ top: 0, left: 0 });
           </div>
 
           <div className="notifications-footer">
-            <button 
+            <button
               className="btn btn-sm btn-secondary"
               onClick={loadNotifications}
               disabled={loading}

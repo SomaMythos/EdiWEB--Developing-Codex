@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class NotificationCenterEngine:
     DEFAULT_STATUS = "unread"
+    SUPPORTED_SEVERITIES = {"info", "success", "warning", "critical", "neutral"}
     DEFAULT_CHANNELS = ["in_app", "sound"]
     SUPPORTED_FEATURES = ["goals", "daily", "consumables", "shopping", "custom"]
 
@@ -92,7 +93,7 @@ class NotificationCenterEngine:
             "source_feature": payload.get("source_feature") or "manual",
             "title": payload.get("title"),
             "message": payload.get("message"),
-            "severity": payload.get("severity") or "info",
+            "severity": NotificationCenterEngine._normalize_severity(payload.get("severity")),
             "status": payload.get("status") or NotificationCenterEngine.DEFAULT_STATUS,
             "scheduled_for": payload.get("scheduled_for"),
             "meta": payload.get("meta") or {},
@@ -101,6 +102,12 @@ class NotificationCenterEngine:
         }
         unique_key = payload.get("unique_key") or NotificationCenterEngine._unique_key(data)
         return NotificationCenterEngine._insert_notification(data, unique_key=unique_key)
+
+    @staticmethod
+    def _normalize_severity(value: Optional[str]) -> str:
+        if value in NotificationCenterEngine.SUPPORTED_SEVERITIES:
+            return value
+        return "neutral" if value else "info"
 
     @staticmethod
     def update_notification_status(notification_id: int, status: str):

@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint
-from typing import Optional, List
+from typing import Literal, Optional, List
 from datetime import datetime
 
 from core.activity_engine import ActivityEngine
@@ -1105,7 +1105,7 @@ class CustomNotificationPayload(BaseModel):
     source_feature: str = "manual"
     title: str
     message: Optional[str] = None
-    severity: str = "info"
+    severity: Literal["info", "success", "warning", "critical", "neutral"] = "info"
     status: str = "unread"
     scheduled_for: Optional[str] = None
     meta: Optional[dict] = None
@@ -1149,7 +1149,7 @@ async def notifications_list(
     status: Optional[str] = None,
     notification_type: Optional[str] = None,
     source_feature: Optional[str] = None,
-    severity: Optional[str] = None,
+    severity: Optional[Literal["info", "success", "warning", "critical", "neutral"]] = None,
     include_read: bool = False,
     include_generated: bool = True,
 ):

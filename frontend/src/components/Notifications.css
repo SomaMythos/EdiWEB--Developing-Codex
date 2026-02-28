@@ -100,7 +100,7 @@
 .notifications-header h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--glass-text-primary);
+  color: inherit;
 }
 
 /* Close button */
@@ -203,19 +203,54 @@
    VARIANTS
 ====================================================== */
 
-.notification-item.notification-warning {
-  background: var(--glass-accent-warning);
-  border-left: 3px solid var(--accent-warning);
+.notification-item[class*="notification-severity-"] {
+  border-left: 3px solid transparent;
 }
 
-.notification-item.notification-primary {
-  background: var(--glass-accent-neutral);
-  border-left: 3px solid var(--glass-text-accent);
+.notification-item.notification-severity-info {
+  background: var(--notification-info-bg);
+  border-left-color: var(--notification-info-border);
 }
 
-.notification-item.notification-success {
-  background: var(--glass-accent-success);
-  border-left: 3px solid var(--accent-success);
+.notification-item.notification-severity-success {
+  background: var(--notification-success-bg);
+  border-left-color: var(--notification-success-border);
+}
+
+.notification-item.notification-severity-warning {
+  background: var(--notification-warning-bg);
+  border-left-color: var(--notification-warning-border);
+}
+
+.notification-item.notification-severity-critical {
+  background: var(--notification-critical-bg);
+  border-left-color: var(--notification-critical-border);
+}
+
+.notification-item.notification-severity-neutral {
+  background: var(--notification-neutral-bg);
+  border-left-color: var(--notification-neutral-border);
+}
+
+
+.notification-item.notification-severity-info {
+  color: var(--notification-info-text);
+}
+
+.notification-item.notification-severity-success {
+  color: var(--notification-success-text);
+}
+
+.notification-item.notification-severity-warning {
+  color: var(--notification-warning-text);
+}
+
+.notification-item.notification-severity-critical {
+  color: var(--notification-critical-text);
+}
+
+.notification-item.notification-severity-neutral {
+  color: var(--notification-neutral-text);
 }
 
 /* ======================================================
@@ -229,16 +264,24 @@
   justify-content: center;
 }
 
-.icon-warning {
-  color: var(--accent-warning);
+.notification-icon-severity-info {
+  color: var(--notification-info-icon);
 }
 
-.icon-primary {
-  color: var(--glass-text-accent);
+.notification-icon-severity-success {
+  color: var(--notification-success-icon);
 }
 
-.icon-success {
-  color: var(--accent-success);
+.notification-icon-severity-warning {
+  color: var(--notification-warning-icon);
+}
+
+.notification-icon-severity-critical {
+  color: var(--notification-critical-icon);
+}
+
+.notification-icon-severity-neutral {
+  color: var(--notification-neutral-icon);
 }
 
 /* ======================================================
@@ -254,7 +297,7 @@
 
 .notification-message {
   font-size: 0.875rem;
-  color: var(--glass-text-primary);
+  color: inherit;
   line-height: 1.5;
 }
 
