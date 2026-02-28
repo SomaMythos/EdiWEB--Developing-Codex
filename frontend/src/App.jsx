@@ -14,6 +14,7 @@ import Games from './pages/Games';
 import Watch from './pages/Watch';
 import Shopping from './pages/Shopping';
 import Consumiveis from './pages/Consumiveis';
+import Anotacoes from './pages/Anotacoes';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
   <Route path="/" element={<Daily />} />
   <Route path="/goals" element={<Goals />} />
   <Route path="/financeiro" element={<Financeiro />} />
+  <Route path="/anotacoes" element={<Anotacoes />} />
   <Route path="/stats" element={<Navigate to="/dashboard" replace />} />
   <Route path="/dashboard" element={<Dashboard />} />
   <Route path="/hobby/leitura" element={<Books />} />
