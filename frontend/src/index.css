@@ -72,6 +72,44 @@
 --glass-shadow-medium: 0 14px 36px rgba(0,0,0,0.55);
 --glass-shadow-strong: 0 24px 60px rgba(0,0,0,0.65);
 
+--glass-premium-bg-base: linear-gradient(
+  180deg,
+  rgba(255, 255, 255, 0.15) 0%,
+  rgba(255, 255, 255, 0.05) 22%,
+  rgba(14, 16, 24, 0.62) 100%
+);
+--glass-premium-bg-raised: linear-gradient(
+  180deg,
+  rgba(255, 255, 255, 0.2) 0%,
+  rgba(255, 255, 255, 0.07) 20%,
+  rgba(12, 14, 22, 0.68) 100%
+);
+--glass-premium-bg-active: linear-gradient(
+  180deg,
+  rgba(255, 255, 255, 0.24) 0%,
+  rgba(255, 255, 255, 0.1) 18%,
+  rgba(10, 12, 20, 0.74) 100%
+);
+
+--glass-premium-border: rgba(255, 255, 255, 0.14);
+--glass-premium-border-strong: rgba(255, 255, 255, 0.2);
+--glass-premium-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+--glass-premium-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.34);
+
+--glass-premium-shadow-base:
+  0 18px 42px rgba(0, 0, 0, 0.32),
+  0 10px 22px rgba(0, 0, 0, 0.24);
+--glass-premium-shadow-raised:
+  0 24px 52px rgba(0, 0, 0, 0.36),
+  0 12px 28px rgba(0, 0, 0, 0.26);
+--glass-premium-shadow-active:
+  0 28px 58px rgba(0, 0, 0, 0.38),
+  0 14px 32px rgba(0, 0, 0, 0.28);
+
+--glass-premium-blur-base: blur(22px) saturate(165%);
+--glass-premium-blur-raised: blur(24px) saturate(175%);
+--glass-premium-blur-active: blur(26px) saturate(185%);
+
 --glass-blur: blur(14px);
 --glass-blur-strong: blur(22px);
 
@@ -193,6 +231,38 @@
   border: 1px solid var(--glass-border-strong);
   backdrop-filter: var(--glass-blur-strong);
   box-shadow: var(--glass-shadow-strong);
+}
+
+.glass-base,
+.glass-raised,
+.glass-active {
+  position: relative;
+  border-radius: inherit;
+  color: var(--glass-text-primary);
+}
+
+.glass-base {
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+}
+
+.glass-raised {
+  background: var(--glass-premium-bg-raised);
+  border: 1px solid var(--glass-premium-border-strong);
+  backdrop-filter: var(--glass-premium-blur-raised);
+  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+}
+
+.glass-active {
+  background: var(--glass-premium-bg-active);
+  border: 1px solid var(--glass-premium-border-strong);
+  backdrop-filter: var(--glass-premium-blur-active);
+  -webkit-backdrop-filter: var(--glass-premium-blur-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 

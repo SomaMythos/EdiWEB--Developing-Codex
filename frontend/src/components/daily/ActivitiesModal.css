@@ -1,9 +1,10 @@
 .activities-modal {
   text-align: left;
-  background: var(--glass-surface-strong);
-  border: 1px solid var(--glass-border-default);
-  backdrop-filter: var(--glass-blur-strong);
-  box-shadow: var(--glass-shadow-strong);
+  background: var(--glass-premium-bg-raised);
+  border: 1px solid var(--glass-premium-border);
+  backdrop-filter: var(--glass-premium-blur-raised);
+  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
 }
@@ -40,10 +41,11 @@
 .activities-form input {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-default);
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
   color: var(--glass-text-primary);
-  backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
   border-radius: var(--radius-md);
   min-height: 44px;
   transition:
@@ -53,8 +55,8 @@
 }
 
 .activities-form input:focus {
-  background: var(--glass-surface-medium);
-  border-color: var(--glass-border-strong);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
   box-shadow: var(--focus-ring);
 }
 
@@ -93,8 +95,8 @@
 
 /* SECONDARY */
 .daily-button--secondary {
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-default);
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
   color: var(--glass-text-primary);
 }
 

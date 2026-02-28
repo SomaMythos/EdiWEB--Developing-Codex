@@ -38,13 +38,14 @@
 .daily-form-row input,
 .routine-time-row input,
 .daily-modal-form input {
-  background: var(--glass-surface-soft);
+  background: var(--glass-premium-bg-base);
   color: var(--glass-text-primary);
-  border: 1px solid var(--glass-border-default);
+  border: 1px solid var(--glass-premium-border);
   border-radius: 8px;
   padding: 10px;
   min-height: 44px;
-  backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
   transition:
     border-color var(--motion-fast),
     background var(--motion-fast),
@@ -54,8 +55,8 @@
 .daily-form-row input:focus,
 .routine-time-row input:focus,
 .daily-modal-form input:focus {
-  background: var(--glass-surface-medium);
-  border-color: var(--glass-border-strong);
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
   box-shadow: var(--focus-ring);
 }
 

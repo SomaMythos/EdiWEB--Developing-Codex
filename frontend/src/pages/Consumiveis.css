@@ -26,18 +26,29 @@
 }
 
 .consumiveis-page .chip {
-  border: 1px solid var(--glass-border-default);
-  background: var(--glass-surface-medium);
+  border: 1px solid var(--glass-premium-border);
+  background: var(--glass-premium-bg-base);
   color: var(--glass-text-primary);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.consumiveis-page .chip:hover {
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
 }
 
 .consumiveis-page .chip.active {
-  background: var(--accent-gradient);
-  border-color: transparent;
+  background: var(--glass-premium-bg-active);
+  border-color: var(--glass-premium-border-strong);
   color: #fff;
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .consumiveis-page .items-by-category {
@@ -58,15 +69,31 @@
 
 .consumiveis-page .item-row {
   position: relative;
-  border: 1px solid var(--glass-border-default);
+  border: 1px solid var(--glass-premium-border);
   border-radius: 12px;
-  background: var(--glass-surface-medium);
+  background: var(--glass-premium-bg-base);
   color: var(--glass-text-primary);
   padding: 0.75rem;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.consumiveis-page .item-row:hover {
+  background: var(--glass-premium-bg-raised);
+  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  transform: translateY(-1px);
+}
+
+.consumiveis-page .item-row:active {
+  background: var(--glass-premium-bg-active);
+  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
 .consumiveis-page .item-row span {
@@ -86,13 +113,16 @@
   top: calc(100% + 0.4rem);
   left: 0;
   right: 0;
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-default);
+  background: var(--glass-premium-bg-raised);
+  border: 1px solid var(--glass-premium-border-strong);
   border-radius: 12px;
   padding: 0.6rem;
   display: grid;
   gap: 0.4rem;
   z-index: 10;
+  backdrop-filter: var(--glass-premium-blur-raised);
+  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
 }
 
 .consumiveis-page .stats-tooltip div {
@@ -117,8 +147,11 @@
 }
 
 .consumiveis-page .action-card {
-  border: 1px solid var(--glass-border-default);
-  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-premium-border);
+  background: var(--glass-premium-bg-base);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
   border-radius: 12px;
   padding: 0.75rem;
   display: flex;
@@ -139,14 +172,17 @@
 }
 
 .consumiveis-page .stats-grid div {
-  background: var(--glass-surface-medium);
-  border: 1px solid var(--glass-border-default);
+  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--glass-premium-border);
   color: var(--glass-text-primary);
   border-radius: 10px;
   padding: 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
 }
 
 .consumiveis-page .stats-grid span {
@@ -164,11 +200,14 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  border: 1px solid var(--glass-border-default);
+  border: 1px solid var(--glass-premium-border);
   border-radius: 10px;
   padding: 0.55rem;
-  background: var(--glass-surface-medium);
+  background: var(--glass-premium-bg-base);
   color: var(--glass-text-primary);
+  backdrop-filter: var(--glass-premium-blur-base);
+  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
 }
 
 .consumiveis-modal-backdrop {
