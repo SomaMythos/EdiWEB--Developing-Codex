@@ -96,12 +96,6 @@
   font-size: 1.03rem;
 }
 
-.note-created {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--glass-text-muted);
-}
-
 .note-expand {
   border: none;
   border-radius: 8px;
@@ -112,6 +106,13 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--glass-text-primary);
   cursor: pointer;
+}
+
+.note-preview {
+  margin: 4px 0 2px 36px;
+  color: var(--glass-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .note-actions {
