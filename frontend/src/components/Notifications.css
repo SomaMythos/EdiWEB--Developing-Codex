@@ -71,6 +71,7 @@
 .notifications-dropdown {
   position: fixed;
   width: min(380px, calc(100vw - 2rem));
+  min-width: min(320px, calc(100vw - 2rem));
   max-height: 500px;
 
   background: var(--glass-surface-strong);
@@ -189,6 +190,8 @@
     background var(--motion-fast),
     border-color var(--motion-fast),
     transform var(--motion-fast);
+
+  color: var(--glass-text-primary);
 }
 
 .notification-item:last-child {

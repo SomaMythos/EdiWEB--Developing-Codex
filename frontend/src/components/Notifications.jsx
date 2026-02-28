@@ -97,23 +97,68 @@ const Notifications = () => {
   const initializedRef = useRef(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
+  const showBrowserNotification = (notification) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    const sendNotification = () => {
+      const title = notification?.title || 'EDI - Lembrete';
+      const body = notification?.message || 'Você tem uma nova notificação.';
+      try {
+        const browserNotification = new Notification(title, { body, tag: `edi-${notification.id}` });
+        setTimeout(() => browserNotification.close(), 8000);
+      } catch (_error) {
+        // Ignore browser notification failures.
+      }
+    };
+
+    if (Notification.permission === 'granted') {
+      sendNotification();
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') sendNotification();
+      }).catch(() => {});
+    }
+  };
+
+  const isRecentNotification = (notification, lookbackMs = 2 * 60 * 1000) => {
+    const timestamp = notification?.scheduled_for
+      || notification?.created_at
+      || notification?.generated_at
+      || null;
+    if (!timestamp) return false;
+
+    const parsed = new Date(timestamp);
+    if (Number.isNaN(parsed.getTime())) return false;
+
+    return (Date.now() - parsed.getTime()) <= lookbackMs;
+  };
+
   const updateDropdownPosition = () => {
     if (!buttonRef.current) return;
 
     const rect = buttonRef.current.getBoundingClientRect();
     const spacing = 12;
     const viewportPadding = 12;
-    const dropdownWidth = Math.min(380, window.innerWidth - (viewportPadding * 2));
-    const dropdownHeight = 500;
+    const dropdownWidth = dropdownRef.current?.offsetWidth
+      || Math.min(380, window.innerWidth - (viewportPadding * 2));
+    const dropdownHeight = dropdownRef.current?.offsetHeight || 500;
 
-    let left = rect.right + spacing;
+    let left = rect.right - dropdownWidth;
+    let top = rect.bottom + spacing;
+
     if (left + dropdownWidth > window.innerWidth - viewportPadding) {
-      left = rect.left - dropdownWidth - spacing;
+      left = window.innerWidth - dropdownWidth - viewportPadding;
     }
 
     left = Math.max(viewportPadding, left);
 
-    let top = rect.top;
+    if (top + dropdownHeight > window.innerHeight - viewportPadding) {
+      top = rect.top - dropdownHeight - spacing;
+    }
+
     if (top + dropdownHeight > window.innerHeight - viewportPadding) {
       top = window.innerHeight - dropdownHeight - viewportPadding;
     }
@@ -124,14 +169,14 @@ const Notifications = () => {
 
   useEffect(() => {
     loadNotifications();
-    const interval = setInterval(loadNotifications, 5 * 60 * 1000);
+    const interval = setInterval(loadNotifications, 30 * 1000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (!show) return undefined;
 
-    updateDropdownPosition();
+    const frame = requestAnimationFrame(updateDropdownPosition);
 
     const handleClickOutside = (event) => {
       if (
@@ -151,6 +196,7 @@ const Notifications = () => {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', handleReposition);
       window.removeEventListener('scroll', handleReposition, true);
       document.removeEventListener('mousedown', handleClickOutside);
@@ -162,15 +208,19 @@ const Notifications = () => {
     try {
       const res = await notificationsApi.list({ include_generated: true, status: 'unread' });
       const nextNotifications = (res.data.data || []).map(normalizeNotification);
-      if (initializedRef.current) {
-        const newNotifications = getNewNotifications(nextNotifications, knownNotificationIdsRef.current);
-        if (newNotifications.length > 0) {
-          notificationSoundPlayer.playBatch({
-            notifications: newNotifications,
-            getSeverity: getNotificationSeverity,
-            preferences: loadSoundPreferences(),
-          });
-        }
+
+      const newNotifications = initializedRef.current
+        ? getNewNotifications(nextNotifications, knownNotificationIdsRef.current)
+        : nextNotifications.filter((notification) => isRecentNotification(notification));
+
+      if (newNotifications.length > 0) {
+        notificationSoundPlayer.playBatch({
+          notifications: newNotifications,
+          getSeverity: getNotificationSeverity,
+          preferences: loadSoundPreferences(),
+        });
+
+        newNotifications.forEach(showBrowserNotification);
       }
 
       knownNotificationIdsRef.current = new Set(nextNotifications.map((item) => item.id));
