@@ -26,29 +26,29 @@
 }
 
 .consumiveis-page .chip {
-  border: 1px solid var(--glass-premium-border);
-  background: var(--glass-premium-bg-base);
+  border: 1px solid var(--elevation-1-border);
+  background: var(--elevation-1-surface);
   color: var(--glass-text-primary);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
 .consumiveis-page .chip:hover {
-  background: var(--glass-premium-bg-raised);
-  border-color: var(--glass-premium-border-strong);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .consumiveis-page .chip.active {
-  background: var(--glass-premium-bg-active);
-  border-color: var(--glass-premium-border-strong);
+  background: var(--elevation-3-surface);
+  border-color: var(--elevation-2-border);
   color: #fff;
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .consumiveis-page .items-by-category {
@@ -69,31 +69,31 @@
 
 .consumiveis-page .item-row {
   position: relative;
-  border: 1px solid var(--glass-premium-border);
+  border: 1px solid var(--elevation-1-border);
   border-radius: 12px;
-  background: var(--glass-premium-bg-base);
+  background: var(--elevation-1-surface);
   color: var(--glass-text-primary);
   padding: 0.75rem;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
 .consumiveis-page .item-row:hover {
-  background: var(--glass-premium-bg-raised);
-  border-color: var(--glass-premium-border-strong);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
   transform: translateY(-1px);
 }
 
 .consumiveis-page .item-row:active {
-  background: var(--glass-premium-bg-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .consumiveis-page .item-row span {
@@ -113,16 +113,16 @@
   top: calc(100% + 0.4rem);
   left: 0;
   right: 0;
-  background: var(--glass-premium-bg-raised);
-  border: 1px solid var(--glass-premium-border-strong);
+  background: var(--elevation-2-surface);
+  border: 1px solid var(--elevation-2-border);
   border-radius: 12px;
   padding: 0.6rem;
   display: grid;
   gap: 0.4rem;
   z-index: 10;
-  backdrop-filter: var(--glass-premium-blur-raised);
-  -webkit-backdrop-filter: var(--glass-premium-blur-raised);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  backdrop-filter: var(--elevation-2-blur);
+  -webkit-backdrop-filter: var(--elevation-2-blur);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .consumiveis-page .stats-tooltip div {
@@ -147,11 +147,11 @@
 }
 
 .consumiveis-page .action-card {
-  border: 1px solid var(--glass-premium-border);
-  background: var(--glass-premium-bg-base);
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  border: 1px solid var(--elevation-1-border);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   border-radius: 12px;
   padding: 0.75rem;
   display: flex;
@@ -172,17 +172,17 @@
 }
 
 .consumiveis-page .stats-grid div {
-  background: var(--glass-premium-bg-base);
-  border: 1px solid var(--glass-premium-border);
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
   color: var(--glass-text-primary);
   border-radius: 10px;
   padding: 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
 }
 
 .consumiveis-page .stats-grid span {
@@ -200,14 +200,14 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  border: 1px solid var(--glass-premium-border);
+  border: 1px solid var(--elevation-1-border);
   border-radius: 10px;
   padding: 0.55rem;
-  background: var(--glass-premium-bg-base);
+  background: var(--elevation-1-surface);
   color: var(--glass-text-primary);
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
 }
 
 .consumiveis-modal-backdrop {
@@ -226,6 +226,11 @@
   width: 100%;
   max-height: calc(100vh - 2rem);
   overflow: auto;
+  background: var(--elevation-3-surface);
+  border: 1px solid var(--elevation-3-border);
+  backdrop-filter: var(--elevation-3-blur);
+  -webkit-backdrop-filter: var(--elevation-3-blur);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .consumiveis-page .modal-header {

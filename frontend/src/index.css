@@ -120,6 +120,32 @@
   transparent 80%
 );
 
+--elevation-0-surface: rgba(13, 16, 22, 0.42);
+--elevation-0-border: rgba(255, 255, 255, 0.06);
+--elevation-0-blur: blur(12px) saturate(145%);
+--elevation-0-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+
+--elevation-1-surface: rgba(16, 20, 28, 0.56);
+--elevation-1-border: rgba(255, 255, 255, 0.1);
+--elevation-1-blur: blur(16px) saturate(158%);
+--elevation-1-shadow:
+  0 16px 32px rgba(0, 0, 0, 0.4),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+--elevation-2-surface: rgba(18, 23, 31, 0.7);
+--elevation-2-border: rgba(255, 255, 255, 0.14);
+--elevation-2-blur: blur(21px) saturate(170%);
+--elevation-2-shadow:
+  0 24px 46px rgba(0, 0, 0, 0.5),
+  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+--elevation-3-surface: rgba(20, 26, 35, 0.8);
+--elevation-3-border: rgba(255, 255, 255, 0.2);
+--elevation-3-blur: blur(26px) saturate(180%);
+--elevation-3-shadow:
+  0 34px 70px rgba(0, 0, 0, 0.6),
+  inset 0 1px 0 rgba(255, 255, 255, 0.16);
+
 
 /* =========================
    GLASS SCROLLBAR TOKENS
@@ -265,6 +291,45 @@
   box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
 }
 
+.elevation-0,
+.elevation-1,
+.elevation-2,
+.elevation-3 {
+  border-radius: inherit;
+}
+
+.elevation-0 {
+  background: var(--elevation-0-surface);
+  border: 1px solid var(--elevation-0-border);
+  backdrop-filter: var(--elevation-0-blur);
+  -webkit-backdrop-filter: var(--elevation-0-blur);
+  box-shadow: var(--elevation-0-shadow);
+}
+
+.elevation-1 {
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+}
+
+.elevation-2 {
+  background: var(--elevation-2-surface);
+  border: 1px solid var(--elevation-2-border);
+  backdrop-filter: var(--elevation-2-blur);
+  -webkit-backdrop-filter: var(--elevation-2-blur);
+  box-shadow: var(--elevation-2-shadow);
+}
+
+.elevation-3 {
+  background: var(--elevation-3-surface);
+  border: 1px solid var(--elevation-3-border);
+  backdrop-filter: var(--elevation-3-blur);
+  -webkit-backdrop-filter: var(--elevation-3-blur);
+  box-shadow: var(--elevation-3-shadow);
+}
+
 
 /* ======================================================
    BUTTON SYSTEM
@@ -378,19 +443,20 @@
    ====================================================== */
 
 .card {
-  background: var(--glass-surface-medium);
-  border: 1px solid var(--glass-border-default);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow-medium);
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   border-radius: var(--radius-lg);
   padding: var(--spacing-md);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 14px 40px rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 
@@ -441,6 +507,7 @@ html {
 }
 
 body {
+  position: relative;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -454,6 +521,33 @@ body {
   background-attachment: fixed;
   background-size: cover;
   min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.14;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 0.6px, transparent 0.6px),
+    radial-gradient(rgba(0, 0, 0, 0.2) 0.6px, transparent 0.6px);
+  background-position: 0 0, 8px 10px;
+  background-size: 16px 16px;
+  mix-blend-mode: soft-light;
+}
+
+.page-container {
+  position: relative;
+  margin: 0 auto;
+  padding: clamp(1rem, 1.4vw, 1.5rem);
+  border-radius: var(--radius-2xl);
+  background: var(--elevation-0-surface);
+  border: 1px solid var(--elevation-0-border);
+  backdrop-filter: var(--elevation-0-blur);
+  -webkit-backdrop-filter: var(--elevation-0-blur);
+  box-shadow: var(--elevation-0-shadow);
 }
 
 /* =========================================================

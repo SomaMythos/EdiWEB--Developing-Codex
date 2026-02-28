@@ -30,9 +30,9 @@
 
   padding: 8px 16px;
 
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-subtle);
-  backdrop-filter: var(--glass-blur);
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
 
   border-radius: var(--radius-md);
 
@@ -40,7 +40,7 @@
   font-weight: 500;
   letter-spacing: 0.2px;
 
-  box-shadow: var(--glass-shadow-soft);
+  box-shadow: var(--elevation-1-shadow);
 
   cursor: pointer;
 
@@ -58,15 +58,15 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--glass-frost-overlay);
+  background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
   pointer-events: none;
   opacity: 0.6;
 }
 
 /* hover refinado */
 .category-btn:hover {
-  background: var(--glass-surface-medium);
-  border-color: var(--glass-border-default);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
   color: var(--glass-text-primary);
 
   transform: translateY(-1px);
@@ -99,6 +99,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  border-radius: var(--radius-xl);
+  background: var(--elevation-0-surface);
+  border: 1px solid var(--elevation-0-border);
+  backdrop-filter: var(--elevation-0-blur);
+  -webkit-backdrop-filter: var(--elevation-0-blur);
+  box-shadow: var(--elevation-0-shadow);
 }
 
 /* HEADER */
@@ -349,9 +355,9 @@
 
 .goal-card:hover {
   transform: translateY(-4px);
-  box-shadow:
-    0 20px 45px rgba(0,0,0,0.55),
-    inset 0 1px 0 rgba(255,255,255,0.05);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 /* left thumbnail column */
@@ -585,7 +591,9 @@
 .emoji-btn:hover,
 .emoji-btn:focus {
   transform: translateY(-2px);
-  background: var(--bg-primary);
+  background: var(--elevation-3-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--elevation-3-shadow);
   outline: none;
 }
 
@@ -631,10 +639,11 @@
 
 /* Base refinada */
 .goal-card {
-  background: var(--glass-surface-medium);
-  border: 1px solid var(--glass-border-default);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow-medium);
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
 
   border-radius: var(--radius-lg);
 
@@ -653,9 +662,9 @@
 
 /* Meta ativa */
 .goal-card.goal-active {
-  background: var(--glass-surface-medium);
-  border: 1px solid var(--glass-border-subtle);
-  box-shadow: var(--glass-shadow-soft);
+  background: var(--elevation-2-surface);
+  border: 1px solid var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .goal-active .goal-title {
@@ -890,7 +899,7 @@
 .emoji-btn:hover,
 .category-icon-btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--glass-shadow-soft);
+  box-shadow: var(--elevation-1-shadow);
 }
 
 .goal-card {

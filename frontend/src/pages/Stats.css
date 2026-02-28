@@ -42,23 +42,23 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  border: 1px solid var(--glass-premium-border);
+  border: 1px solid var(--elevation-1-border);
   border-radius: var(--radius);
-  background: var(--glass-premium-bg-base);
-  backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .top-activity-item:hover {
-  background: var(--glass-premium-bg-raised);
-  border-color: var(--glass-premium-border-strong);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .top-activity-item:active {
-  background: var(--glass-premium-bg-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .activity-rank {
@@ -107,11 +107,11 @@
 
 .goal-overview-card {
   padding: var(--spacing-md);
-  border: 1px solid var(--glass-premium-border);
+  border: 1px solid var(--elevation-1-border);
   border-radius: var(--radius);
-  background: var(--glass-premium-bg-base);
-  backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
@@ -121,14 +121,14 @@
 }
 
 .goal-overview-card:hover {
-  background: var(--glass-premium-bg-raised);
-  border-color: var(--glass-premium-border-strong);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .goal-overview-card:active {
-  background: var(--glass-premium-bg-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .goal-overview-header {
@@ -180,23 +180,23 @@
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-md);
-  border: 1px solid var(--glass-premium-border);
+  border: 1px solid var(--elevation-1-border);
   border-radius: var(--radius);
-  background: var(--glass-premium-bg-base);
-  backdrop-filter: var(--glass-premium-blur-base);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  background: var(--elevation-1-surface);
+  backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
   transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .daily-item:hover {
-  background: var(--glass-premium-bg-raised);
-  border-color: var(--glass-premium-border-strong);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
+  background: var(--elevation-2-surface);
+  border-color: var(--elevation-2-border);
+  box-shadow: var(--elevation-2-shadow);
 }
 
 .daily-item:active {
-  background: var(--glass-premium-bg-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .daily-date {
@@ -319,12 +319,12 @@
 .goals-overview-section,
 .daily-breakdown,
 .dashboard-profile-form {
-  background: var(--glass-premium-bg-base);
-  border: 1px solid var(--glass-premium-border);
-  backdrop-filter: var(--glass-premium-blur-base);
-  -webkit-backdrop-filter: var(--glass-premium-blur-base);
+  background: var(--elevation-1-surface);
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-base);
+  box-shadow: var(--elevation-1-shadow);
   padding: clamp(0.9rem, 1.3vw, 1.2rem);
 }
 
@@ -332,10 +332,13 @@
 .goal-overview-card,
 .top-activity-item,
 .daily-item {
-  background: var(--glass-premium-bg-base);
+  background: var(--elevation-1-surface);
   border-radius: var(--radius-md);
-  border: 1px solid var(--glass-premium-border);
-  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease, border-color var(--motion-fast) ease;
+  border: 1px solid var(--elevation-1-border);
+  backdrop-filter: var(--elevation-1-blur);
+  -webkit-backdrop-filter: var(--elevation-1-blur);
+  box-shadow: var(--elevation-1-shadow);
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-normal) ease, opacity var(--motion-fast) ease, border-color var(--motion-fast) ease, background var(--motion-fast) ease;
 }
 
 .stat-card:hover,
@@ -343,16 +346,16 @@
 .top-activity-item:hover,
 .daily-item:hover {
   transform: translateY(-2px);
-  box-shadow: var(--glass-premium-highlight), var(--glass-premium-shadow-raised);
-  border-color: var(--glass-premium-border-strong);
+  box-shadow: var(--elevation-2-shadow);
+  border-color: var(--elevation-2-border);
 }
 
 .stat-card:active,
 .goal-overview-card:active,
 .top-activity-item:active,
 .daily-item:active {
-  background: var(--glass-premium-bg-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
+  background: var(--elevation-3-surface);
+  box-shadow: var(--elevation-3-shadow);
 }
 
 .dashboard-quick-actions .btn {
