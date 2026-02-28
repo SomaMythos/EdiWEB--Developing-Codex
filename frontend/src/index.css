@@ -18,9 +18,12 @@
    MOTION / SPACING / RADIUS
    ========================= */
 
---motion-fast: 150ms;
---motion-normal: 200ms;
---motion-smooth: 220ms;
+--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+--ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+
+--motion-fast: 140ms;
+--motion-normal: 220ms;
+--motion-smooth: 320ms;
 
 --spacing-xs: 0.25rem;
 --spacing-sm: 0.5rem;
@@ -184,11 +187,12 @@
 --btn-padding-lg: 12px 22px;
 
 --btn-transition:
-  transform var(--motion-fast),
-  box-shadow var(--motion-fast),
-  background var(--motion-fast),
-  filter var(--motion-fast),
-  border-color var(--motion-fast);
+  transform var(--motion-fast) var(--ease-emphasized),
+  box-shadow var(--motion-normal) var(--ease-standard),
+  background var(--motion-normal) var(--ease-standard),
+  filter var(--motion-fast) var(--ease-standard),
+  border-color var(--motion-fast) var(--ease-standard),
+  opacity var(--motion-normal) var(--ease-standard);
 
 --btn-primary-bg: linear-gradient(135deg, #1f9d55, #16a34a);
 --btn-primary-border: rgba(22,163,74,0.35);
@@ -348,6 +352,7 @@
   backdrop-filter: var(--glass-blur);
   cursor: pointer;
   transition: var(--btn-transition);
+  overflow: hidden;
 }
 
 .btn:disabled {
@@ -363,14 +368,18 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--btn-primary-shadow-hover);
-  filter: brightness(1.04);
+  transform: translateY(-1px) scale(1.01);
+  box-shadow:
+    var(--btn-primary-shadow-hover),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  filter: brightness(1.08) saturate(1.08);
+  background: linear-gradient(135deg, #27b45f 0%, #22c55e 42%, #16a34a 100%);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.98);
+  transform: translateY(0) scale(0.985);
+  filter: brightness(0.96) saturate(1.06);
 }
 
 .btn-primary::after {
@@ -379,8 +388,34 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--glass-shine-overlay);
-  opacity: 0.4;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.26), transparent 62%),
+    var(--glass-shine-overlay);
+  opacity: 0.42;
+  transition: opacity var(--motion-normal) var(--ease-standard);
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 68%);
+  opacity: 0;
+  transform: scale(0.55);
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-smooth) var(--ease-emphasized);
+}
+
+.btn:hover:not(:disabled)::before {
+  opacity: 0.3;
+  transform: scale(1);
+}
+
+.btn:hover:not(:disabled)::after {
+  opacity: 0.68;
 }
 
 .btn-secondary {
@@ -391,7 +426,7 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.01);
   background: var(--glass-interactive-hover);
   border-color: var(--glass-border-strong);
 }
@@ -404,7 +439,7 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.01);
   filter: saturate(1.15);
 }
 
@@ -417,6 +452,12 @@
 .btn-ghost:hover:not(:disabled) {
   background: var(--glass-interactive-hover);
   color: var(--glass-text-primary);
+}
+
+.btn-secondary:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-ghost:active:not(:disabled) {
+  transform: scale(0.985);
 }
 
 .btn-icon {
@@ -443,6 +484,7 @@
    ====================================================== */
 
 .card {
+  position: relative;
   background: var(--elevation-1-surface);
   border: 1px solid var(--elevation-1-border);
   backdrop-filter: var(--elevation-1-blur);
@@ -450,13 +492,46 @@
   box-shadow: var(--elevation-1-shadow);
   border-radius: var(--radius-lg);
   padding: var(--spacing-md);
+  overflow: hidden;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasized),
+    box-shadow var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-normal) var(--ease-standard);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.04) 34%,
+    transparent 72%
+  );
+  opacity: 0.26;
+  pointer-events: none;
+  transition: opacity var(--motion-normal) var(--ease-standard);
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.015);
   background: var(--elevation-2-surface);
   border-color: var(--elevation-2-border);
-  box-shadow: var(--elevation-2-shadow);
+  box-shadow:
+    var(--elevation-2-shadow),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.card:hover::before,
+.card:focus-within::before {
+  opacity: 0.54;
+}
+
+.card:focus-within {
+  transform: translateY(-1px) scale(1.01);
 }
 
 
@@ -478,17 +553,21 @@
   outline: none;
   appearance: none;
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast),
-    box-shadow var(--motion-fast);
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-normal) var(--ease-standard),
+    box-shadow var(--motion-normal) var(--ease-standard);
 }
 
 .input:focus,
 .modal-form input:focus,
-.modal-form textarea:focus {
+.modal-form textarea:focus,
+.modal-form select:focus {
   background: var(--glass-surface-medium);
-  border-color: var(--glass-border-strong);
-  box-shadow: var(--focus-ring);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 0 0 1px rgba(248, 242, 220, 0.3),
+    0 0 0 4px rgba(248, 242, 220, 0.12),
+    0 8px 22px rgba(248, 242, 220, 0.12);
 }
 
 input::placeholder,
