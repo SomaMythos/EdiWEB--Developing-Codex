@@ -97,11 +97,65 @@ const Notifications = () => {
   const initializedRef = useRef(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
+  const updateDropdownPosition = () => {
+    if (!buttonRef.current) return;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spacing = 12;
+    const viewportPadding = 12;
+    const dropdownWidth = Math.min(380, window.innerWidth - (viewportPadding * 2));
+    const dropdownHeight = 500;
+
+    let left = rect.right + spacing;
+    if (left + dropdownWidth > window.innerWidth - viewportPadding) {
+      left = rect.left - dropdownWidth - spacing;
+    }
+
+    left = Math.max(viewportPadding, left);
+
+    let top = rect.top;
+    if (top + dropdownHeight > window.innerHeight - viewportPadding) {
+      top = window.innerHeight - dropdownHeight - viewportPadding;
+    }
+    top = Math.max(viewportPadding, top);
+
+    setPosition({ top, left });
+  };
+
   useEffect(() => {
     loadNotifications();
     const interval = setInterval(loadNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!show) return undefined;
+
+    updateDropdownPosition();
+
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current
+        && !dropdownRef.current.contains(event.target)
+        && buttonRef.current
+        && !buttonRef.current.contains(event.target)
+      ) {
+        setShow(false);
+      }
+    };
+
+    const handleReposition = () => updateDropdownPosition();
+
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [show]);
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -137,14 +191,10 @@ const Notifications = () => {
         ref={buttonRef}
         className="notifications-button"
         onClick={() => {
-          if (!show && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({
-              top: rect.top,
-              left: rect.right + 12,
-            });
+          if (!show) {
+            updateDropdownPosition();
           }
-          setShow(!show);
+          setShow((prev) => !prev);
         }}
       >
         <Bell size={20} />

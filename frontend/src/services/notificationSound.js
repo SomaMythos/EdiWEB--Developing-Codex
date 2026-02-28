@@ -1,7 +1,7 @@
-import defaultSound from '../assets/sounds/default.wav';
-import warningSound from '../assets/sounds/warning.wav';
-import criticalSound from '../assets/sounds/critical.wav';
-import softSound from '../assets/sounds/soft.wav';
+import defaultSound from '../assets/sounds/Default.wav';
+import warningSound from '../assets/sounds/Warning.wav';
+import criticalSound from '../assets/sounds/Critical.wav';
+import softSound from '../assets/sounds/Soft.wav';
 import {
   DEFAULT_SOUND_PREFERENCES,
   createNotificationSoundPlayer,
