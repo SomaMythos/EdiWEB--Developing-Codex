@@ -96,6 +96,16 @@
   box-shadow: var(--elevation-3-shadow);
 }
 
+.consumiveis-page .item-row--recent-restock {
+  animation: item-restock-glow 1.8s ease-out;
+}
+
+.consumiveis-page .item-row--recent-finish {
+  background: linear-gradient(145deg, rgba(120, 189, 139, 0.2) 0%, var(--elevation-1-surface) 72%);
+  border-color: rgba(139, 221, 162, 0.38);
+  box-shadow: 0 0 0 1px rgba(139, 221, 162, 0.2), var(--elevation-2-shadow);
+}
+
 .consumiveis-page .item-row span {
   color: var(--glass-text-secondary);
   font-size: 0.85rem;
@@ -157,6 +167,78 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  transition: background 260ms ease, border-color 260ms ease, box-shadow 260ms ease, filter 260ms ease;
+}
+
+.consumiveis-page .action-card--restocked {
+  animation: item-restock-glow 1.8s ease-out;
+}
+
+.consumiveis-page .action-card--finished {
+  background: linear-gradient(150deg, rgba(122, 207, 146, 0.16) 0%, var(--elevation-1-surface) 76%);
+  border-color: rgba(122, 207, 146, 0.45);
+  box-shadow: 0 0 0 1px rgba(122, 207, 146, 0.22), var(--elevation-2-shadow);
+  filter: saturate(1.03) contrast(1.03);
+}
+
+.consumiveis-page .finish-confirmation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(113, 196, 135, 0.3);
+  background: rgba(84, 168, 109, 0.16);
+  color: #dafbe1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  pointer-events: none;
+}
+
+.consumiveis-page .finish-confirmation.is-visible {
+  animation: finish-confirm-pop 520ms ease-out forwards;
+}
+
+.consumiveis-page .finish-confirmation__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(84, 168, 109, 0.34);
+  color: #f4fff7;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+@keyframes item-restock-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 228, 153, 0.58), var(--elevation-1-shadow);
+  }
+  45% {
+    box-shadow: 0 0 0 7px rgba(99, 228, 153, 0.22), var(--elevation-3-shadow);
+  }
+  100% {
+    box-shadow: var(--elevation-1-shadow);
+  }
+}
+
+@keyframes finish-confirm-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .consumiveis-page .action-card .muted {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { consumablesApi } from '../services/api';
 import './Consumiveis.css';
 
@@ -55,6 +55,31 @@ const Consumiveis = () => {
   const [isLoadingDetailId, setIsLoadingDetailId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [recentlyRestocked, setRecentlyRestocked] = useState({});
+  const [recentlyFinished, setRecentlyFinished] = useState({});
+  const actionTimersRef = useRef({});
+
+  useEffect(() => () => {
+    Object.values(actionTimersRef.current).forEach((timerId) => {
+      clearTimeout(timerId);
+    });
+  }, []);
+
+  const markItemTemporarily = (itemId, setter, keyPrefix) => {
+    if (!itemId) return;
+    const timerKey = `${keyPrefix}-${itemId}`;
+
+    if (actionTimersRef.current[timerKey]) {
+      clearTimeout(actionTimersRef.current[timerKey]);
+    }
+
+    setter((previous) => ({ ...previous, [itemId]: true }));
+
+    actionTimersRef.current[timerKey] = setTimeout(() => {
+      setter((previous) => ({ ...previous, [itemId]: false }));
+      delete actionTimersRef.current[timerKey];
+    }, 1800);
+  };
 
   const loadBaseData = async () => {
     setIsLoadingBase(true);
@@ -185,6 +210,7 @@ const Consumiveis = () => {
         price_paid: normalizedPrice,
       });
       setRestockPrice('');
+      markItemTemporarily(itemId, setRecentlyRestocked, 'restock');
       setFeedback({ type: 'success', message: 'Restoque registrado com sucesso.' });
     });
   };
@@ -194,6 +220,7 @@ const Consumiveis = () => {
 
     await withSubmit(async () => {
       await consumablesApi.finishCycle(itemId, { ended_at: finishDate });
+      markItemTemporarily(itemId, setRecentlyFinished, 'finish');
       setFeedback({ type: 'success', message: 'Ciclo finalizado com sucesso.' });
     });
   };
@@ -220,6 +247,8 @@ const Consumiveis = () => {
   const stats = panelDetail?.stats || {};
   const cycles = panelDetail?.cycles || [];
   const hasOpenCycle = cycles.some((cycle) => cycle.ended_at == null);
+  const isPanelRecentlyRestocked = Boolean(openPanelItemId && recentlyRestocked[openPanelItemId]);
+  const isPanelRecentlyFinished = Boolean(openPanelItemId && recentlyFinished[openPanelItemId]);
 
   return (
     <div className="page-container fade-in consumiveis-page">
@@ -304,9 +333,14 @@ const Consumiveis = () => {
                     const detail = itemDetailsById[item.id] || {};
                     const itemStats = detail.stats || {};
                     const isTooltipOpen = openStatsItemId === item.id;
+                    const isRecentlyRestocked = Boolean(recentlyRestocked[item.id]);
+                    const isRecentlyFinished = Boolean(recentlyFinished[item.id]);
 
                     return (
-                      <div key={item.id} className="item-row">
+                      <div
+                        key={item.id}
+                        className={`item-row ${isRecentlyRestocked ? 'item-row--recent-restock' : ''} ${isRecentlyFinished ? 'item-row--recent-finish' : ''}`.trim()}
+                      >
                         <strong>{item.name}</strong>
                         <span>{item.category_name}</span>
 
@@ -358,7 +392,7 @@ const Consumiveis = () => {
               </p>
 
               <div className="actions-grid">
-                <div className="action-card">
+                <div className={`action-card ${isPanelRecentlyRestocked ? 'action-card--restocked' : ''}`.trim()}>
                   <h4>Restocar</h4>
                   <p className="muted">Preço é opcional para registrar compras sem valor.</p>
                   <input className="input" type="date" value={restockDate} onChange={(event) => setRestockDate(event.target.value)} />
@@ -374,11 +408,15 @@ const Consumiveis = () => {
                   <button type="button" className="btn btn-primary" onClick={() => handleRestock(openPanelItemId)} disabled={isSubmitting}>Restocar</button>
                 </div>
 
-                <div className="action-card">
+                <div className={`action-card ${isPanelRecentlyFinished ? 'action-card--finished' : ''}`.trim()}>
                   <h4>Marcar como finalizado</h4>
                   <input className="input" type="date" value={finishDate} onChange={(event) => setFinishDate(event.target.value)} />
                   {!hasOpenCycle ? <p className="muted">Sem ciclo aberto para finalizar.</p> : null}
                   <button type="button" className="btn btn-secondary" onClick={() => handleFinishCycle(openPanelItemId)} disabled={isSubmitting || !hasOpenCycle}>Finalizar ciclo</button>
+                  <span className={`finish-confirmation ${isPanelRecentlyFinished ? 'is-visible' : ''}`.trim()} aria-live="polite">
+                    <span className="finish-confirmation__icon" aria-hidden="true">✓</span>
+                    Concluído
+                  </span>
                 </div>
               </div>
 
