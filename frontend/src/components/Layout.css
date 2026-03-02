@@ -170,48 +170,6 @@
     box-shadow var(--motion-fast);
 }
 
-/* DOUBLE UNDERLINE (PALETTE-AWARE) */
-
-.nav-item-label {
-  position: relative;
-  display: inline-block;
-}
-
-.nav-item-label::before,
-.nav-item-label::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  border-radius: var(--radius-full);
-  background: linear-gradient(
-    90deg,
-    var(--sidebar-accent-strong),
-    var(--sidebar-accent),
-    rgba(255,255,255,0.75)
-  );
-  transform: scaleX(0);
-  transition: transform 0.4s var(--ease-standard);
-}
-
-.nav-item-label::before {
-  top: -0.26rem;
-  transform-origin: left;
-}
-
-.nav-item-label::after {
-  bottom: -0.26rem;
-  transform-origin: right;
-}
-
-.nav-item:hover .nav-item-label::before,
-.nav-item:hover .nav-item-label::after,
-.nav-item.active .nav-item-label::before,
-.nav-item.active .nav-item-label::after {
-  transform: scaleX(1);
-}
-
 /* HOVER SOFT GLOW */
 
 .nav-item::after {
