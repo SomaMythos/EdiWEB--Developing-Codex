@@ -27,7 +27,7 @@ const DailyReportCard = ({
           <div className="stat-icon primary"><Activity size={20} /></div>
           <div className="stat-content">
             <p className="stat-label">Concluídas hoje</p>
-            <p className="stat-value">{overview?.activities?.completed || todayData?.completed || 0}</p>
+            <p className="stat-value">{overview?.activities?.completed || todayData?.done || 0}</p>
           </div>
         </div>
         <div className="stat-card">
@@ -89,7 +89,7 @@ const DailyReportCard = ({
               <div className="activity-detail-stats">
                 <p><strong>{selectedActivity.executions}</strong> execuções</p>
                 <p><strong>{activeDays}</strong> dias ativos no período</p>
-                <p><strong>{formatMinutes(todayData?.executed_time || 0)}</strong> tempo executado hoje</p>
+                <p><strong>{formatMinutes(todayData?.total_time || 0)}</strong> tempo executado hoje</p>
               </div>
             </>
           ) : (

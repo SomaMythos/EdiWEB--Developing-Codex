@@ -50,14 +50,14 @@ const Dashboard = () => {
   };
 
   const completionRateToday =
-    todayData && todayData.planned > 0 ? Math.round((todayData.completed / todayData.planned) * 100) : 0;
+    todayData && todayData.total > 0 ? Math.round((todayData.done / todayData.total) * 100) : 0;
 
   const averageCompletionRate =
     lastDaysData.length > 0
       ? Math.round(lastDaysData.reduce((sum, day) => sum + (day.completion_rate || 0), 0) / lastDaysData.length)
       : 0;
 
-  const totalPeriodActivityTime = lastDaysData.reduce((sum, day) => sum + (day.executed_time || 0), 0);
+  const totalPeriodActivityTime = lastDaysData.reduce((sum, day) => sum + (day.total_time || 0), 0);
   const activeDays = lastDaysData.filter((d) => (d.total || 0) > 0).length;
 
   useEffect(() => {
