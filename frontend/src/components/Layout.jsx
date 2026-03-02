@@ -75,7 +75,7 @@ const Layout = ({ children }) => {
       }
     >
       <item.icon size={20} />
-      <span>{item.label}</span>
+      <span className="nav-item-label">{item.label}</span>
     </NavLink>
   ))}
 
@@ -87,7 +87,7 @@ const Layout = ({ children }) => {
   onClick={() => setIsHobbyOpen((prev) => !prev)}
 >
   <Heart size={20} />
-  <span>Hobby</span>
+  <span className="nav-item-label">Hobby</span>
   <span className="nav-chevron-wrapper">
     {isHobbyOpen ? (
       <ChevronDown size={16} className="nav-chevron" />
@@ -107,7 +107,7 @@ const Layout = ({ children }) => {
           }
         >
           <item.icon size={18} />
-          <span>{item.label}</span>
+          <span className="nav-item-label">{item.label}</span>
         </NavLink>
       ))}
     </div>
@@ -121,7 +121,7 @@ const Layout = ({ children }) => {
       onClick={() => setIsShoppingOpen((prev) => !prev)}
     >
       <ShoppingCart size={20} />
-      <span>Shopping</span>
+      <span className="nav-item-label">Shopping</span>
       <span className="nav-chevron-wrapper">
         {isShoppingOpen ? (
           <ChevronDown size={16} className="nav-chevron" />
@@ -141,7 +141,7 @@ const Layout = ({ children }) => {
           }
         >
           <item.icon size={18} />
-          <span>{item.label}</span>
+          <span className="nav-item-label">{item.label}</span>
         </NavLink>
       ))}
     </div>
@@ -157,7 +157,7 @@ const Layout = ({ children }) => {
       }
     >
       <item.icon size={20} />
-      <span>{item.label}</span>
+      <span className="nav-item-label">{item.label}</span>
     </NavLink>
   ))}
 </nav>
