@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 from data.database import Database
 from core.goal_engine import GoalEngine
@@ -303,3 +304,61 @@ class AnalyticsEngine:
             })
 
         return overview
+
+    @staticmethod
+    def goals_summary_report():
+        db = Database()
+        row = db.fetchone(
+            """
+            WITH completed_goals AS (
+                SELECT
+                    COALESCE(gc.name, 'Sem categoria') AS category_name,
+                    CASE
+                        WHEN date(g.completed_at) >= date('now', '-6 days') THEN 1
+                        ELSE 0
+                    END AS completed_week,
+                    CASE
+                        WHEN date(g.completed_at) >= date('now', 'start of month') THEN 1
+                        ELSE 0
+                    END AS completed_month
+                FROM goals g
+                LEFT JOIN goal_categories gc ON gc.id = g.category_id
+                WHERE g.status = 'concluida'
+                  AND g.completed_at IS NOT NULL
+            ),
+            category_totals AS (
+                SELECT
+                    category_name,
+                    SUM(completed_week) AS total_week,
+                    SUM(completed_month) AS total_month,
+                    COUNT(*) AS total_completed
+                FROM completed_goals
+                GROUP BY category_name
+            )
+            SELECT
+                COALESCE((SELECT SUM(completed_week) FROM completed_goals), 0) AS completed_week,
+                COALESCE((SELECT SUM(completed_month) FROM completed_goals), 0) AS completed_month,
+                COALESCE((SELECT json_object(
+                    'category', category_name,
+                    'completed', total_completed,
+                    'week', total_week,
+                    'month', total_month
+                ) FROM category_totals ORDER BY total_completed DESC, category_name ASC LIMIT 1), '{}') AS top_category,
+                COALESCE((SELECT json_object(
+                    'category', category_name,
+                    'completed', total_completed,
+                    'week', total_week,
+                    'month', total_month
+                ) FROM category_totals ORDER BY total_completed ASC, CASE WHEN category_name = 'Sem categoria' THEN 0 ELSE 1 END ASC, category_name ASC LIMIT 1), '{}') AS bottom_category
+            """
+        )
+        db.close()
+
+        return {
+            "completed_week": row["completed_week"] or 0,
+            "completed_month": row["completed_month"] or 0,
+            "ranking": {
+                "most_completed": json.loads(row["top_category"] or "{}"),
+                "least_completed": json.loads(row["bottom_category"] or "{}"),
+            },
+        }

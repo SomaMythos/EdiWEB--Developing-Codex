@@ -105,6 +105,7 @@ export const reportsApi = {
   getDailyStreaks: () => api.get('/reports/daily/streaks'),
   getDailyActivityDetail: (activityId) => api.get(`/reports/daily/activity/${activityId}`),
   getDailyTimeseries: (days = 30) => api.get('/reports/daily/timeseries', { params: { days } }),
+  getGoalsSummary: () => api.get('/reports/goals/summary'),
 };
 
 // Notifications

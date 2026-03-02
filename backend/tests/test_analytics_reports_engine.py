@@ -15,6 +15,8 @@ def _prepare_db(db_path: Path):
         conn.executescript(schema_path.read_text(encoding="utf-8"))
         conn.execute("INSERT INTO activities (title) VALUES ('Leitura')")
         conn.execute("INSERT INTO activities (title) VALUES ('Treino')")
+        conn.execute("INSERT INTO goal_categories (name) VALUES ('Estudos')")
+        conn.execute("INSERT INTO goal_categories (name) VALUES ('Saúde')")
         conn.commit()
 
 
@@ -26,6 +28,7 @@ def test_reports_daily_methods(monkeypatch, tmp_path):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
+    week_old = today - timedelta(days=8)
 
     with Database(path=db_path) as db:
         db.execute("INSERT INTO daily_logs (date) VALUES (?)", (today.isoformat(),))
@@ -38,10 +41,29 @@ def test_reports_daily_methods(monkeypatch, tmp_path):
             """
         )
 
+        db.execute(
+            """
+            INSERT INTO goals (title, status, category_id, completed_at)
+            VALUES
+              ('Meta 1', 'concluida', 1, ?),
+              ('Meta 2', 'concluida', 1, ?),
+              ('Meta 3', 'concluida', 2, ?),
+              ('Meta 4', 'concluida', NULL, ?),
+              ('Meta 5', 'ativa', 2, NULL)
+            """,
+            (
+                today.isoformat(),
+                (today - timedelta(days=1)).isoformat(),
+                today.isoformat(),
+                week_old.isoformat(),
+            ),
+        )
+
     overview = AnalyticsEngine.daily_overview()
     streaks = AnalyticsEngine.streaks_summary()
     timeseries = AnalyticsEngine.daily_timeseries(7)
     detail = AnalyticsEngine.activity_detail(1)
+    goals_summary = AnalyticsEngine.goals_summary_report()
 
     assert overview["today"]["completed"] == 2
     assert overview["week"]["completed"] == 3
@@ -51,3 +73,8 @@ def test_reports_daily_methods(monkeypatch, tmp_path):
     assert detail["activity"]["title"] == "Leitura"
     assert detail["week"]["completed"] == 2
     assert detail["month"]["total_duration"] == 55
+
+    assert goals_summary["completed_week"] == 3
+    assert goals_summary["completed_month"] == 3
+    assert goals_summary["ranking"]["most_completed"]["category"] == "Estudos"
+    assert goals_summary["ranking"]["least_completed"]["category"] == "Sem categoria"
