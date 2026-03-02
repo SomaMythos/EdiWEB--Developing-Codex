@@ -13,7 +13,6 @@ export function useActivities() {
   const validateActivity = activity => {
     const errors = {};
     const title = (activity.title || "").trim();
-    const isFixedFrequency = activity.frequency_type !== "flex";
 
     if (!title) {
       errors.title = "Título é obrigatório.";
@@ -31,13 +30,20 @@ export function useActivities() {
       errors.max_duration = "A duração máxima deve ser maior ou igual à mínima.";
     }
 
-    if (isFixedFrequency) {
-      if (!activity.fixed_time) {
-        errors.fixed_time = "Informe o horário fixo.";
-      }
-      if (!activity.fixed_duration || activity.fixed_duration <= 0) {
-        errors.fixed_duration = "A duração fixa deve ser maior que zero.";
-      }
+    const hasFixedTime = Boolean(activity.fixed_time);
+    const fixedDurationValue =
+      activity.fixed_duration === "" || activity.fixed_duration === null || activity.fixed_duration === undefined
+        ? null
+        : Number(activity.fixed_duration);
+    const hasFixedDuration = Number.isFinite(fixedDurationValue);
+
+    if (hasFixedTime !== hasFixedDuration) {
+      errors.fixed_time = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
+      errors.fixed_duration = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
+    }
+
+    if (hasFixedDuration && fixedDurationValue <= 0) {
+      errors.fixed_duration = "A duração fixa deve ser maior que zero.";
     }
 
     if (!activity.is_disc && !activity.is_fun) {
@@ -76,8 +82,11 @@ export function useActivities() {
       const payload = {
         ...newActivity,
         title: newActivity.title.trim(),
-        fixed_time: newActivity.frequency_type === "flex" ? null : newActivity.fixed_time || null,
-        fixed_duration: newActivity.frequency_type === "flex" ? null : newActivity.fixed_duration
+        fixed_time: newActivity.fixed_time || null,
+        fixed_duration:
+          newActivity.fixed_duration === "" || newActivity.fixed_duration === null || newActivity.fixed_duration === undefined
+            ? null
+            : Number(newActivity.fixed_duration)
       };
       await activitiesApi.create(payload);
       setNewActivity(DEFAULT_ACTIVITY);
@@ -116,11 +125,7 @@ export function useActivities() {
   };
 
   const handleFrequencyChange = frequencyType => {
-    setNewActivity(prev =>
-      frequencyType === "flex"
-        ? { ...prev, frequency_type: "flex", fixed_time: "", fixed_duration: 30 }
-        : { ...prev, frequency_type: frequencyType }
-    );
+    setNewActivity(prev => ({ ...prev, frequency_type: frequencyType }));
   };
 
   return {

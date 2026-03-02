@@ -36,8 +36,8 @@ export default function ActivitiesModal({
               <div className="activity-meta">{a.min_duration === a.max_duration ? `${a.min_duration} min` : `${a.min_duration} - ${a.max_duration} min`}</div>
               <div className="activity-meta">
                 {getFrequencyLabel(a.frequency_type)}
-                {a.frequency_type !== "flex" && formatFixedTime(a.fixed_time) ? ` • Horário fixo ${formatFixedTime(a.fixed_time)}` : ""}
-                {a.frequency_type !== "flex" && a.fixed_duration ? ` • Duração fixa ${a.fixed_duration} min` : ""}
+                {formatFixedTime(a.fixed_time) ? ` • Horário fixo ${formatFixedTime(a.fixed_time)}` : ""}
+                {a.fixed_duration ? ` • Duração fixa ${a.fixed_duration} min` : ""}
                 {a.is_disc ? " • Disciplina" : ""}
                 {a.is_fun ? " • Diversão" : ""}
               </div>
@@ -108,13 +108,21 @@ export default function ActivitiesModal({
               <input
                 className={validationErrors.fixed_duration ? "activities-input--error" : ""}
                 type="number"
-                placeholder="Duração (min)"
+                placeholder="Duração fixa (opcional)"
                 value={newActivity.fixed_duration}
-                onChange={e => setNewActivity({ ...newActivity, fixed_duration: parseIntegerOrFallback(e.target.value, 0) })}
+                onChange={e =>
+                  setNewActivity({
+                    ...newActivity,
+                    fixed_duration: e.target.value === "" ? "" : parseIntegerOrFallback(e.target.value, "")
+                  })
+                }
               />
               {validationErrors.fixed_duration && <span className="activities-error">{validationErrors.fixed_duration}</span>}
             </div>
           </div>
+        )}
+        {newActivity.frequency_type !== "flex" && (
+          <span className="activity-meta">Horário e duração fixos são opcionais (preencha os dois apenas se quiser travar a atividade).</span>
         )}
 
         <div className="activities-flags">

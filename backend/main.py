@@ -215,7 +215,7 @@ async def list_activities():
 @app.post("/api/activities")
 async def create_activity(activity: ActivityCreate):
     def _validate_fixed_activity_conflicts(payload: ActivityCreate):
-        if not payload.fixed_time:
+        if not payload.fixed_time or payload.fixed_duration is None:
             return
 
         frequency = (payload.frequency_type or "flex").strip().lower()
@@ -307,12 +307,13 @@ async def create_activity(activity: ActivityCreate):
         if frequency not in allowed_frequencies:
             raise HTTPException(status_code=400, detail="frequency_type inválido")
 
-        if frequency != "flex":
-            if not activity.fixed_time:
-                raise HTTPException(status_code=400, detail="fixed_time é obrigatório para frequência fixa")
-            if activity.fixed_duration is None or activity.fixed_duration <= 0:
-                raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero para frequência fixa")
-        elif activity.fixed_duration is not None and activity.fixed_duration <= 0:
+        has_fixed_time = bool(activity.fixed_time)
+        has_fixed_duration = activity.fixed_duration is not None
+
+        if has_fixed_time != has_fixed_duration:
+            raise HTTPException(status_code=400, detail="fixed_time e fixed_duration devem ser informados juntos")
+
+        if has_fixed_duration and activity.fixed_duration <= 0:
             raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero")
 
         if activity.fixed_time:

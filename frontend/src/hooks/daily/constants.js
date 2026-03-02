@@ -10,7 +10,7 @@ export const DEFAULT_ACTIVITY = {
   max_duration: 60,
   frequency_type: "flex",
   fixed_time: "",
-  fixed_duration: 30,
+  fixed_duration: "",
   is_disc: true,
   is_fun: false
 };
