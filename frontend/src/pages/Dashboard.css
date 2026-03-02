@@ -240,3 +240,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+.activity-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--elevation-1-border);
+  background: var(--elevation-1-surface);
+  color: var(--text-primary);
+}
+
+.mt-sm {
+  margin-top: var(--spacing-sm);
+}

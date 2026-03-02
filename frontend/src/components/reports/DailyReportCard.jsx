@@ -8,12 +8,19 @@ const DailyReportCard = ({
   averageCompletionRate,
   totalPeriodActivityTime,
   activeDays,
-  selectedActivity,
-  onSelectActivity,
   topActivities,
+  selectedActivityId,
+  onSelectActivity,
+  activityDetail,
+  dailyOverview,
+  dailyStreaks,
+  timeseries,
   formatMinutes,
 }) => {
-  const topExecutions = topActivities[0]?.executions || 1;
+  const periodAverage =
+    timeseries.length > 0
+      ? Math.round(timeseries.reduce((sum, item) => sum + (item.completion_rate || 0), 0) / timeseries.length)
+      : averageCompletionRate;
 
   return (
     <section className="report-module card">
@@ -40,8 +47,8 @@ const DailyReportCard = ({
         <div className="stat-card">
           <div className="stat-icon success"><Calendar size={20} /></div>
           <div className="stat-content">
-            <p className="stat-label">Taxa média</p>
-            <p className="stat-value">{averageCompletionRate}%</p>
+            <p className="stat-label">Taxa média período</p>
+            <p className="stat-value">{periodAverage}%</p>
           </div>
         </div>
         <div className="stat-card">
@@ -55,41 +62,44 @@ const DailyReportCard = ({
 
       <div className="report-grid report-grid--split">
         <div className="activity-list-panel">
-          <h3>Atividades mais frequentes</h3>
+          <h3>Detalhe por atividade</h3>
           {topActivities.length === 0 ? (
             <p className="empty-state">Sem atividades concluídas no período.</p>
           ) : (
-            <div className="top-activities-list">
-              {topActivities.map((activity, index) => (
-                <button
-                  key={activity.title}
-                  type="button"
-                  className={`top-activity-item ${selectedActivity?.title === activity.title ? 'is-selected' : ''}`}
-                  onClick={() => onSelectActivity(activity)}
-                >
-                  <div className="activity-rank">{index + 1}</div>
-                  <div className="activity-info">
-                    <h3>{activity.title}</h3>
-                    <p>{activity.executions} execuções</p>
-                  </div>
-                  <div className="activity-bar">
-                    <div className="activity-bar-fill" style={{ width: `${(activity.executions / topExecutions) * 100}%` }} />
-                  </div>
-                </button>
+            <select
+              className="activity-select"
+              value={selectedActivityId || ''}
+              onChange={(event) => onSelectActivity(Number(event.target.value))}
+            >
+              {topActivities.map((activity) => (
+                <option key={activity.id} value={activity.id}>
+                  {activity.title}
+                </option>
               ))}
-            </div>
+            </select>
           )}
+
+          <div className="activity-detail-stats mt-sm">
+            <p><strong>{dailyStreaks?.current_activity_streak || 0}</strong> dias seguidos com atividade concluída</p>
+            <p><strong>{dailyStreaks?.current_perfect_daily_streak || 0}</strong> dias de perfect daily</p>
+            <p><strong>{activeDays}</strong> dias ativos no período selecionado</p>
+            <p><strong>{formatMinutes(dailyOverview?.month?.total_duration || 0)}</strong> no mês atual</p>
+          </div>
         </div>
 
         <div className="activity-detail-panel">
-          <h3>Visão detalhada por atividade</h3>
-          {selectedActivity ? (
+          <h3>Curiosidades da atividade</h3>
+          {activityDetail ? (
             <>
-              <p className="activity-detail-title">{selectedActivity.title}</p>
+              <p className="activity-detail-title">{activityDetail.activity?.title}</p>
               <div className="activity-detail-stats">
-                <p><strong>{selectedActivity.executions}</strong> execuções</p>
-                <p><strong>{activeDays}</strong> dias ativos no período</p>
-                <p><strong>{formatMinutes(todayData?.total_time || 0)}</strong> tempo executado hoje</p>
+                <p><strong>{activityDetail.week?.completed || 0}</strong> concluídas na semana ({activityDetail.week?.total || 0} no total)</p>
+                <p><strong>{activityDetail.month?.completed || 0}</strong> concluídas no mês ({activityDetail.month?.total || 0} no total)</p>
+                <p><strong>{formatMinutes(activityDetail.month?.total_duration || 0)}</strong> de duração no mês</p>
+                <p><strong>{formatMinutes(activityDetail.month?.avg_duration || 0)}</strong> de duração média no mês</p>
+                <p>
+                  Melhor dia: <strong>{activityDetail.best_day?.date || '—'}</strong>
+                </p>
               </div>
             </>
           ) : (
