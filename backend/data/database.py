@@ -715,6 +715,12 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260302_add_finance_transactions",
+        lambda: table_exists(db, "finance_transactions"),
+        read_migration_sql("20260302_add_finance_transactions.sql"),
+    )
+
+    run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
         "ALTER TABLE user_profile ADD COLUMN gender TEXT",

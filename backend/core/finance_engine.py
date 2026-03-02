@@ -5,6 +5,26 @@ from data.database import Database
 
 class FinanceEngine:
 
+    @staticmethod
+    def _to_iso_month(value: str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).strftime("%Y-%m")
+        except Exception:
+            return None
+
+    @staticmethod
+    def _month_bounds(reference_date: str = None):
+        if reference_date:
+            base = datetime.fromisoformat(reference_date.replace("Z", "+00:00"))
+        else:
+            base = datetime.now()
+        month_start = base.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if month_start.month == 1:
+            prev_month_start = month_start.replace(year=month_start.year - 1, month=12)
+        else:
+            prev_month_start = month_start.replace(month=month_start.month - 1)
+        return month_start.strftime("%Y-%m"), prev_month_start.strftime("%Y-%m")
+
     # =========================================================
     # CONFIGURAÇÃO
     # =========================================================
@@ -112,6 +132,148 @@ class FinanceEngine:
     # =========================================================
     # GASTOS FIXOS
     # =========================================================
+
+    @staticmethod
+    def list_transactions(limit=200):
+        db = Database()
+        rows = db.fetchall(
+            """
+            SELECT id, description, amount, category, occurred_at, kind, created_at, updated_at
+            FROM finance_transactions
+            ORDER BY occurred_at DESC, id DESC
+            LIMIT ?
+            """,
+            (max(1, min(int(limit or 200), 1000)),),
+        )
+        db.close()
+        return rows
+
+    @staticmethod
+    def create_transaction(description, amount, category, occurred_at, kind):
+        db = Database()
+        cursor = db.execute(
+            """
+            INSERT INTO finance_transactions (description, amount, category, occurred_at, kind)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (description, amount, category, occurred_at, kind),
+        )
+        transaction_id = cursor.lastrowid
+        db.commit()
+        created = db.fetchone(
+            """
+            SELECT id, description, amount, category, occurred_at, kind, created_at, updated_at
+            FROM finance_transactions
+            WHERE id=?
+            """,
+            (transaction_id,),
+        )
+        db.close()
+        return created
+
+    @staticmethod
+    def update_transaction(transaction_id, description, amount, category, occurred_at, kind):
+        db = Database()
+        db.execute(
+            """
+            UPDATE finance_transactions
+            SET description=?, amount=?, category=?, occurred_at=?, kind=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (description, amount, category, occurred_at, kind, transaction_id),
+        )
+        updated = db.execute("SELECT changes()").fetchone()[0]
+        db.commit()
+        if not updated:
+            db.close()
+            return None
+        row = db.fetchone(
+            """
+            SELECT id, description, amount, category, occurred_at, kind, created_at, updated_at
+            FROM finance_transactions
+            WHERE id=?
+            """,
+            (transaction_id,),
+        )
+        db.close()
+        return row
+
+    @staticmethod
+    def delete_transaction(transaction_id):
+        db = Database()
+        db.execute("DELETE FROM finance_transactions WHERE id=?", (transaction_id,))
+        deleted = db.execute("SELECT changes()").fetchone()[0]
+        db.commit()
+        db.close()
+        return deleted > 0
+
+    @staticmethod
+    def get_transaction_analytics(reference_date: str = None):
+        current_month, previous_month = FinanceEngine._month_bounds(reference_date)
+        db = Database()
+        monthly_rows = db.fetchall(
+            """
+            SELECT
+                SUBSTR(occurred_at, 1, 7) as month,
+                ROUND(SUM(CASE WHEN kind='income' THEN amount ELSE -amount END), 2) as net_change,
+                ROUND(SUM(CASE WHEN kind='expense' THEN amount ELSE 0 END), 2) as total_expense
+            FROM finance_transactions
+            GROUP BY SUBSTR(occurred_at, 1, 7)
+            ORDER BY month ASC
+            """
+        )
+        outliers = db.fetchone(
+            """
+            SELECT
+                MAX(CASE WHEN kind='expense' THEN amount END) as max_expense,
+                MIN(CASE WHEN kind='expense' THEN amount END) as min_expense
+            FROM finance_transactions
+            """
+        )
+
+        current_total_row = db.fetchone(
+            """
+            SELECT COALESCE(SUM(amount), 0) as total
+            FROM finance_transactions
+            WHERE kind='expense' AND SUBSTR(occurred_at, 1, 7)=?
+            """,
+            (current_month,),
+        )
+        previous_total_row = db.fetchone(
+            """
+            SELECT COALESCE(SUM(amount), 0) as total
+            FROM finance_transactions
+            WHERE kind='expense' AND SUBSTR(occurred_at, 1, 7)=?
+            """,
+            (previous_month,),
+        )
+        db.close()
+
+        current_total = float(current_total_row["total"] or 0)
+        previous_total = float(previous_total_row["total"] or 0)
+        savings_vs_previous = round(previous_total - current_total, 2)
+
+        patrimônio_variation = []
+        running_balance = 0.0
+        for row in monthly_rows:
+            running_balance += float(row["net_change"] or 0)
+            patrimônio_variation.append(
+                {
+                    "month": row["month"],
+                    "monthly_net_change": round(float(row["net_change"] or 0), 2),
+                    "total_equity": round(running_balance, 2),
+                }
+            )
+
+        return {
+            "reference_month": current_month,
+            "previous_month": previous_month,
+            "monthly_total_expense": round(current_total, 2),
+            "savings_vs_previous_month": savings_vs_previous,
+            "largest_expense": round(float(outliers["max_expense"] or 0), 2),
+            "smallest_expense": round(float(outliers["min_expense"] or 0), 2),
+            "equity_monthly_variation": patrimônio_variation,
+        }
 
     @staticmethod
     def list_fixed_expenses():

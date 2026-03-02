@@ -107,6 +107,7 @@ export const reportsApi = {
   getDailyTimeseries: (days = 30) => api.get('/reports/daily/timeseries', { params: { days } }),
   getGoalsSummary: () => api.get('/reports/goals/summary'),
   getHobbiesLog: (params = {}) => api.get('/reports/hobbies/log', { params }),
+  getFinanceSummary: (params = {}) => api.get('/reports/finance/summary', { params }),
 };
 
 // Notifications
@@ -156,6 +157,12 @@ export const financeApi = {
   createFixedExpense: (data) => api.post('/finance/fixed-expenses', data),
   updateFixedExpense: (id, data) => api.put(`/finance/fixed-expenses/${id}`, data),
   deleteFixedExpense: (id) => api.delete(`/finance/fixed-expenses/${id}`),
+
+  // Transações
+  listTransactions: (limit = 200) => api.get('/finance/transactions', { params: { limit } }),
+  createTransaction: (data) => api.post('/finance/transactions', data),
+  updateTransaction: (id, data) => api.put(`/finance/transactions/${id}`, data),
+  deleteTransaction: (id) => api.delete(`/finance/transactions/${id}`),
 
   // Resumo e Projeção
   getSummary: () => api.get('/finance/summary'),
