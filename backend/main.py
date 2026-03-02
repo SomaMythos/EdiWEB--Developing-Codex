@@ -1021,6 +1021,52 @@ async def get_goals_overview():
         raise HTTPException(status_code=500, detail=str(e))
         
         
+
+@app.get("/api/reports/daily/overview")
+async def reports_daily_overview():
+    """Get daily overview (today/week/month)."""
+    try:
+        data = AnalyticsEngine.daily_overview()
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/daily/streaks")
+async def reports_daily_streaks():
+    """Get streak summary for activity and perfect daily."""
+    try:
+        data = AnalyticsEngine.streaks_summary()
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/daily/activity/{activity_id}")
+async def reports_daily_activity(activity_id: int):
+    """Get detailed report for one activity (week/month)."""
+    try:
+        data = AnalyticsEngine.activity_detail(activity_id)
+        if not data:
+            raise HTTPException(status_code=404, detail="Atividade não encontrada")
+        return {"success": True, "data": data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/daily/timeseries")
+async def reports_daily_timeseries(days: int = 30):
+    """Get daily timeseries for completion and duration metrics."""
+    try:
+        days = max(1, min(days, 365))
+        data = AnalyticsEngine.daily_timeseries(days)
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # FINANCE ENDPOINTS
 # ============================================================================

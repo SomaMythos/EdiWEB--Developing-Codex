@@ -7,6 +7,7 @@ import {
   financeApi,
   goalsApi,
   notificationsApi,
+  reportsApi,
   shoppingApi,
 } from '../services/api';
 import DailyReportCard from '../components/reports/DailyReportCard';
@@ -22,8 +23,12 @@ const Dashboard = () => {
   const [todayData, setTodayData] = useState(null);
   const [lastDaysData, setLastDaysData] = useState([]);
   const [topActivities, setTopActivities] = useState([]);
-  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedActivityId, setSelectedActivityId] = useState(null);
   const [goalsOverview, setGoalsOverview] = useState([]);
+  const [dailyOverview, setDailyOverview] = useState(null);
+  const [dailyStreaks, setDailyStreaks] = useState(null);
+  const [timeseries, setTimeseries] = useState([]);
+  const [activityDetail, setActivityDetail] = useState(null);
   const [moduleSummary, setModuleSummary] = useState({
     goals: 0,
     notifications: 0,
@@ -73,26 +78,35 @@ const Dashboard = () => {
         notificationsRes,
         shoppingStatsRes,
         financeExpensesRes,
+        reportsOverviewRes,
+        reportsStreakRes,
+        reportsTimeseriesRes,
       ] = await Promise.allSettled([
         dashboardApi.getOverview(),
         analyticsApi.getToday(),
         analyticsApi.getLastDays(selectedPeriod),
-        analyticsApi.getTopActivities(5),
+        analyticsApi.getTopActivities(10),
         analyticsApi.getGoalsOverview(),
         goalsApi.list(),
         notificationsApi.list({ status: 'unread', include_generated: true }),
         shoppingApi.stats(),
         financeApi.listFixedExpenses(),
+        reportsApi.getDailyOverview(),
+        reportsApi.getDailyStreaks(),
+        reportsApi.getDailyTimeseries(selectedPeriod),
       ]);
 
       if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
       if (todayRes.status === 'fulfilled') setTodayData(todayRes.value?.data?.data || null);
       if (lastDaysRes.status === 'fulfilled') setLastDaysData(lastDaysRes.value?.data?.data || []);
+      if (reportsOverviewRes.status === 'fulfilled') setDailyOverview(reportsOverviewRes.value?.data?.data || null);
+      if (reportsStreakRes.status === 'fulfilled') setDailyStreaks(reportsStreakRes.value?.data?.data || null);
+      if (reportsTimeseriesRes.status === 'fulfilled') setTimeseries(reportsTimeseriesRes.value?.data?.data || []);
 
       if (topActivitiesRes.status === 'fulfilled') {
         const activities = topActivitiesRes.value?.data?.data || [];
         setTopActivities(activities);
-        setSelectedActivity((prev) => activities.find((activity) => activity.title === prev?.title) || activities[0] || null);
+        setSelectedActivityId((prev) => prev || activities[0]?.id || null);
       }
 
       if (goalsOverviewRes.status === 'fulfilled') setGoalsOverview(goalsOverviewRes.value?.data?.data || []);
@@ -111,6 +125,18 @@ const Dashboard = () => {
 
     loadData();
   }, [selectedPeriod]);
+
+  useEffect(() => {
+    if (!selectedActivityId) {
+      setActivityDetail(null);
+      return;
+    }
+
+    reportsApi
+      .getDailyActivityDetail(selectedActivityId)
+      .then((res) => setActivityDetail(res?.data?.data || null))
+      .catch(() => setActivityDetail(null));
+  }, [selectedActivityId]);
 
   return (
     <div className="page-container fade-in dashboard-page">
@@ -153,9 +179,13 @@ const Dashboard = () => {
           averageCompletionRate={averageCompletionRate}
           totalPeriodActivityTime={totalPeriodActivityTime}
           activeDays={activeDays}
-          selectedActivity={selectedActivity}
-          onSelectActivity={setSelectedActivity}
           topActivities={topActivities}
+          selectedActivityId={selectedActivityId}
+          onSelectActivity={setSelectedActivityId}
+          activityDetail={activityDetail}
+          dailyOverview={dailyOverview}
+          dailyStreaks={dailyStreaks}
+          timeseries={timeseries}
           formatMinutes={formatMinutes}
         />
 

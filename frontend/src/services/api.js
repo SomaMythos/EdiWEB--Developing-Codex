@@ -100,6 +100,13 @@ export const analyticsApi = {
   getGoalsOverview: () => api.get('/analytics/goals-overview'),
 };
 
+export const reportsApi = {
+  getDailyOverview: () => api.get('/reports/daily/overview'),
+  getDailyStreaks: () => api.get('/reports/daily/streaks'),
+  getDailyActivityDetail: (activityId) => api.get(`/reports/daily/activity/${activityId}`),
+  getDailyTimeseries: (days = 30) => api.get('/reports/daily/timeseries', { params: { days } }),
+};
+
 // Notifications
 export const notificationsApi = {
   list: (params = {}) => api.get('/notifications', { params }),
