@@ -248,7 +248,72 @@ class NotificationCenterEngine:
         NotificationCenterEngine._check_stalled_goals()
         NotificationCenterEngine._check_upcoming_deadlines(days_ahead=days_ahead)
         NotificationCenterEngine._check_consumables(days_ahead=days_ahead)
+        NotificationCenterEngine._check_daily_routine_start_notifications()
         NotificationCenterEngine._store_daily_summary()
+
+    @staticmethod
+    def _check_daily_routine_start_notifications(lookback_minutes: int = 15):
+        try:
+            now = datetime.now().replace(second=0, microsecond=0)
+            day_start = now.replace(hour=0, minute=0)
+            window_start = now - timedelta(minutes=max(1, lookback_minutes))
+
+            with Database() as db:
+                rows = db.fetchall(
+                    """
+                    SELECT
+                        dpb.id,
+                        dpb.date,
+                        dpb.start_time,
+                        dpb.duration,
+                        dpb.completed,
+                        COALESCE(a.title, dpb.block_name, 'Atividade') AS activity_title,
+                        dpb.block_name
+                    FROM daily_plan_blocks dpb
+                    LEFT JOIN activities a ON a.id = dpb.activity_id
+                    WHERE dpb.date = ?
+                      AND COALESCE(dpb.completed, 0) = 0
+                    """,
+                    (now.date().isoformat(),),
+                )
+
+            for raw_row in rows:
+                row = dict(raw_row)
+                start_time = row.get("start_time")
+                if not start_time:
+                    continue
+
+                try:
+                    scheduled_for = datetime.strptime(f"{row['date']} {start_time}", "%Y-%m-%d %H:%M")
+                except ValueError:
+                    continue
+
+                if scheduled_for > now:
+                    continue
+                if scheduled_for < max(window_start, day_start):
+                    continue
+
+                title = row.get("activity_title") or row.get("block_name") or "Atividade"
+                payload = {
+                    "notification_type": "daily_activity_start",
+                    "source_feature": "daily",
+                    "title": "Hora de iniciar atividade",
+                    "message": f"A atividade '{title}' está programada para começar agora.",
+                    "severity": "info",
+                    "scheduled_for": scheduled_for.isoformat(),
+                    "sound_key": "default",
+                    "color_token": "primary",
+                    "meta": {
+                        "date": row.get("date"),
+                        "plan_block_id": row.get("id"),
+                        "activity_title": title,
+                        "start_time": start_time,
+                        "duration": row.get("duration"),
+                    },
+                }
+                NotificationCenterEngine._insert_notification(payload)
+        except Exception as exc:
+            logger.error("Erro ao verificar início de atividades da rotina: %s", exc)
 
     @staticmethod
     def _check_consumables(days_ahead: int = 7):
@@ -458,6 +523,8 @@ class NotificationCenterEngine:
             return f"{notification_type}:{meta.get('goal_id')}:{meta.get('date')}"
         if notification_type == "upcoming_deadline":
             return f"{notification_type}:{meta.get('goal_id')}:{meta.get('deadline')}"
+        if notification_type == "daily_activity_start":
+            return f"{notification_type}:{meta.get('plan_block_id')}:{meta.get('date')}:{meta.get('start_time')}"
 
         title = notification.get("title") or ""
         message = notification.get("message") or ""
