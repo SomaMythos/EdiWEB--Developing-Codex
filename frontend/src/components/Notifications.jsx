@@ -31,6 +31,7 @@ const TYPE_TO_SEVERITY = {
   consumable_overdue: 'critical',
   custom_reminder: 'info',
   custom_notification: 'info',
+  daily_activity_start: 'info',
 };
 
 const TYPE_ICON_MAP = {
@@ -42,6 +43,7 @@ const TYPE_ICON_MAP = {
   consumable_overdue: AlertOctagon,
   custom_reminder: Bell,
   custom_notification: Bell,
+  daily_activity_start: Bell,
 };
 
 const SEVERITY_ICON_MAP = {
