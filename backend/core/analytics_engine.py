@@ -22,16 +22,16 @@ class AnalyticsEngine:
 
         db.close()
 
-        planned = len(rows)
-        completed = sum(1 for r in rows if r["completed"])
-        planned_time = sum(r["duration"] or 0 for r in rows)
-        executed_time = sum((r["duration"] or 0) for r in rows if r["completed"])
+        total = len(rows)
+        done = sum(1 for r in rows if r["completed"])
+        total_time = sum(r["duration"] or 0 for r in rows)
+        completion_rate = round((done / total) * 100) if total > 0 else 0
 
         return {
-            "planned": planned,
-            "completed": completed,
-            "planned_time": planned_time,
-            "executed_time": executed_time
+            "total": total,
+            "done": done,
+            "total_time": total_time,
+            "completion_rate": completion_rate
         }
 
     # =========================
@@ -55,7 +55,21 @@ class AnalyticsEngine:
         """, (since,))
 
         db.close()
-        return rows
+
+        normalized_rows = []
+        for row in rows:
+            total = row["total"] or 0
+            done = row["done"] or 0
+            total_time = row["total_time"] or 0
+            normalized_rows.append({
+                "date": row["date"],
+                "total": total,
+                "done": done,
+                "total_time": total_time,
+                "completion_rate": round((done / total) * 100) if total > 0 else 0,
+            })
+
+        return normalized_rows
 
     # =========================
     # ATIVIDADES MAIS FREQUENTES
