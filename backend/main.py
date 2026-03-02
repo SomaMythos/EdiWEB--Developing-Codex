@@ -11,7 +11,7 @@ import json
 import re
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint, field_validator
@@ -1074,6 +1074,26 @@ async def reports_daily_timeseries(days: int = 30):
     try:
         days = max(1, min(days, 365))
         data = AnalyticsEngine.daily_timeseries(days)
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/hobbies/log")
+async def reports_hobbies_log(
+    limit: int = 50,
+    from_date: Optional[str] = Query(None, alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+    module: Optional[List[str]] = None,
+):
+    """Get unified hobbies log (Leitura, Artes, Assistir, Música)."""
+    try:
+        data = AnalyticsEngine.hobbies_log(
+            limit=max(1, min(limit, 500)),
+            from_date=from_date,
+            to_date=to_date,
+            modules=module,
+        )
         return {"success": True, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -362,3 +362,185 @@ class AnalyticsEngine:
                 "least_completed": json.loads(row["bottom_category"] or "{}"),
             },
         }
+
+    @staticmethod
+    def hobbies_log(limit=50, from_date=None, to_date=None, modules=None):
+        db = Database()
+
+        rows = db.fetchall(
+            """
+            SELECT * FROM (
+                SELECT
+                    pp.timestamp AS timestamp,
+                    'artes' AS module,
+                    'painting_progress' AS event_type,
+                    COALESCE(pp.update_title, p.title, 'Atualização de pintura') AS title,
+                    json_object(
+                        'painting_id', p.id,
+                        'painting_title', p.title,
+                        'time_spent', COALESCE(pp.time_spent, 0),
+                        'notes', pp.notes
+                    ) AS details
+                FROM painting_progress pp
+                INNER JOIN paintings p ON p.id = pp.painting_id
+
+                UNION ALL
+
+                SELECT
+                    p.created_at AS timestamp,
+                    'artes' AS module,
+                    'painting_created' AS event_type,
+                    p.title AS title,
+                    json_object(
+                        'painting_id', p.id,
+                        'status', p.status,
+                        'category', p.visual_category
+                    ) AS details
+                FROM paintings p
+                WHERE p.created_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    p.finished_at AS timestamp,
+                    'artes' AS module,
+                    'painting_completed' AS event_type,
+                    p.title AS title,
+                    json_object(
+                        'painting_id', p.id,
+                        'status', p.status,
+                        'time_spent', COALESCE(p.time_spent, 0)
+                    ) AS details
+                FROM paintings p
+                WHERE p.finished_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    rs.read_at AS timestamp,
+                    'leitura' AS module,
+                    'reading_session' AS event_type,
+                    b.title AS title,
+                    json_object(
+                        'book_id', b.id,
+                        'pages_read', rs.pages_read,
+                        'start_page', rs.start_page,
+                        'end_page', rs.end_page,
+                        'duration', rs.duration
+                    ) AS details
+                FROM reading_sessions rs
+                INNER JOIN books b ON b.id = rs.book_id
+
+                UNION ALL
+
+                SELECT
+                    b.created_at AS timestamp,
+                    'leitura' AS module,
+                    'book_created' AS event_type,
+                    b.title AS title,
+                    json_object(
+                        'book_id', b.id,
+                        'book_type', b.book_type,
+                        'status', b.status,
+                        'total_pages', COALESCE(b.total_pages, 0)
+                    ) AS details
+                FROM books b
+                WHERE b.created_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    b.finished_at AS timestamp,
+                    'leitura' AS module,
+                    'book_finished' AS event_type,
+                    b.title AS title,
+                    json_object(
+                        'book_id', b.id,
+                        'status', b.status,
+                        'current_page', COALESCE(b.current_page, 0),
+                        'total_pages', COALESCE(b.total_pages, 0)
+                    ) AS details
+                FROM books b
+                WHERE b.finished_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    wi.watched_at AS timestamp,
+                    'assistir' AS module,
+                    'watch_completed' AS event_type,
+                    wi.name AS title,
+                    json_object(
+                        'watch_item_id', wi.id,
+                        'category', wc.name
+                    ) AS details
+                FROM watch_items wi
+                INNER JOIN watch_categories wc ON wc.id = wi.category_id
+                WHERE wi.watched_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    mts.created_at AS timestamp,
+                    'musica' AS module,
+                    'music_training_session' AS event_type,
+                    mtt.name AS title,
+                    json_object(
+                        'training_id', mtt.id,
+                        'instrument', mtt.instrument,
+                        'bpm', mts.bpm
+                    ) AS details
+                FROM music_training_sessions mts
+                INNER JOIN music_training_tabs mtt ON mtt.id = mts.training_id
+
+                UNION ALL
+
+                SELECT
+                    ma.created_at AS timestamp,
+                    'musica' AS module,
+                    'album_listened_confirmation' AS event_type,
+                    ma.name AS title,
+                    json_object(
+                        'album_id', ma.id,
+                        'status', ma.status,
+                        'artist', mart.name
+                    ) AS details
+                FROM music_albums ma
+                INNER JOIN music_artists mart ON mart.id = ma.artist_id
+                WHERE ma.status = 'listened'
+            ) hobby_log
+            WHERE timestamp IS NOT NULL
+            ORDER BY datetime(timestamp) DESC
+            """
+        )
+
+        db.close()
+
+        from_bound = str(from_date).strip() if from_date else None
+        to_bound = str(to_date).strip() if to_date else None
+        module_set = {m.strip().lower() for m in (modules or []) if m}
+
+        normalized = []
+        for row in rows:
+            timestamp = row["timestamp"]
+            if from_bound and timestamp < from_bound:
+                continue
+            if to_bound and timestamp > to_bound:
+                continue
+            if module_set and row["module"] not in module_set:
+                continue
+
+            normalized.append(
+                {
+                    "timestamp": timestamp,
+                    "module": row["module"],
+                    "event_type": row["event_type"],
+                    "title": row["title"],
+                    "details": json.loads(row["details"] or "{}"),
+                }
+            )
+
+            if len(normalized) >= max(limit, 1):
+                break
+
+        return normalized

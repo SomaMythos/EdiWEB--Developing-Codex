@@ -202,6 +202,13 @@
 .stalled-badge { background: var(--warning); }
 .active-badge { background: var(--secondary); }
 
+
+.hobby-feed-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
 .hobby-feed-item p,
 .empty-state {
   color: var(--text-secondary);

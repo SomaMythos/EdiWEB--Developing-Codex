@@ -106,6 +106,7 @@ export const reportsApi = {
   getDailyActivityDetail: (activityId) => api.get(`/reports/daily/activity/${activityId}`),
   getDailyTimeseries: (days = 30) => api.get('/reports/daily/timeseries', { params: { days } }),
   getGoalsSummary: () => api.get('/reports/goals/summary'),
+  getHobbiesLog: (params = {}) => api.get('/reports/hobbies/log', { params }),
 };
 
 // Notifications
