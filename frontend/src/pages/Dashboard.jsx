@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [dailyStreaks, setDailyStreaks] = useState(null);
   const [timeseries, setTimeseries] = useState([]);
   const [activityDetail, setActivityDetail] = useState(null);
+  const [goalsSummary, setGoalsSummary] = useState(null);
   const [moduleSummary, setModuleSummary] = useState({
     goals: 0,
     notifications: 0,
@@ -81,6 +82,7 @@ const Dashboard = () => {
         reportsOverviewRes,
         reportsStreakRes,
         reportsTimeseriesRes,
+        goalsSummaryRes,
       ] = await Promise.allSettled([
         dashboardApi.getOverview(),
         analyticsApi.getToday(),
@@ -94,6 +96,7 @@ const Dashboard = () => {
         reportsApi.getDailyOverview(),
         reportsApi.getDailyStreaks(),
         reportsApi.getDailyTimeseries(selectedPeriod),
+        reportsApi.getGoalsSummary(),
       ]);
 
       if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
@@ -102,6 +105,7 @@ const Dashboard = () => {
       if (reportsOverviewRes.status === 'fulfilled') setDailyOverview(reportsOverviewRes.value?.data?.data || null);
       if (reportsStreakRes.status === 'fulfilled') setDailyStreaks(reportsStreakRes.value?.data?.data || null);
       if (reportsTimeseriesRes.status === 'fulfilled') setTimeseries(reportsTimeseriesRes.value?.data?.data || []);
+      if (goalsSummaryRes.status === 'fulfilled') setGoalsSummary(goalsSummaryRes.value?.data?.data || null);
 
       if (topActivitiesRes.status === 'fulfilled') {
         const activities = topActivitiesRes.value?.data?.data || [];
@@ -198,6 +202,46 @@ const Dashboard = () => {
         <HobbyReportFeed topActivities={topActivities} />
 
         <FinanceReportPanel moduleSummary={moduleSummary} />
+
+
+      <section className="report-module goals-summary-report">
+        <div className="report-module-header">
+          <h2>Report de Metas</h2>
+          <p>Concluídas na semana, no mês e ranking por categoria.</p>
+        </div>
+
+        <div className="report-grid report-grid--two">
+          <article className="stat-card">
+            <div>
+              <p className="stat-label">Concluídas na semana</p>
+              <p className="stat-value">{goalsSummary?.completed_week || 0}</p>
+            </div>
+          </article>
+          <article className="stat-card">
+            <div>
+              <p className="stat-label">Concluídas no mês</p>
+              <p className="stat-value">{goalsSummary?.completed_month || 0}</p>
+            </div>
+          </article>
+        </div>
+
+        <div className="report-grid report-grid--two">
+          <article className="goal-overview-card">
+            <p className="stat-label">Categoria com mais concluídas</p>
+            <p className="stat-value">{goalsSummary?.ranking?.most_completed?.category || 'Sem categoria'}</p>
+            <p className="empty-state">
+              Total: {goalsSummary?.ranking?.most_completed?.completed || 0}
+            </p>
+          </article>
+          <article className="goal-overview-card">
+            <p className="stat-label">Categoria com menos concluídas</p>
+            <p className="stat-value">{goalsSummary?.ranking?.least_completed?.category || 'Sem categoria'}</p>
+            <p className="empty-state">
+              Total: {goalsSummary?.ranking?.least_completed?.completed || 0}
+            </p>
+          </article>
+        </div>
+      </section>
       </div>
 
       {loading && <p className="dashboard-loading">Atualizando dados...</p>}

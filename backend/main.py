@@ -1022,6 +1022,18 @@ async def get_goals_overview():
         
         
 
+
+
+@app.get("/api/reports/goals/summary")
+async def reports_goals_summary():
+    """Get weekly/monthly completed goals and category ranking."""
+    try:
+        data = AnalyticsEngine.goals_summary_report()
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/reports/daily/overview")
 async def reports_daily_overview():
     """Get daily overview (today/week/month)."""
