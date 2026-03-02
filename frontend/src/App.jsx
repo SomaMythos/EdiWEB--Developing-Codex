@@ -26,6 +26,7 @@ function App() {
   <Route path="/financeiro" element={<Financeiro />} />
   <Route path="/anotacoes" element={<Anotacoes />} />
   <Route path="/stats" element={<Navigate to="/dashboard" replace />} />
+  <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
   <Route path="/dashboard" element={<Dashboard />} />
   <Route path="/hobby/leitura" element={<Books />} />
   <Route path="/hobby/artes-visuais" element={<HobbyVisualArts />} />

@@ -1,25 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Award, Calendar, Clock, Home, Target, TrendingUp } from 'lucide-react';
+import { Home } from 'lucide-react';
 import {
   analyticsApi,
   dashboardApi,
   financeApi,
   goalsApi,
-  profileApi,
   notificationsApi,
   shoppingApi,
 } from '../services/api';
+import DailyReportCard from '../components/reports/DailyReportCard';
+import GoalReportCard from '../components/reports/GoalReportCard';
+import HobbyReportFeed from '../components/reports/HobbyReportFeed';
+import FinanceReportPanel from '../components/reports/FinanceReportPanel';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(7);
   const [overview, setOverview] = useState(null);
-  const [profile, setProfile] = useState({ name: '', birth_date: '', height: '' });
   const [todayData, setTodayData] = useState(null);
   const [lastDaysData, setLastDaysData] = useState([]);
   const [topActivities, setTopActivities] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [goalsOverview, setGoalsOverview] = useState([]);
   const [moduleSummary, setModuleSummary] = useState({
     goals: 0,
@@ -30,11 +33,11 @@ const Dashboard = () => {
 
   const quickActions = useMemo(
     () => [
+      { path: '/', label: 'Daily' },
       { path: '/goals', label: 'Metas' },
       { path: '/financeiro', label: 'Financeiro' },
       { path: '/shopping', label: 'Shopping' },
       { path: '/notifications', label: 'Notificações' },
-      { path: '/', label: 'Daily' },
     ],
     []
   );
@@ -55,68 +58,59 @@ const Dashboard = () => {
       : 0;
 
   const totalPeriodActivityTime = lastDaysData.reduce((sum, day) => sum + (day.executed_time || 0), 0);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [
-      dashboardRes,
-      profileRes,
-      todayRes,
-      lastDaysRes,
-      topActivitiesRes,
-      goalsOverviewRes,
-      goalsRes,
-      notificationsRes,
-      shoppingStatsRes,
-      financeExpensesRes,
-    ] = await Promise.allSettled([
-      dashboardApi.getOverview(),
-      profileApi.get(),
-      analyticsApi.getToday(),
-      analyticsApi.getLastDays(selectedPeriod),
-      analyticsApi.getTopActivities(5),
-      analyticsApi.getGoalsOverview(),
-      goalsApi.list(),
-      notificationsApi.list({ status: 'unread', include_generated: true }),
-      shoppingApi.stats(),
-      financeApi.listFixedExpenses(),
-    ]);
-
-    if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
-    if (profileRes.status === 'fulfilled') setProfile(profileRes.value?.data?.data || { name: '', birth_date: '', height: '' });
-    if (todayRes.status === 'fulfilled') setTodayData(todayRes.value?.data?.data || null);
-    if (lastDaysRes.status === 'fulfilled') setLastDaysData(lastDaysRes.value?.data?.data || []);
-    if (topActivitiesRes.status === 'fulfilled') setTopActivities(topActivitiesRes.value?.data?.data || []);
-    if (goalsOverviewRes.status === 'fulfilled') setGoalsOverview(goalsOverviewRes.value?.data?.data || []);
-
-    setModuleSummary({
-      goals: goalsRes.status === 'fulfilled' ? (goalsRes.value?.data?.data || []).length : 0,
-      notifications: notificationsRes.status === 'fulfilled' ? (notificationsRes.value?.data?.data || []).length : 0,
-      shoppingPending:
-        shoppingStatsRes.status === 'fulfilled' ? Number(shoppingStatsRes.value?.data?.data?.unbought_items || 0) : 0,
-      financeFixedExpenses:
-        financeExpensesRes.status === 'fulfilled' ? (financeExpensesRes.value?.data?.data || []).length : 0,
-    });
-
-    setLoading(false);
-  };
+  const activeDays = lastDaysData.filter((d) => (d.total || 0) > 0).length;
 
   useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const [
+        dashboardRes,
+        todayRes,
+        lastDaysRes,
+        topActivitiesRes,
+        goalsOverviewRes,
+        goalsRes,
+        notificationsRes,
+        shoppingStatsRes,
+        financeExpensesRes,
+      ] = await Promise.allSettled([
+        dashboardApi.getOverview(),
+        analyticsApi.getToday(),
+        analyticsApi.getLastDays(selectedPeriod),
+        analyticsApi.getTopActivities(5),
+        analyticsApi.getGoalsOverview(),
+        goalsApi.list(),
+        notificationsApi.list({ status: 'unread', include_generated: true }),
+        shoppingApi.stats(),
+        financeApi.listFixedExpenses(),
+      ]);
+
+      if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
+      if (todayRes.status === 'fulfilled') setTodayData(todayRes.value?.data?.data || null);
+      if (lastDaysRes.status === 'fulfilled') setLastDaysData(lastDaysRes.value?.data?.data || []);
+
+      if (topActivitiesRes.status === 'fulfilled') {
+        const activities = topActivitiesRes.value?.data?.data || [];
+        setTopActivities(activities);
+        setSelectedActivity((prev) => activities.find((activity) => activity.title === prev?.title) || activities[0] || null);
+      }
+
+      if (goalsOverviewRes.status === 'fulfilled') setGoalsOverview(goalsOverviewRes.value?.data?.data || []);
+
+      setModuleSummary({
+        goals: goalsRes.status === 'fulfilled' ? (goalsRes.value?.data?.data || []).length : 0,
+        notifications: notificationsRes.status === 'fulfilled' ? (notificationsRes.value?.data?.data || []).length : 0,
+        shoppingPending:
+          shoppingStatsRes.status === 'fulfilled' ? Number(shoppingStatsRes.value?.data?.data?.unbought_items || 0) : 0,
+        financeFixedExpenses:
+          financeExpensesRes.status === 'fulfilled' ? (financeExpensesRes.value?.data?.data || []).length : 0,
+      });
+
+      setLoading(false);
+    };
+
     loadData();
   }, [selectedPeriod]);
-
-  const saveProfile = async (e) => {
-    e.preventDefault();
-    const payload = {
-      ...profile,
-      birth_date: profile.birth_date || null,
-      height: profile.height === '' ? null : Number(profile.height),
-    };
-    await profileApi.save(payload);
-    loadData();
-  };
-
-  const topExecutions = topActivities[0]?.executions || 0;
 
   return (
     <div className="page-container fade-in dashboard-page">
@@ -124,125 +118,56 @@ const Dashboard = () => {
         <div>
           <h1>
             <Home size={28} className="dashboard-title-icon" />
-            Dashboard
+            Reports Dashboard
           </h1>
-          <p>Tudo em um só lugar: desempenho, visão geral e atalhos dos outros menus.</p>
+          <p>Painel principal de reports por módulos: Daily, Metas, Hobbies e Financeiro.</p>
         </div>
-        <div className="period-selector">
-          {[7, 30, 90].map((period) => (
-            <button
-              key={period}
-              className={`btn ${selectedPeriod === period ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-              onClick={() => setSelectedPeriod(period)}
-            >
-              {period} dias
-            </button>
-          ))}
+
+        <div className="dashboard-header-controls">
+          <div className="period-selector" role="group" aria-label="Filtrar período">
+            {[7, 30, 90].map((period) => (
+              <button
+                key={period}
+                className={`btn ${selectedPeriod === period ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                onClick={() => setSelectedPeriod(period)}
+              >
+                {period} dias
+              </button>
+            ))}
+          </div>
+          <div className="dashboard-quick-actions">
+            {quickActions.map((item) => (
+              <Link key={item.path} to={item.path} className="btn btn-secondary btn-sm">
+                Abrir {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </header>
 
-      <form onSubmit={saveProfile} className="card dashboard-profile-form">
-        <h3>Perfil</h3>
-        <input
-          className="input"
-          placeholder="Nome"
-          value={profile.name || ''}
-          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-          required
+      <div className="reports-modules-layout">
+        <DailyReportCard
+          overview={overview}
+          todayData={todayData}
+          completionRateToday={completionRateToday}
+          averageCompletionRate={averageCompletionRate}
+          totalPeriodActivityTime={totalPeriodActivityTime}
+          activeDays={activeDays}
+          selectedActivity={selectedActivity}
+          onSelectActivity={setSelectedActivity}
+          topActivities={topActivities}
+          formatMinutes={formatMinutes}
         />
-        <input
-          className="input"
-          placeholder="Nascimento (YYYY-MM-DD)"
-          value={profile.birth_date || ''}
-          onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })}
+
+        <GoalReportCard
+          overview={overview}
+          goalsOverview={goalsOverview}
+          totalGoals={moduleSummary.goals}
         />
-        <input
-          className="input"
-          placeholder="Altura (m)"
-          value={profile.height || ''}
-          onChange={(e) => setProfile({ ...profile, height: e.target.value })}
-        />
-        <button className="btn btn-primary" type="submit">
-          Salvar Perfil
-        </button>
-      </form>
 
-      <div className="dashboard-overview">
-        <h2>Resumo de Hoje</h2>
-        <div className="overview-grid">
-          <div className="stat-card">
-            <div className="stat-icon primary"><Activity size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Atividades concluídas</p><p className="stat-value">{overview?.activities?.completed || todayData?.completed || 0}</p></div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon success"><Award size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Metas concluídas</p><p className="stat-value">{overview?.goals?.completed || 0}</p></div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon warning"><TrendingUp size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Taxa de conclusão</p><p className="stat-value">{completionRateToday}%</p></div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon primary"><Clock size={24} /></div>
-            <div className="stat-content"><p className="stat-label">Tempo executado</p><p className="stat-value">{formatMinutes(todayData?.executed_time || overview?.activities?.total_minutes || 0)}</p></div>
-          </div>
-        </div>
-      </div>
+        <HobbyReportFeed topActivities={topActivities} />
 
-      <div className="dashboard-summary">
-        <h2>Integração dos outros menus</h2>
-        <div className="overview-grid">
-          <div className="stat-card"><div className="stat-icon primary"><Target size={24} /></div><div className="stat-content"><p className="stat-label">Metas cadastradas</p><p className="stat-value">{moduleSummary.goals}</p></div></div>
-          <div className="stat-card"><div className="stat-icon warning"><Calendar size={24} /></div><div className="stat-content"><p className="stat-label">Notificações pendentes</p><p className="stat-value">{moduleSummary.notifications}</p></div></div>
-          <div className="stat-card"><div className="stat-icon success"><Activity size={24} /></div><div className="stat-content"><p className="stat-label">Itens faltando no Shopping</p><p className="stat-value">{moduleSummary.shoppingPending}</p></div></div>
-          <div className="stat-card"><div className="stat-icon primary"><Clock size={24} /></div><div className="stat-content"><p className="stat-label">Gastos fixos cadastrados</p><p className="stat-value">{moduleSummary.financeFixedExpenses}</p></div></div>
-        </div>
-        <div className="dashboard-quick-actions">
-          {quickActions.map((item) => (
-            <Link key={item.path} to={item.path} className="btn btn-secondary btn-sm">
-              Abrir {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="top-activities-section card">
-        <h2>Últimos {selectedPeriod} dias</h2>
-        <div className="overview-grid dashboard-period-grid">
-          <div className="stat-card"><div className="stat-content"><p className="stat-label">Taxa média</p><p className="stat-value">{averageCompletionRate}%</p></div></div>
-          <div className="stat-card"><div className="stat-content"><p className="stat-label">Tempo total</p><p className="stat-value">{formatMinutes(totalPeriodActivityTime)}</p></div></div>
-          <div className="stat-card"><div className="stat-content"><p className="stat-label">Dias ativos</p><p className="stat-value">{lastDaysData.filter((d) => (d.total || 0) > 0).length}</p></div></div>
-        </div>
-
-        {topActivities.length === 0 ? (
-          <p className="empty-state">Nenhuma atividade concluída ainda</p>
-        ) : (
-          <div className="top-activities-list">
-            {topActivities.map((activity, index) => (
-              <div key={`${activity.title}-${index}`} className="top-activity-item">
-                <div className="activity-rank">{index + 1}</div>
-                <div className="activity-info"><h3>{activity.title}</h3><p>{activity.executions} execuções</p></div>
-                <div className="activity-bar"><div className="activity-bar-fill" style={{ width: `${topExecutions > 0 ? (activity.executions / topExecutions) * 100 : 0}%` }} /></div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="goals-overview-section card">
-        <h2>Visão Geral de Metas</h2>
-        {goalsOverview.length === 0 ? (
-          <p className="empty-state">Nenhuma meta cadastrada</p>
-        ) : (
-          <div className="goals-overview-grid">
-            {goalsOverview.map((goal, index) => (
-              <div key={`${goal.title}-${index}`} className={`goal-overview-card ${goal.stalled ? 'stalled' : ''}`}>
-                <div className="goal-overview-header"><Target size={20} /><h3>{goal.title}</h3></div>
-                <div className="goal-overview-progress"><p className="progress-text">{goal.progress}</p>{goal.stalled && <span className="stalled-badge">Parada</span>}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        <FinanceReportPanel moduleSummary={moduleSummary} />
       </div>
 
       {loading && <p className="dashboard-loading">Atualizando dados...</p>}
