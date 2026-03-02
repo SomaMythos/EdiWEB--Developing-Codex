@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const DEFAULT_DEV_API_URL = 'http://localhost:8000/api';
-const DEFAULT_PROD_API_URL = '/api';
+const DEFAULT_API_URL = 'http://127.0.0.1:8000/api';
 
 const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
-export const API_URL = envApiUrl || (import.meta.env.DEV ? DEFAULT_DEV_API_URL : DEFAULT_PROD_API_URL);
+
+export const API_URL = envApiUrl || DEFAULT_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,

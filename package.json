@@ -1,0 +1,42 @@
+{
+  "name": "EDI",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "dist": "npm run build:frontend && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.ediweb.app",
+    "productName": "EdiWEB",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "backend/dist/**/*",
+      "frontend/dist/**/*",
+      "icon.ico",
+      "package.json"
+    ],
+	"asarUnpack": [
+      "backend/dist/**/*"
+	],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico",
+	  "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
