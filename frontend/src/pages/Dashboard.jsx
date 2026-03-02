@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [activityDetail, setActivityDetail] = useState(null);
   const [goalsSummary, setGoalsSummary] = useState(null);
   const [hobbyLog, setHobbyLog] = useState([]);
+  const [financeSummary, setFinanceSummary] = useState(null);
   const [moduleSummary, setModuleSummary] = useState({
     goals: 0,
     notifications: 0,
@@ -85,6 +86,7 @@ const Dashboard = () => {
         reportsTimeseriesRes,
         goalsSummaryRes,
         hobbiesLogRes,
+        financeSummaryRes,
       ] = await Promise.allSettled([
         dashboardApi.getOverview(),
         analyticsApi.getToday(),
@@ -100,6 +102,7 @@ const Dashboard = () => {
         reportsApi.getDailyTimeseries(selectedPeriod),
         reportsApi.getGoalsSummary(),
         reportsApi.getHobbiesLog({ limit: 120 }),
+        reportsApi.getFinanceSummary(),
       ]);
 
       if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
@@ -110,6 +113,7 @@ const Dashboard = () => {
       if (reportsTimeseriesRes.status === 'fulfilled') setTimeseries(reportsTimeseriesRes.value?.data?.data || []);
       if (goalsSummaryRes.status === 'fulfilled') setGoalsSummary(goalsSummaryRes.value?.data?.data || null);
       if (hobbiesLogRes.status === 'fulfilled') setHobbyLog(hobbiesLogRes.value?.data?.data || []);
+      if (financeSummaryRes.status === 'fulfilled') setFinanceSummary(financeSummaryRes.value?.data?.data || null);
 
       if (topActivitiesRes.status === 'fulfilled') {
         const activities = topActivitiesRes.value?.data?.data || [];
@@ -205,7 +209,7 @@ const Dashboard = () => {
 
         <HobbyReportFeed hobbyLog={hobbyLog} />
 
-        <FinanceReportPanel moduleSummary={moduleSummary} />
+        <FinanceReportPanel moduleSummary={moduleSummary} financeSummary={financeSummary} />
 
 
       <section className="report-module goals-summary-report">

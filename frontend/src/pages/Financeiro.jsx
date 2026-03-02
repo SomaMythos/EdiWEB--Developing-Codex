@@ -57,18 +57,7 @@ const Financeiro = () => {
 
   useEffect(() => {
     loadAll();
-    loadGastosAvulsos();
   }, []);
-
-  const loadGastosAvulsos = () => {
-    try {
-      const savedLogs = localStorage.getItem('finance_spent_logs');
-      setGastosAvulsos(savedLogs ? JSON.parse(savedLogs) : []);
-    } catch (error) {
-      console.error('Erro ao carregar gastos avulsos:', error);
-      setGastosAvulsos([]);
-    }
-  };
 
   const loadAll = async () => {
     try {
@@ -76,7 +65,8 @@ const Financeiro = () => {
         loadSummary(),
         loadConfig(),
         loadGastos(),
-        loadProjection()
+        loadProjection(),
+        loadTransactions()
       ]);
     } catch (error) {
       console.error("Erro ao carregar dados financeiros:", error);
@@ -101,6 +91,11 @@ const Financeiro = () => {
   const loadProjection = async () => {
     const res = await financeApi.getProjection(120);
     setProjection(res.data.data || []);
+  };
+
+  const loadTransactions = async () => {
+    const res = await financeApi.listTransactions(100);
+    setGastosAvulsos((res.data.data || []).filter((item) => item.kind === 'expense'));
   };
 
   const handleSaveConfig = async () => {
@@ -176,25 +171,22 @@ const Financeiro = () => {
       reserve_current: updatedReserve
     };
 
-    const spendLog = {
-      id: Date.now(),
-      name,
-      value,
-      date: new Date().toISOString()
-    };
-
     try {
       await financeApi.saveConfig(updatedConfig);
-
-      const updatedLogs = [spendLog, ...gastosAvulsos];
-      localStorage.setItem('finance_spent_logs', JSON.stringify(updatedLogs));
-      setGastosAvulsos(updatedLogs);
+      await financeApi.createTransaction({
+        description: name,
+        amount: value,
+        category: 'avulso',
+        occurred_at: new Date().toISOString(),
+        kind: 'expense'
+      });
 
       setConfig(updatedConfig);
       setNovoGastoAvulso({ name: '', value: '' });
       setShowSpendModal(false);
 
       await loadSummary();
+      await loadTransactions();
     } catch (error) {
       console.error('Erro ao registrar gasto avulso:', error);
     }
@@ -448,10 +440,10 @@ const Financeiro = () => {
 
           {gastosAvulsos.map((gasto) => (
             <div key={gasto.id} className="finance-expense-inline-row">
-              <div className="finance-expense-name">{gasto.name}</div>
+              <div className="finance-expense-name">{gasto.description}</div>
               <div className="finance-expense-meta">
-                <span>R$ {Number(gasto.value).toLocaleString('pt-BR')}</span>
-                <span>{new Date(gasto.date).toLocaleDateString('pt-BR')}</span>
+                <span>R$ {Number(gasto.amount).toLocaleString('pt-BR')}</span>
+                <span>{new Date(gasto.occurred_at).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
           ))}

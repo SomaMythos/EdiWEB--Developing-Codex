@@ -1130,6 +1130,14 @@ class FixedExpensePayload(BaseModel):
     monthly_value: float
 
 
+class FinanceTransactionPayload(BaseModel):
+    description: str
+    amount: float
+    category: Optional[str] = None
+    occurred_at: str
+    kind: Literal["expense", "income"] = "expense"
+
+
 @app.get("/api/finance/config")
 async def finance_get_config():
     return {"success": True, "data": FinanceEngine.get_config()}
@@ -1169,9 +1177,52 @@ async def finance_summary():
     return {"success": True, "data": FinanceEngine.get_summary()}
 
 
+@app.get("/api/finance/transactions")
+async def finance_list_transactions(limit: int = 200):
+    return {"success": True, "data": FinanceEngine.list_transactions(limit=limit)}
+
+
+@app.post("/api/finance/transactions")
+async def finance_create_transaction(payload: FinanceTransactionPayload):
+    data = FinanceEngine.create_transaction(
+        description=payload.description,
+        amount=payload.amount,
+        category=payload.category,
+        occurred_at=payload.occurred_at,
+        kind=payload.kind,
+    )
+    return {"success": True, "data": data}
+
+
+@app.put("/api/finance/transactions/{transaction_id}")
+async def finance_update_transaction(transaction_id: int, payload: FinanceTransactionPayload):
+    data = FinanceEngine.update_transaction(
+        transaction_id=transaction_id,
+        description=payload.description,
+        amount=payload.amount,
+        category=payload.category,
+        occurred_at=payload.occurred_at,
+        kind=payload.kind,
+    )
+    if not data:
+        raise HTTPException(status_code=404, detail="transaction_not_found")
+    return {"success": True, "data": data}
+
+
+@app.delete("/api/finance/transactions/{transaction_id}")
+async def finance_delete_transaction(transaction_id: int):
+    deleted = FinanceEngine.delete_transaction(transaction_id)
+    return {"success": deleted}
+
+
 @app.get("/api/finance/projection")
 async def finance_projection(months: int = 120):
     return {"success": True, "data": FinanceEngine.generate_projection(months)}
+
+
+@app.get("/api/reports/finance/summary")
+async def reports_finance_summary(reference_date: Optional[str] = None):
+    return {"success": True, "data": FinanceEngine.get_transaction_analytics(reference_date=reference_date)}
 
 
 # ============================================================================
