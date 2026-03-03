@@ -4,10 +4,24 @@ import logging
 from pathlib import Path
 from typing import Callable, Dict, List
 
-from data.storage import get_edi_storage_dir
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _get_edi_storage_dir() -> Path:
+    """Retorna o diretório persistente do cliente para dados do EDI."""
+    custom_storage = os.getenv("EDI_STORAGE_DIR")
+    if custom_storage:
+        return Path(custom_storage).expanduser().resolve()
+
+    home_dir = Path.home()
+    preferred_dirs = [home_dir / "Documents", home_dir / "documents"]
+
+    for directory in preferred_dirs:
+        if directory.exists():
+            return directory / "EDI"
+
+    return preferred_dirs[0] / "EDI"
 
 
 def table_exists(db, table_name):
@@ -757,7 +771,7 @@ def apply_migrations(db):
 
 class Database:
     def __init__(self, path=None):
-        self.path = str(path or (get_edi_storage_dir() / "lifemanager.db"))
+        self.path = str(path or (_get_edi_storage_dir() / "lifemanager.db"))
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         try:
             self.conn = sqlite3.connect(self.path)
@@ -835,7 +849,7 @@ class Database:
 # -------------------------
 
 def initialize_database():
-    db_path = get_edi_storage_dir() / "lifemanager.db"
+    db_path = _get_edi_storage_dir() / "lifemanager.db"
     schema_path = Path(__file__).resolve().parent / "schema.sql"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 

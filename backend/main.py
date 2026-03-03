@@ -9,17 +9,14 @@ import logging
 import os
 import json
 import re
-import secrets
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
-from fastapi.responses import JSONResponse
-from fastapi import status
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint, field_validator
 from typing import Literal, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from core.activity_engine import ActivityEngine
 from core.daily_log_engine import DailyLogEngine
@@ -34,78 +31,29 @@ from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
 from core.time_overlap import add_minutes, intervals_overlap
 from data.database import Database, initialize_database
-from data.storage import get_edi_storage_dir
 
 
 logger = logging.getLogger(__name__)
 
-AUTH_SESSIONS: dict[str, datetime] = {}
-
-
-def _is_auth_enabled() -> bool:
-    return os.getenv("EDI_AUTH_DISABLED", "0") != "1" and "PYTEST_CURRENT_TEST" not in os.environ
-
-
-def _extract_bearer_token(request: Request) -> Optional[str]:
-    authorization = request.headers.get("Authorization", "")
-    if not authorization.startswith("Bearer "):
-        return None
-    return authorization.replace("Bearer ", "", 1).strip()
-
-
-def _is_valid_session(token: str) -> bool:
-    if not token:
-        return False
-    expires_at = AUTH_SESSIONS.get(token)
-    if not expires_at:
-        return False
-    if expires_at < datetime.utcnow():
-        AUTH_SESSIONS.pop(token, None)
-        return False
-    return True
-
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_UPLOADS_BASE_URL = os.getenv("PUBLIC_UPLOADS_BASE_URL", "http://localhost:8000").rstrip("/")
-EDI_STORAGE_DIR = get_edi_storage_dir()
+
+
+def _get_edi_storage_dir() -> Path:
+    custom_storage = os.getenv("EDI_STORAGE_DIR")
+    if custom_storage:
+        return Path(custom_storage).expanduser().resolve()
+
+    home_dir = Path.home()
+    for candidate in (home_dir / "Documents", home_dir / "documents"):
+        if candidate.exists():
+            return candidate / "EDI"
+    return home_dir / "Documents" / "EDI"
+
+
+EDI_STORAGE_DIR = _get_edi_storage_dir()
 UPLOADS_DIR = EDI_STORAGE_DIR / "uploads"
 VISUAL_ARTS_UPLOADS_DIR = UPLOADS_DIR / "visual_arts"
-AUTH_CONFIG_PATH = EDI_STORAGE_DIR / "auth_config.json"
-
-
-def _load_auth_settings() -> tuple[str, str, int]:
-    username = os.getenv("EDI_AUTH_USERNAME")
-    password = os.getenv("EDI_AUTH_PASSWORD")
-    session_hours = int(os.getenv("EDI_AUTH_SESSION_HOURS", "12"))
-
-    file_payload = {}
-    if AUTH_CONFIG_PATH.exists():
-        try:
-            file_payload = json.loads(AUTH_CONFIG_PATH.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            logger.warning("Arquivo auth_config.json inválido. Usando variáveis de ambiente/defaults.")
-
-    username = username or file_payload.get("username") or "admin"
-    password = password or file_payload.get("password") or "edi123"
-    session_hours = int(file_payload.get("session_hours", session_hours))
-
-    AUTH_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    AUTH_CONFIG_PATH.write_text(
-        json.dumps(
-            {
-                "username": username,
-                "password": password,
-                "session_hours": session_hours,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    return username, password, session_hours
-
-
-AUTH_USERNAME, AUTH_PASSWORD, AUTH_SESSION_HOURS = _load_auth_settings()
 
 
 def _normalize_relative_path(path_value: Optional[str]) -> Optional[str]:
@@ -151,27 +99,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    if not _is_auth_enabled():
-        return await call_next(request)
-
-    path = request.url.path
-    public_paths = {"/", "/api/auth/login"}
-    if path in public_paths or path.startswith("/docs") or path.startswith("/openapi") or path.startswith("/uploads"):
-        return await call_next(request)
-
-    if path.startswith("/api"):
-        token = _extract_bearer_token(request)
-        if not _is_valid_session(token or ""):
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Sessão inválida ou expirada."},
-            )
-
-    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -255,11 +182,6 @@ class RoutineBlockComplete(BaseModel):
     completed: bool = True
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
@@ -272,44 +194,6 @@ async def root():
         "version": "2.0.0",
         "status": "running"
     }
-
-
-@app.post("/api/auth/login")
-async def login(payload: LoginRequest):
-    if not _is_auth_enabled():
-        return {"success": True, "token": "auth-disabled"}
-
-    if payload.username != AUTH_USERNAME or payload.password != AUTH_PASSWORD:
-        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos.")
-
-    token = secrets.token_urlsafe(48)
-    AUTH_SESSIONS[token] = datetime.utcnow() + timedelta(hours=AUTH_SESSION_HOURS)
-
-    return {
-        "success": True,
-        "token": token,
-        "expires_in_hours": AUTH_SESSION_HOURS,
-    }
-
-
-@app.get("/api/auth/session")
-async def auth_session(request: Request):
-    if not _is_auth_enabled():
-        return {"authenticated": True}
-
-    token = _extract_bearer_token(request)
-    if not _is_valid_session(token or ""):
-        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
-
-    return {"authenticated": True}
-
-
-@app.post("/api/auth/logout")
-async def logout(request: Request):
-    token = _extract_bearer_token(request)
-    if token:
-        AUTH_SESSIONS.pop(token, None)
-    return {"success": True}
 
 
 
