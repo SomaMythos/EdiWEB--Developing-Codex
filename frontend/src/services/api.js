@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8000/api';
+const AUTH_TOKEN_KEY = 'edi_auth_token';
 
 const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
 
@@ -12,6 +13,26 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+export const authStorage = {
+  getToken: () => localStorage.getItem(AUTH_TOKEN_KEY),
+  setToken: (token) => localStorage.setItem(AUTH_TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(AUTH_TOKEN_KEY),
+};
+
+api.interceptors.request.use((config) => {
+  const token = authStorage.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const authApi = {
+  login: (credentials) => api.post('/auth/login', credentials),
+  getSession: () => api.get('/auth/session'),
+  logout: () => api.post('/auth/logout'),
+};
 
 // Activity Types removido (sistema agora usa Disciplina / Diversão direto na Activity)
 
