@@ -9,10 +9,12 @@ import logging
 import os
 import json
 import re
+import secrets
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint, field_validator
 from typing import Literal, Optional, List
@@ -30,6 +32,7 @@ from core.daily_override_engine import DailyOverrideEngine
 from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
 from core.time_overlap import add_minutes, intervals_overlap
+from core.auth_engine import verify_password, update_password, password_config_exists, password_config_location
 from data.database import Database, initialize_database
 
 
@@ -99,6 +102,39 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+AUTH_BYPASS_PREFIXES = (
+    "/",
+    "/docs",
+    "/openapi.json",
+    "/uploads",
+    "/api/auth/login",
+    "/api/auth/status",
+)
+ACTIVE_AUTH_TOKENS = set()
+
+
+@app.middleware("http")
+async def authentication_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    if os.getenv("EDI_AUTH_DISABLED", "0") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
+        return await call_next(request)
+
+    request_path = request.url.path
+    if any(request_path == prefix or request_path.startswith(f"{prefix}/") for prefix in AUTH_BYPASS_PREFIXES):
+        return await call_next(request)
+
+    auth_header = request.headers.get("authorization", "")
+    auth_token = request.headers.get("x-edi-auth-token")
+    if auth_header.lower().startswith("bearer "):
+        auth_token = auth_header[7:].strip()
+
+    if not auth_token or auth_token not in ACTIVE_AUTH_TOKENS:
+        return JSONResponse(status_code=401, content={"detail": "Autenticação necessária"})
+
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -182,6 +218,22 @@ class RoutineBlockComplete(BaseModel):
     completed: bool = True
 
 
+class LoginRequest(BaseModel):
+    password: str
+
+
+class PasswordUpdateRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_size(cls, value: str):
+        if len(value or "") < 4:
+            raise ValueError("Nova senha deve ter pelo menos 4 caracteres")
+        return value
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
@@ -194,6 +246,37 @@ async def root():
         "version": "2.0.0",
         "status": "running"
     }
+
+
+@app.get("/api/auth/status")
+async def auth_status():
+    return {
+        "success": True,
+        "data": {
+            "password_configured": password_config_exists(),
+            "password_config_path": password_config_location(),
+        },
+    }
+
+
+@app.post("/api/auth/login")
+async def auth_login(payload: LoginRequest):
+    if not verify_password(payload.password):
+        raise HTTPException(status_code=401, detail="Senha inválida")
+
+    token = secrets.token_urlsafe(48)
+    ACTIVE_AUTH_TOKENS.add(token)
+    return {"success": True, "data": {"token": token}}
+
+
+@app.post("/api/auth/change-password")
+async def auth_change_password(payload: PasswordUpdateRequest):
+    changed = update_password(payload.current_password, payload.new_password)
+    if not changed:
+        raise HTTPException(status_code=401, detail="Senha atual inválida")
+
+    ACTIVE_AUTH_TOKENS.clear()
+    return {"success": True}
 
 
 
