@@ -2,6 +2,7 @@ import sqlite3
 import os
 import logging
 import shutil
+import sys
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -27,10 +28,25 @@ def _get_edi_storage_dir() -> Path:
 
 def _legacy_database_paths() -> List[Path]:
     backend_dir = Path(__file__).resolve().parents[1]
-    return [
+    candidates = [
         backend_dir / "lifemanager.db",
         backend_dir / "data" / "lifemanager.db",
     ]
+
+    executable_path = Path(sys.executable).resolve().parent / "lifemanager.db"
+    cwd_path = Path.cwd().resolve() / "lifemanager.db"
+    candidates.extend([executable_path, cwd_path])
+
+    unique_candidates: List[Path] = []
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_candidates.append(resolved)
+
+    return unique_candidates
 
 
 def _migrate_legacy_database_file(target_path: Path) -> None:

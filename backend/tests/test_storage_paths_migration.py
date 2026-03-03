@@ -49,3 +49,41 @@ def test_password_config_migrates_from_legacy_backend_path(monkeypatch, tmp_path
     assert target_auth.exists()
     assert not legacy_auth.exists()
     assert json.loads(target_auth.read_text(encoding="utf-8"))["password_hash"] == "abc"
+
+
+def test_database_migrates_from_cwd_path(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    legacy_db = tmp_path / "lifemanager.db"
+
+    with sqlite3.connect(legacy_db) as conn:
+        conn.execute("CREATE TABLE example (id INTEGER PRIMARY KEY, value TEXT)")
+        conn.execute("INSERT INTO example (value) VALUES ('cwd')")
+        conn.commit()
+
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.chdir(tmp_path)
+
+    with Database() as db:
+        row = db.fetchone("SELECT value FROM example WHERE id = 1")
+
+    assert row["value"] == "cwd"
+    assert (storage_dir / "lifemanager.db").exists()
+    assert not legacy_db.exists()
+
+
+def test_password_config_migrates_from_cwd_path(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    legacy_auth = tmp_path / "auth_config.json"
+    legacy_auth.write_text(
+        json.dumps({"version": 1, "salt": "c2FsdA==", "password_hash": "cwdhash"}),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.chdir(tmp_path)
+
+    target_auth = auth_engine._password_config_path()
+
+    assert target_auth.exists()
+    assert json.loads(target_auth.read_text(encoding="utf-8"))["password_hash"] == "cwdhash"
+    assert not legacy_auth.exists()
