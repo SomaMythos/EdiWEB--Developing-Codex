@@ -238,57 +238,57 @@ const Financeiro = () => {
       </div>
 
       {/* DASHBOARD (cards principais) */}
-      <div className="finance-grid">
-        <div className="card finance-card">
+      <div className="finance-grid stagger">
+        <div className="card finance-card reveal perf-willchange">
           <div className="finance-label">Patrimônio Total</div>
           <div className="finance-value">
             R$ {Number(summary?.patrimonio_total || 0).toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Conta Corrente</div>
           <div className="finance-value">
             R$ {currentValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">CDB</div>
           <div className="finance-value">
             R$ {cdbValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Reserva Extra</div>
           <div className="finance-value">
             R$ {extraValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">FGTS</div>
           <div className="finance-value">
             R$ {fgtsValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Saldo Mensal</div>
           <div className="finance-value">
             R$ {Number(summary?.saldo_disponivel || 0).toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">% Economia</div>
           <div className="finance-value">
             {summary?.percentual_economia || 0}%
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Saúde Financeira</div>
           <div className="finance-value">
             {formatHealth(summary?.health_indicator)}
@@ -297,7 +297,7 @@ const Financeiro = () => {
       </div>
 
 {/* PROJEÇÃO FINANCEIRA */}
-<div className="card finance-card">
+<div className="card finance-card perf-willchange">
   <h3>Projeção Patrimonial (10 anos)</h3>
 
   {projection.length > 0 && (
@@ -382,29 +382,29 @@ const Financeiro = () => {
       </div>
 
       {/* CARDS DE RESUMO (valores atuais individuais) */}
-      <div className="finance-grid finance-grid--spaced">
-        <div className="card finance-card">
+      <div className="finance-grid finance-grid--spaced stagger">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Valor Conta Corrente (atual)</div>
           <div className="finance-value">
             R$ {currentValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Valor CDB (atual)</div>
           <div className="finance-value">
             R$ {cdbValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Valor Extra (atual)</div>
           <div className="finance-value">
             R$ {extraValue.toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="card finance-card">
+        <div className="card finance-card perf-willchange">
           <div className="finance-label">Valor FGTS (atual)</div>
           <div className="finance-value">
             R$ {fgtsValue.toLocaleString('pt-BR')}
@@ -413,7 +413,7 @@ const Financeiro = () => {
       </div>
 
       {/* CARD GRANDE: LISTA DE GASTOS FIXOS + TOTAL */}
-      <div className="card finance-card finance-card--spaced">
+      <div className="card finance-card finance-card--spaced reveal perf-willchange">
         <h3>Gastos Fixos Mensais</h3>
 
         <div className="finance-expenses-list">
@@ -433,7 +433,7 @@ const Financeiro = () => {
         </div>
       </div>
 
-      <div className="card finance-card finance-card--spaced">
+      <div className="card finance-card finance-card--spaced reveal perf-willchange">
         <h3>Gastos Avulsos</h3>
         <div className="finance-expenses-list">
           {gastosAvulsos.length === 0 && <div>Nenhum gasto avulso registrado.</div>}

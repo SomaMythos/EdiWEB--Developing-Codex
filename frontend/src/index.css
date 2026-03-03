@@ -212,6 +212,13 @@
 --btn-icon-size-sm: 32px;
 --btn-icon-size-md: 38px;
 --btn-icon-size-lg: 44px;
+
+--motion-reveal-distance: 12px;
+--motion-stagger-step: 70ms;
+--skeleton-base: rgba(255, 255, 255, 0.08);
+--skeleton-shine: rgba(255, 255, 255, 0.22);
+--dialog-entry-duration: var(--motion-smooth);
+--dialog-entry-ease: var(--ease-emphasized);
 }
 
 
@@ -377,6 +384,10 @@
   overflow: hidden;
 }
 
+.perf-willchange {
+  will-change: transform;
+}
+
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -391,17 +402,12 @@
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px) scale(1.01);
-  box-shadow:
-    var(--btn-primary-shadow-hover),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  filter: brightness(1.08) saturate(1.08);
-  background: linear-gradient(135deg, #27b45f 0%, #22c55e 42%, #16a34a 100%);
+  opacity: 0.97;
 }
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0) scale(0.985);
-  filter: brightness(0.96) saturate(1.06);
+  opacity: 0.9;
 }
 
 .btn-primary::after {
@@ -462,7 +468,7 @@
 
 .btn-danger:hover:not(:disabled) {
   transform: translateY(-1px) scale(1.01);
-  filter: saturate(1.15);
+  opacity: 0.92;
 }
 
 .btn-ghost {
@@ -472,8 +478,7 @@
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--glass-interactive-hover);
-  color: var(--glass-text-primary);
+  opacity: 0.88;
 }
 
 .btn-secondary:active:not(:disabled),
@@ -517,7 +522,6 @@
   overflow: hidden;
   transition:
     transform var(--motion-normal) var(--ease-emphasized),
-    box-shadow var(--motion-normal) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     background var(--motion-normal) var(--ease-standard);
 }
@@ -540,11 +544,7 @@
 
 .card:hover {
   transform: translateY(-2px) scale(1.015);
-  background: var(--elevation-2-surface);
-  border-color: var(--elevation-2-border);
-  box-shadow:
-    var(--elevation-2-shadow),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+  opacity: 0.98;
 }
 
 .card:hover::before,
@@ -596,6 +596,90 @@ input::placeholder,
 textarea::placeholder {
   color: var(--glass-text-muted);
   opacity: 1;
+}
+
+:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-ring);
+}
+
+.btn:focus-visible,
+.card:focus-visible,
+.input:focus-visible,
+.modal-form input:focus-visible,
+.modal-form textarea:focus-visible,
+.modal-form select:focus-visible {
+  box-shadow:
+    var(--focus-ring),
+    0 0 0 4px rgba(248, 242, 220, 0.16);
+}
+
+@keyframes reveal-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-reveal-distance));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(var(--motion-reveal-distance));
+  animation: reveal-fade-up var(--motion-smooth) var(--ease-emphasized) forwards;
+}
+
+.stagger > * {
+  --stagger-index: 0;
+  opacity: 0;
+  transform: translateY(var(--motion-reveal-distance));
+  animation: reveal-fade-up var(--motion-smooth) var(--ease-emphasized) forwards;
+  animation-delay: calc(var(--stagger-index) * var(--motion-stagger-step));
+}
+
+.stagger > :nth-child(1) { --stagger-index: 0; }
+.stagger > :nth-child(2) { --stagger-index: 1; }
+.stagger > :nth-child(3) { --stagger-index: 2; }
+.stagger > :nth-child(4) { --stagger-index: 3; }
+.stagger > :nth-child(5) { --stagger-index: 4; }
+.stagger > :nth-child(6) { --stagger-index: 5; }
+.stagger > :nth-child(7) { --stagger-index: 6; }
+.stagger > :nth-child(8) { --stagger-index: 7; }
+
+.stagger > .card,
+.stagger > section {
+  animation-fill-mode: both;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-base);
+  color: transparent;
+  pointer-events: none;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 10%,
+    var(--skeleton-shine) 45%,
+    transparent 80%
+  );
+  animation: skeleton-shimmer 1.2s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 
@@ -708,8 +792,7 @@ body::before {
   height: 48px;
   padding: 0 22px;
   transition: transform var(--motion-fast),
-              box-shadow var(--motion-fast),
-              filter var(--motion-fast);
+              opacity var(--motion-fast);
 }
 
 .music-toolbar .btn:hover {
@@ -731,7 +814,7 @@ body::before {
   box-shadow: var(--glass-shadow-soft);
 
   border-radius: var(--radius-xl);
-  transition: all var(--motion-smooth);
+  transition: transform var(--motion-smooth), opacity var(--motion-normal);
 }
 
 .metronome-horizontal:hover {
@@ -760,7 +843,7 @@ body::before {
   background: var(--glass-surface-soft);
   border: 1px solid var(--glass-border-default);
   color: var(--glass-text-primary);
-  transition: all var(--motion-fast);
+  transition: transform var(--motion-fast), opacity var(--motion-fast);
 }
 
 .metro-division:hover {
@@ -992,4 +1075,117 @@ body::before {
 @keyframes fadeInPage {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+    --motion-smooth: 0ms;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .stagger > *,
+  .skeleton::after {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-soft,
+  .glass-medium,
+  .glass-strong,
+  .glass-base,
+  .glass-raised,
+  .glass-active,
+  .elevation-0,
+  .elevation-1,
+  .elevation-2,
+  .elevation-3,
+  .page-container,
+  .card,
+  .btn,
+  .input,
+  .modal-form input,
+  .modal-form textarea,
+  .modal-form select {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass-soft,
+  .glass-medium,
+  .glass-strong,
+  .card,
+  .page-container,
+  .input,
+  .modal-form input,
+  .modal-form textarea,
+  .modal-form select {
+    background: rgba(18, 20, 24, 0.96);
+  }
+}
+
+@supports (transition-behavior: allow-discrete) {
+  dialog,
+  [popover] {
+    border: 1px solid var(--glass-border-default);
+    background: var(--elevation-2-surface);
+    box-shadow: var(--elevation-2-shadow);
+    backdrop-filter: var(--glass-blur-strong);
+    transition:
+      opacity var(--dialog-entry-duration) var(--dialog-entry-ease),
+      transform var(--dialog-entry-duration) var(--dialog-entry-ease),
+      display var(--dialog-entry-duration) allow-discrete,
+      overlay var(--dialog-entry-duration) allow-discrete;
+  }
+
+  dialog:open,
+  [popover]:popover-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+
+    @starting-style {
+      opacity: 0;
+      transform: translateY(var(--motion-reveal-distance)) scale(0.98);
+    }
+  }
+}
+
+@supports (view-transition-name: match-element) {
+  :root {
+    view-transition-name: app-root;
+  }
+
+  ::view-transition-old(app-root),
+  ::view-transition-new(app-root) {
+    animation-duration: var(--motion-normal);
+    animation-timing-function: var(--ease-standard);
+  }
+
+  ::view-transition-old(app-root) {
+    filter: blur(1px);
+    transform: scale(0.995);
+  }
+
+  ::view-transition-new(app-root) {
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .reveal.scroll-reveal {
+    animation-name: reveal-fade-up;
+    animation-duration: 1ms;
+    animation-fill-mode: both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
+  }
 }

@@ -68,14 +68,14 @@ export default function Music() {
     if (filtered.length === 0) return null;
 
     return (
-      <div className="training-section">
+      <div className="training-section reveal">
         <h3 className="training-section-title">
           {label} ({filtered.length})
         </h3>
 
-        <div className="training-grid">
+        <div className="training-grid stagger">
           {filtered.map((t) => (
-            <div key={t.id} className="card training-card">
+            <div key={t.id} className="card training-card perf-willchange">
               <div className="training-thumb">
                 <img
                   src={`http://localhost:8000/${t.image_path}`}
@@ -103,14 +103,14 @@ export default function Music() {
 
               <div className="training-actions">
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-sm perf-willchange"
                   onClick={() => setSelectedTraining(t.id)}
                 >
                   Registrar BPM
                 </button>
 
                 <button
-                  className="btn btn-ghost btn-sm"
+                  className="btn btn-ghost btn-sm perf-willchange"
                   onClick={() => setHistoryTraining(t.id)}
                 >
                   Histórico
@@ -215,7 +215,7 @@ const confirmAlbum = async (albumId) => {
     return (
       <div className="artist-albums">
         <button
-          className="btn btn-secondary btn-sm"
+          className="btn btn-secondary btn-sm perf-willchange"
           onClick={() => openAlbumModal(artist.id)}
         >
           + Álbum
