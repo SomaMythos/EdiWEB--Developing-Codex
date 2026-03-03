@@ -87,3 +87,29 @@ def test_password_config_migrates_from_cwd_path(monkeypatch, tmp_path):
     assert target_auth.exists()
     assert json.loads(target_auth.read_text(encoding="utf-8"))["password_hash"] == "cwdhash"
     assert not legacy_auth.exists()
+
+
+def test_initial_password_is_bootstrapped_in_persistent_storage(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.delenv("EDI_DEFAULT_PASSWORD", raising=False)
+
+    config = auth_engine._load_or_create_password_config()
+
+    bootstrap_file = storage_dir / "auth_password.txt"
+    assert bootstrap_file.exists()
+    generated_password = bootstrap_file.read_text(encoding="utf-8").strip()
+    assert generated_password
+    assert auth_engine.verify_password(generated_password)
+    assert config["password_hash"]
+
+
+def test_env_default_password_skips_bootstrap_file(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.setenv("EDI_DEFAULT_PASSWORD", "senha-do-ambiente")
+
+    auth_engine._load_or_create_password_config()
+
+    assert auth_engine.verify_password("senha-do-ambiente")
+    assert not (storage_dir / "auth_password.txt").exists()
