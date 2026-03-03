@@ -33,12 +33,12 @@ VITE_API_URL=http://localhost:8000/api
 
 **Linux/macOS**
 ```bash
-./start_edi.sh
+./scripts/start_edi.sh
 ```
 
 **Windows**
 ```bat
-start_edi.bat
+scripts\start_edi.bat
 ```
 
 ### Opção manual
@@ -110,4 +110,4 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-Para mais detalhes: `TROUBLESHOOTING.md`.
+Para mais detalhes: `docs/TROUBLESHOOTING.md`.

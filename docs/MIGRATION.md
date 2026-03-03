@@ -234,7 +234,7 @@ Documentação completa: http://localhost:8000/docs
 ## Suporte
 
 - README.md - Documentação completa
-- QUICKSTART.md - Início rápido
+- docs/QUICKSTART.md - Início rápido
 - http://localhost:8000/docs - API docs
 
 ---

@@ -12,7 +12,7 @@ O projeto está organizado em três partes principais:
 - **`frontend/`**: SPA React com páginas por domínio (Daily, Goals, Dashboard, Financeiro, Hobbies etc.).
 - **raiz (Electron)**: `main.js` + `package.json` para build de distribuição desktop.
 
-Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como referência histórica/migração.
+Os artefatos legados foram removidos para manter a base ativa mais enxuta e focada na versão web.
 
 ---
 
@@ -101,12 +101,12 @@ Fallbacks usados pelo frontend:
 
 **Linux/macOS**
 ```bash
-./start_edi.sh
+./scripts/start_edi.sh
 ```
 
 **Windows**
 ```bat
-start_edi.bat
+scripts\\start_edi.bat
 ```
 
 ### Opção B — manual
@@ -148,11 +148,11 @@ npm test
 
 ## 📚 Documentação Complementar
 
-- `QUICKSTART.md`: setup rápido e fluxos iniciais de validação.
-- `FEATURE_INVENTORY.md`: matriz de domínios (legado ➜ web) e mapeamento de rotas/telas.
-- `CODEBASE_ANALYSIS.md`: análise técnica da base atual (arquitetura, módulos e riscos).
-- `MIGRATION.md`: notas de migração e compatibilidade da versão Kivy.
-- `TROUBLESHOOTING.md`: problemas comuns e soluções.
+- `docs/QUICKSTART.md`: setup rápido e fluxos iniciais de validação.
+- `docs/FEATURE_INVENTORY.md`: matriz de domínios (legado ➜ web) e mapeamento de rotas/telas.
+- `docs/CODEBASE_ANALYSIS.md`: análise técnica da base atual (arquitetura, módulos e riscos).
+- `docs/MIGRATION.md`: notas de migração e compatibilidade da versão Kivy.
+- `docs/TROUBLESHOOTING.md`: problemas comuns e soluções.
 - `frontend/docs/color-token-mapping.md`: guia de tokens de cor/temas.
 
 ---

@@ -4,11 +4,11 @@
 
 - Backend FastAPI atual centraliza **153 rotas HTTP** em `backend/main.py`.
 - Frontend React expõe **17 rotas** em `frontend/src/App.jsx`.
-- O legado Kivy continua em `old_EDI/` apenas como referência histórica e de migração.
+- O legado Kivy foi removido do repositório; a matriz mantém apenas rastreabilidade histórica.
 
 ## Matriz por domínio
 
-| Domínio | Referência legada (`old_EDI/EDI`) | Backend atual | Endpoints FastAPI (exemplos) | Frontend atual |
+| Domínio | Referência legada (histórica) | Backend atual | Endpoints FastAPI (exemplos) | Frontend atual |
 |---|---|---|---|---|
 | Daily (rotina do dia) | `core/day_plan_engine.py`, `core/routine_engine.py` | `backend/core/day_engine.py`, `backend/core/daily_*_engine.py` | `/api/daily/routines`, `/api/daily/generate`, `/api/daily/summary`, `/api/daily/consistency`, `/api/day-config` | `/` → `frontend/src/pages/Daily.jsx` |
 | Atividades + log | `core/activity_engine.py`, `core/daily_log_engine.py` | `backend/core/activity_engine.py`, `backend/core/daily_log_engine.py` | `/api/activities`, `/api/activities/{id}/toggle`, `/api/daily-log/register`, `/api/activity-history` | Fluxo integrado na página Daily |
