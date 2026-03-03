@@ -93,6 +93,18 @@ Fallbacks usados pelo frontend:
 - desenvolvimento: `http://localhost:8000/api`
 - produção: `/api`
 
+### 4) Segurança de login para uso com túnel
+
+Configure credenciais no backend para habilitar o login inicial da aplicação:
+
+```env
+EDI_AUTH_USERNAME=seu_usuario
+EDI_AUTH_PASSWORD=sua_senha_forte
+EDI_AUTH_SESSION_HOURS=12
+```
+
+> Opcional (apenas para ambiente de desenvolvimento local): `EDI_AUTH_DISABLED=1`.
+
 ---
 
 ## ▶️ Executando

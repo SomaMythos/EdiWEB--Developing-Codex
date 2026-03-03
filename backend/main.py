@@ -9,14 +9,17 @@ import logging
 import os
 import json
 import re
+import secrets
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi.responses import JSONResponse
+from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint, field_validator
 from typing import Literal, Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from core.activity_engine import ActivityEngine
 from core.daily_log_engine import DailyLogEngine
@@ -34,6 +37,34 @@ from data.database import Database, initialize_database
 
 
 logger = logging.getLogger(__name__)
+
+AUTH_USERNAME = os.getenv("EDI_AUTH_USERNAME", "admin")
+AUTH_PASSWORD = os.getenv("EDI_AUTH_PASSWORD", "edi123")
+AUTH_SESSION_HOURS = int(os.getenv("EDI_AUTH_SESSION_HOURS", "12"))
+AUTH_SESSIONS: dict[str, datetime] = {}
+
+
+def _is_auth_enabled() -> bool:
+    return os.getenv("EDI_AUTH_DISABLED", "0") != "1" and "PYTEST_CURRENT_TEST" not in os.environ
+
+
+def _extract_bearer_token(request: Request) -> Optional[str]:
+    authorization = request.headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        return None
+    return authorization.replace("Bearer ", "", 1).strip()
+
+
+def _is_valid_session(token: str) -> bool:
+    if not token:
+        return False
+    expires_at = AUTH_SESSIONS.get(token)
+    if not expires_at:
+        return False
+    if expires_at < datetime.utcnow():
+        AUTH_SESSIONS.pop(token, None)
+        return False
+    return True
 
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_UPLOADS_BASE_URL = os.getenv("PUBLIC_UPLOADS_BASE_URL", "http://localhost:8000").rstrip("/")
@@ -99,6 +130,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    if not _is_auth_enabled():
+        return await call_next(request)
+
+    path = request.url.path
+    public_paths = {"/", "/api/auth/login"}
+    if path in public_paths or path.startswith("/docs") or path.startswith("/openapi") or path.startswith("/uploads"):
+        return await call_next(request)
+
+    if path.startswith("/api"):
+        token = _extract_bearer_token(request)
+        if not _is_valid_session(token or ""):
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Sessão inválida ou expirada."},
+            )
+
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -182,6 +234,11 @@ class RoutineBlockComplete(BaseModel):
     completed: bool = True
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
@@ -194,6 +251,44 @@ async def root():
         "version": "2.0.0",
         "status": "running"
     }
+
+
+@app.post("/api/auth/login")
+async def login(payload: LoginRequest):
+    if not _is_auth_enabled():
+        return {"success": True, "token": "auth-disabled"}
+
+    if payload.username != AUTH_USERNAME or payload.password != AUTH_PASSWORD:
+        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos.")
+
+    token = secrets.token_urlsafe(48)
+    AUTH_SESSIONS[token] = datetime.utcnow() + timedelta(hours=AUTH_SESSION_HOURS)
+
+    return {
+        "success": True,
+        "token": token,
+        "expires_in_hours": AUTH_SESSION_HOURS,
+    }
+
+
+@app.get("/api/auth/session")
+async def auth_session(request: Request):
+    if not _is_auth_enabled():
+        return {"authenticated": True}
+
+    token = _extract_bearer_token(request)
+    if not _is_valid_session(token or ""):
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
+
+    return {"authenticated": True}
+
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    token = _extract_bearer_token(request)
+    if token:
+        AUTH_SESSIONS.pop(token, None)
+    return {"success": True}
 
 
 

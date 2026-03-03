@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Daily from './pages/Daily';
@@ -15,8 +15,43 @@ import Watch from './pages/Watch';
 import Shopping from './pages/Shopping';
 import Consumiveis from './pages/Consumiveis';
 import Anotacoes from './pages/Anotacoes';
+import Login from './pages/Login';
+import { authApi, authStorage } from './services/api';
 
 function App() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const token = authStorage.getToken();
+      if (!token) {
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        await authApi.getSession();
+        setIsAuthenticated(true);
+      } catch {
+        authStorage.clear();
+        setIsAuthenticated(false);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  if (!authChecked) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <Router>
       <Layout>
