@@ -34,13 +34,11 @@ from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
 from core.time_overlap import add_minutes, intervals_overlap
 from data.database import Database, initialize_database
+from data.storage import get_edi_storage_dir
 
 
 logger = logging.getLogger(__name__)
 
-AUTH_USERNAME = os.getenv("EDI_AUTH_USERNAME", "admin")
-AUTH_PASSWORD = os.getenv("EDI_AUTH_PASSWORD", "edi123")
-AUTH_SESSION_HOURS = int(os.getenv("EDI_AUTH_SESSION_HOURS", "12"))
 AUTH_SESSIONS: dict[str, datetime] = {}
 
 
@@ -68,23 +66,46 @@ def _is_valid_session(token: str) -> bool:
 
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_UPLOADS_BASE_URL = os.getenv("PUBLIC_UPLOADS_BASE_URL", "http://localhost:8000").rstrip("/")
-
-
-def _get_edi_storage_dir() -> Path:
-    custom_storage = os.getenv("EDI_STORAGE_DIR")
-    if custom_storage:
-        return Path(custom_storage).expanduser().resolve()
-
-    home_dir = Path.home()
-    for candidate in (home_dir / "Documents", home_dir / "documents"):
-        if candidate.exists():
-            return candidate / "EDI"
-    return home_dir / "Documents" / "EDI"
-
-
-EDI_STORAGE_DIR = _get_edi_storage_dir()
+EDI_STORAGE_DIR = get_edi_storage_dir()
 UPLOADS_DIR = EDI_STORAGE_DIR / "uploads"
 VISUAL_ARTS_UPLOADS_DIR = UPLOADS_DIR / "visual_arts"
+AUTH_CONFIG_PATH = EDI_STORAGE_DIR / "auth_config.json"
+
+
+def _load_auth_settings() -> tuple[str, str, int]:
+    username = os.getenv("EDI_AUTH_USERNAME")
+    password = os.getenv("EDI_AUTH_PASSWORD")
+    session_hours = int(os.getenv("EDI_AUTH_SESSION_HOURS", "12"))
+
+    file_payload = {}
+    if AUTH_CONFIG_PATH.exists():
+        try:
+            file_payload = json.loads(AUTH_CONFIG_PATH.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning("Arquivo auth_config.json inválido. Usando variáveis de ambiente/defaults.")
+
+    username = username or file_payload.get("username") or "admin"
+    password = password or file_payload.get("password") or "edi123"
+    session_hours = int(file_payload.get("session_hours", session_hours))
+
+    AUTH_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    AUTH_CONFIG_PATH.write_text(
+        json.dumps(
+            {
+                "username": username,
+                "password": password,
+                "session_hours": session_hours,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    return username, password, session_hours
+
+
+AUTH_USERNAME, AUTH_PASSWORD, AUTH_SESSION_HOURS = _load_auth_settings()
 
 
 def _normalize_relative_path(path_value: Optional[str]) -> Optional[str]:
