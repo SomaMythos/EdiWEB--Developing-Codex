@@ -4,6 +4,7 @@ import hmac
 import json
 import os
 import secrets
+import shutil
 from pathlib import Path
 
 from data.database import _get_edi_storage_dir
@@ -13,10 +14,33 @@ DEFAULT_PASSWORD = "edi123"
 PASSWORD_CONFIG_FILENAME = "auth_config.json"
 
 
+def _legacy_password_config_paths() -> list[Path]:
+    backend_dir = Path(__file__).resolve().parents[1]
+    return [
+        backend_dir / PASSWORD_CONFIG_FILENAME,
+        backend_dir / "data" / PASSWORD_CONFIG_FILENAME,
+    ]
+
+
+def _migrate_legacy_password_config(target_path: Path) -> None:
+    if target_path.exists():
+        return
+
+    for legacy_path in _legacy_password_config_paths():
+        if not legacy_path.exists() or legacy_path.resolve() == target_path.resolve():
+            continue
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(legacy_path), str(target_path))
+        return
+
+
 def _password_config_path() -> Path:
     storage_dir = _get_edi_storage_dir()
     storage_dir.mkdir(parents=True, exist_ok=True)
-    return storage_dir / PASSWORD_CONFIG_FILENAME
+    target_path = storage_dir / PASSWORD_CONFIG_FILENAME
+    _migrate_legacy_password_config(target_path)
+    return target_path
 
 
 def _hash_password(password: str, salt: bytes) -> str:
@@ -74,4 +98,3 @@ def password_config_exists() -> bool:
 
 def password_config_location() -> str:
     return str(_password_config_path())
-

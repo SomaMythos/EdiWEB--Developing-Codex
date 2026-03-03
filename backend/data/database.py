@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import logging
+import shutil
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -22,6 +23,29 @@ def _get_edi_storage_dir() -> Path:
             return directory / "EDI"
 
     return preferred_dirs[0] / "EDI"
+
+
+def _legacy_database_paths() -> List[Path]:
+    backend_dir = Path(__file__).resolve().parents[1]
+    return [
+        backend_dir / "lifemanager.db",
+        backend_dir / "data" / "lifemanager.db",
+    ]
+
+
+def _migrate_legacy_database_file(target_path: Path) -> None:
+    """Move DB antiga do diretório do backend para storage persistente, se existir."""
+    if target_path.exists():
+        return
+
+    for legacy_path in _legacy_database_paths():
+        if not legacy_path.exists() or legacy_path.resolve() == target_path.resolve():
+            continue
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(legacy_path), str(target_path))
+        logger.info("Banco legado movido para storage persistente: %s -> %s", legacy_path, target_path)
+        return
 
 
 def table_exists(db, table_name):
@@ -773,6 +797,7 @@ class Database:
     def __init__(self, path=None):
         self.path = str(path or (_get_edi_storage_dir() / "lifemanager.db"))
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        _migrate_legacy_database_file(Path(self.path))
         try:
             self.conn = sqlite3.connect(self.path)
             self.conn.row_factory = sqlite3.Row
@@ -852,6 +877,7 @@ def initialize_database():
     db_path = _get_edi_storage_dir() / "lifemanager.db"
     schema_path = Path(__file__).resolve().parent / "schema.sql"
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    _migrate_legacy_database_file(db_path)
 
     db = Database(db_path)
 
