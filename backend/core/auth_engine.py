@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import shutil
+import sys
 from pathlib import Path
 
 from data.database import _get_edi_storage_dir
@@ -16,10 +17,23 @@ PASSWORD_CONFIG_FILENAME = "auth_config.json"
 
 def _legacy_password_config_paths() -> list[Path]:
     backend_dir = Path(__file__).resolve().parents[1]
-    return [
+    candidates = [
         backend_dir / PASSWORD_CONFIG_FILENAME,
         backend_dir / "data" / PASSWORD_CONFIG_FILENAME,
+        Path(sys.executable).resolve().parent / PASSWORD_CONFIG_FILENAME,
+        Path.cwd().resolve() / PASSWORD_CONFIG_FILENAME,
     ]
+
+    unique_candidates: list[Path] = []
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_candidates.append(resolved)
+
+    return unique_candidates
 
 
 def _migrate_legacy_password_config(target_path: Path) -> None:

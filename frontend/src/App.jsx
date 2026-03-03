@@ -18,25 +18,19 @@ import Anotacoes from './pages/Anotacoes';
 import Login from './pages/Login';
 import { authApi, setAuthToken } from './services/api';
 
-const AUTH_STORAGE_KEY = 'edi-auth-token';
-
 function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
+      setAuthToken(null);
       try {
         await authApi.status();
       } catch (_) {
         // backend ainda subindo
       }
 
-      const savedToken = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (savedToken) {
-        setAuthToken(savedToken);
-        setIsAuthenticated(true);
-      }
       setIsAuthReady(true);
     };
 
@@ -44,7 +38,6 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (token) => {
-    localStorage.setItem(AUTH_STORAGE_KEY, token);
     setAuthToken(token);
     setIsAuthenticated(true);
   };
