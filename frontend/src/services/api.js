@@ -6,15 +6,6 @@ const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
 
 export const API_URL = envApiUrl || DEFAULT_API_URL;
 
-
-const AUTH_TOKEN_KEY = 'edi_auth_token';
-
-export const authStorage = {
-  getToken: () => localStorage.getItem(AUTH_TOKEN_KEY),
-  setToken: (token) => localStorage.setItem(AUTH_TOKEN_KEY, token),
-  clearToken: () => localStorage.removeItem(AUTH_TOKEN_KEY),
-};
-
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -22,34 +13,7 @@ const api = axios.create({
   },
 });
 
-
-api.interceptors.request.use((config) => {
-  const token = authStorage.getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      authStorage.clearToken();
-      window.dispatchEvent(new Event('edi-auth-expired'));
-    }
-    return Promise.reject(error);
-  }
-);
-
 // Activity Types removido (sistema agora usa Disciplina / Diversão direto na Activity)
-
-
-export const authApi = {
-  status: () => axios.get(`${API_URL}/auth/status`),
-  login: (payload) => axios.post(`${API_URL}/auth/login`, payload),
-  changePassword: (payload) => api.post('/auth/change-password', payload),
-};
 
 
 // Activities
