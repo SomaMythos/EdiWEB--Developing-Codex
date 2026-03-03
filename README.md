@@ -1,15 +1,16 @@
 # 🤖 EDI - Life Manager Web
 
-Aplicação web para gestão de rotina, metas e hobbies, com **backend FastAPI** e **frontend React + Vite**.
+Aplicação web para gestão de rotina, metas e hobbies, com **backend FastAPI**, **frontend React + Vite** e empacotamento desktop via **Electron**.
 
 ---
 
 ## 📌 Visão Geral
 
-O projeto está organizado em duas camadas principais:
+O projeto está organizado em três partes principais:
 
 - **`backend/`**: API REST, regras de negócio (`core/*_engine.py`) e persistência SQLite.
-- **`frontend/`**: Interface SPA com páginas por domínio (Daily, Goals, Dashboard, Financeiro, Hobbies etc.).
+- **`frontend/`**: SPA React com páginas por domínio (Daily, Goals, Dashboard, Financeiro, Hobbies etc.).
+- **raiz (Electron)**: `main.js` + `package.json` para build de distribuição desktop.
 
 Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como referência histórica/migração.
 
@@ -20,20 +21,20 @@ Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como re
 - **Planejamento diário**: rotina por tipo de dia, geração automática de agenda, marcação de blocos e consistência semanal.
 - **Metas (Goals)**: CRUD completo, categorias, vínculo com atividades, cálculo de progresso e status.
 - **Atividades e log diário**: cadastro, frequências fixas/flexíveis, validação de conflitos de horário e registro diário.
-- **Financeiro**: configuração de renda, despesas fixas, resumo e projeções.
+- **Financeiro**: configuração de renda, despesas fixas, transações, resumo e projeções.
 - **Hobbies**:
   - Leitura (books + sessões + estatísticas)
   - Artes visuais (obras, updates com mídia, galeria e pastas de referência)
   - Música (treinos por BPM, artistas e álbuns)
   - Games
   - Assistir (watchlist por categoria)
-- **Shopping**: wishlist, itens comprados e estatísticas.
-- **Notificações**: central única para lembretes custom, alertas de metas e resumo diário, com preferências de inbox.
+- **Shopping e consumíveis**: wishlist, itens comprados, categorias de consumíveis, restock/finish e alertas.
+- **Notificações**: central única para lembretes custom, alertas de metas/consumíveis e preferências de inbox.
 - **Perfil e métricas**: dados de perfil e histórico de métricas corporais.
-- **Analytics / dashboard**: visão diária, semanal e top atividades.
+- **Analytics / dashboard / reports**: visão diária, semanal e relatórios por domínio.
 - **Exportação**: JSON/CSV/relatórios de atividades e metas.
 
-> Para detalhes completos de payloads e respostas, use a documentação Swagger: `http://localhost:8000/docs`.
+> Para detalhes completos de payloads e respostas, use Swagger em `http://localhost:8000/docs`.
 
 ---
 
@@ -48,10 +49,14 @@ Também existe a pasta **`old_EDI/`** com a versão legada (Kivy), usada como re
 ### Frontend
 - React 18
 - Vite
-- React Router
+- React Router (HashRouter)
 - Axios
 - Lucide React
-- CSS modular + temas
+- Recharts
+
+### Desktop
+- Electron
+- electron-builder
 
 ---
 
@@ -84,7 +89,7 @@ Crie `frontend/.env` e configure:
 VITE_API_URL=http://localhost:8000/api
 ```
 
-Fallbacks:
+Fallbacks usados pelo frontend:
 - desenvolvimento: `http://localhost:8000/api`
 - produção: `/api`
 
@@ -119,52 +124,34 @@ npm run dev
 ```
 
 Acessos:
-- Frontend: `http://localhost:3000`
+- Frontend (dev): `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
 
 ---
 
-## 🗂️ Estrutura (resumo)
+## 🧪 Testes
 
-```text
-.
-├── backend/
-│   ├── core/
-│   ├── data/
-│   ├── tests/
-│   └── main.py
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── services/
-│   └── docs/
-├── old_EDI/
-├── QUICKSTART.md
-├── FEATURE_INVENTORY.md
-└── TROUBLESHOOTING.md
-```
-
----
-
-## 🧪 Testes (backend)
-
+### Backend
 ```bash
 cd backend
 pytest -q
 ```
 
-Arquivos de teste atuais estão em `backend/tests/`.
+### Frontend (teste unitário atual)
+```bash
+cd frontend
+npm test
+```
 
 ---
 
 ## 📚 Documentação Complementar
 
-- `QUICKSTART.md`: setup rápido e fluxo de primeiros passos.
-- `FEATURE_INVENTORY.md`: mapeamento de domínios (legacy ➜ web).
-- `MIGRATION.md`: notas de migração e compatibilidade.
+- `QUICKSTART.md`: setup rápido e fluxos iniciais de validação.
+- `FEATURE_INVENTORY.md`: matriz de domínios (legado ➜ web) e mapeamento de rotas/telas.
+- `CODEBASE_ANALYSIS.md`: análise técnica da base atual (arquitetura, módulos e riscos).
+- `MIGRATION.md`: notas de migração e compatibilidade da versão Kivy.
 - `TROUBLESHOOTING.md`: problemas comuns e soluções.
 - `frontend/docs/color-token-mapping.md`: guia de tokens de cor/temas.
 
@@ -175,5 +162,5 @@ Arquivos de teste atuais estão em `backend/tests/`.
 Versão em evolução contínua com foco em:
 - robustez do fluxo Daily;
 - estabilidade das regras de negócio no backend;
-- melhoria de UX nas páginas de hobby e metas.
-
+- melhoria de UX em metas, notificações e hobbies;
+- expansão de cobertura de testes para rotas/domínios recentes.
