@@ -7,7 +7,7 @@ Documento de leitura rápida para manutenção: panorama da arquitetura, invent�
 - **Backend**: FastAPI em `backend/main.py`, com regras de negócio em engines (`backend/core/*_engine.py`) e persistência SQLite (`backend/data/`).
 - **Frontend**: React + Vite (`frontend/src`), com rotas em `App.jsx`, páginas por domínio e componentes especializados.
 - **Desktop**: Electron na raiz (`main.js` + `package.json`), consumindo build do frontend e backend empacotado.
-- **Legado**: aplicação Kivy em `old_EDI/EDI` para referência de migração/comparação.
+- **Legado**: versão Kivy removida deste repositório para manter apenas a base web ativa.
 
 ## 2) Inventário atual (quantitativo)
 
@@ -107,6 +107,6 @@ npm test
 ## 7) Referências úteis no repositório
 
 - `README.md` — visão geral e execução.
-- `FEATURE_INVENTORY.md` — matriz de features (legacy ➜ web).
-- `MIGRATION.md` — estratégia de migração.
-- `TROUBLESHOOTING.md` — diagnóstico operacional.
+- `docs/FEATURE_INVENTORY.md` — matriz de features (legacy ➜ web).
+- `docs/MIGRATION.md` — estratégia de migração.
+- `docs/TROUBLESHOOTING.md` — diagnóstico operacional.
