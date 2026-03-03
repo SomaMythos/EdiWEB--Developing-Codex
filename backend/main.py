@@ -11,7 +11,8 @@ import json
 import re
 from pathlib import Path
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, conint, field_validator
@@ -29,6 +30,7 @@ from core.analytics_engine import AnalyticsEngine
 from core.daily_override_engine import DailyOverrideEngine
 from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
+from core.auth_engine import AuthEngine, AuthConfigError
 from core.time_overlap import add_minutes, intervals_overlap
 from data.database import Database, initialize_database
 
@@ -54,6 +56,7 @@ def _get_edi_storage_dir() -> Path:
 EDI_STORAGE_DIR = _get_edi_storage_dir()
 UPLOADS_DIR = EDI_STORAGE_DIR / "uploads"
 VISUAL_ARTS_UPLOADS_DIR = UPLOADS_DIR / "visual_arts"
+auth_engine = AuthEngine(EDI_STORAGE_DIR)
 
 
 def _normalize_relative_path(path_value: Optional[str]) -> Optional[str]:
@@ -106,7 +109,39 @@ async def run_startup_migrations():
     """Garante criação/atualização aditiva do schema em todo startup."""
     logger.info("Starting database initialization/migrations...")
     initialize_database()
+    auth_engine.ensure_config()
     logger.info("Database initialization/migrations completed.")
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    auth_disabled = os.getenv("EDI_REQUIRE_AUTH", "1").lower() in {"0", "false", "no"}
+    if auth_disabled or os.getenv("PYTEST_CURRENT_TEST"):
+        return await call_next(request)
+
+    path = request.url.path
+    if not path.startswith("/api"):
+        return await call_next(request)
+
+    public_paths = {
+        "/api/auth/login",
+        "/api/auth/status",
+    }
+    if path in public_paths:
+        return await call_next(request)
+
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+
+    if not auth_engine.is_valid_session(token):
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "detail": "Sessão inválida ou expirada. Faça login."},
+        )
+
+    return await call_next(request)
 
 
 # ============================================================================
@@ -182,6 +217,17 @@ class RoutineBlockComplete(BaseModel):
     completed: bool = True
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    username: str
+    current_password: str
+    new_password: str
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
@@ -194,6 +240,41 @@ async def root():
         "version": "2.0.0",
         "status": "running"
     }
+
+
+@app.get("/api/auth/status")
+async def auth_status():
+    config = auth_engine.read_config()
+    return {
+        "success": True,
+        "data": {
+            "username": config["username"],
+            "config_path": str(auth_engine.config_path),
+        },
+    }
+
+
+@app.post("/api/auth/login")
+async def auth_login(payload: LoginRequest):
+    if not auth_engine.validate_credentials(payload.username, payload.password):
+        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
+
+    token = auth_engine.create_session()
+    return {"success": True, "data": {"token": token}}
+
+
+@app.post("/api/auth/change-password")
+async def auth_change_password(payload: ChangePasswordRequest):
+    try:
+        auth_engine.update_password(
+            username=payload.username,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except AuthConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"success": True}
 
 
 
