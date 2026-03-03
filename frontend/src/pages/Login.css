@@ -1,0 +1,79 @@
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(460px, 100%);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-xl);
+  background: var(--glass-premium-bg-raised);
+  box-shadow: var(--glass-premium-shadow-raised);
+  backdrop-filter: var(--glass-premium-blur-raised);
+  padding: 28px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 94px;
+  height: 94px;
+  object-fit: contain;
+  margin: 0 auto 12px;
+}
+
+.login-card h1 {
+  margin: 0;
+  color: var(--glass-text-primary);
+}
+
+.login-card p {
+  margin: 10px 0 20px;
+  color: var(--glass-text-secondary);
+}
+
+.login-form {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.login-form label {
+  color: var(--glass-text-secondary);
+  font-weight: 600;
+}
+
+.login-form input {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border-default);
+  background: var(--glass-surface-strong);
+  color: var(--glass-text-primary);
+  padding: 12px;
+}
+
+.login-form button {
+  margin-top: 10px;
+  border: 1px solid var(--btn-primary-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-primary-bg);
+  box-shadow: var(--btn-primary-shadow);
+  color: #fff;
+  font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.login-form button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.login-error {
+  border: 1px solid var(--btn-danger-border);
+  background: var(--btn-danger-bg);
+  color: #fecaca;
+  border-radius: var(--radius-md);
+  padding: 10px;
+  font-size: 0.9rem;
+}

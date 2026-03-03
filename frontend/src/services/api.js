@@ -16,6 +16,27 @@ const api = axios.create({
 // Activity Types removido (sistema agora usa Disciplina / Diversão direto na Activity)
 
 
+export const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['x-edi-auth-token'] = token;
+    axios.defaults.headers.common['x-edi-auth-token'] = token;
+    return;
+  }
+  delete api.defaults.headers.common['x-edi-auth-token'];
+  delete axios.defaults.headers.common['x-edi-auth-token'];
+};
+
+export const authApi = {
+  status: () => api.get('/auth/status'),
+  login: (password) => api.post('/auth/login', { password }),
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+};
+
+
 // Activities
 export const activitiesApi = {
   list: () => api.get('/activities'),

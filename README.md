@@ -38,6 +38,16 @@ Os artefatos legados foram removidos para manter a base ativa mais enxuta e foca
 
 ---
 
+
+## 🔐 Login ao iniciar
+
+- O app agora exige senha no início da sessão.
+- A configuração da senha é salva em `auth_config.json` **na mesma pasta do banco `lifemanager.db`** (diretório `EDI_STORAGE_DIR` ou padrão `~/Documents/EDI`).
+- Senha inicial padrão: `edi123` (pode ser alterada via endpoint `POST /api/auth/change-password`).
+- Para customizar a senha inicial na primeira execução, use `EDI_DEFAULT_PASSWORD`.
+
+---
+
 ## 🧰 Stack
 
 ### Backend
