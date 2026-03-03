@@ -81,6 +81,38 @@ def _resolve_initial_password() -> str:
     return generated_password
 
 
+def _password_matches_config(config: dict, password: str) -> bool:
+    stored_hash = config.get("password_hash")
+    salt_encoded = config.get("salt")
+    if not stored_hash or not salt_encoded:
+        return False
+
+    salt = base64.b64decode(salt_encoded.encode("utf-8"))
+    computed_hash = _hash_password(password, salt)
+    return hmac.compare_digest(stored_hash, computed_hash)
+
+
+def _sync_config_with_password_source(config_path: Path, config: dict) -> dict:
+    env_password = os.getenv("EDI_DEFAULT_PASSWORD")
+    if env_password:
+        source_password = env_password
+    else:
+        bootstrap_path = _bootstrap_password_path()
+        if not bootstrap_path.exists():
+            return config
+        source_password = bootstrap_path.read_text(encoding="utf-8").strip()
+        if not source_password:
+            return config
+
+    if _password_matches_config(config, source_password):
+        return config
+
+    payload = _create_password_payload(source_password)
+    with config_path.open("w", encoding="utf-8") as target:
+        json.dump(payload, target, ensure_ascii=False, indent=2)
+    return payload
+
+
 def _hash_password(password: str, salt: bytes) -> str:
     password_bytes = password.encode("utf-8")
     digest = hashlib.pbkdf2_hmac("sha256", password_bytes, salt, 200_000)
@@ -100,7 +132,8 @@ def _load_or_create_password_config() -> dict:
     config_path = _password_config_path()
     if config_path.exists():
         with config_path.open("r", encoding="utf-8") as source:
-            return json.load(source)
+            config = json.load(source)
+        return _sync_config_with_password_source(config_path, config)
 
     payload = _create_password_payload(_resolve_initial_password())
     with config_path.open("w", encoding="utf-8") as target:
@@ -110,14 +143,7 @@ def _load_or_create_password_config() -> dict:
 
 def verify_password(password: str) -> bool:
     config = _load_or_create_password_config()
-    stored_hash = config.get("password_hash")
-    salt_encoded = config.get("salt")
-    if not stored_hash or not salt_encoded:
-        return False
-
-    salt = base64.b64decode(salt_encoded.encode("utf-8"))
-    computed_hash = _hash_password(password, salt)
-    return hmac.compare_digest(stored_hash, computed_hash)
+    return _password_matches_config(config, password)
 
 
 def update_password(current_password: str, new_password: str) -> bool:
@@ -127,6 +153,15 @@ def update_password(current_password: str, new_password: str) -> bool:
     payload = _create_password_payload(new_password)
     with _password_config_path().open("w", encoding="utf-8") as target:
         json.dump(payload, target, ensure_ascii=False, indent=2)
+
+    if not os.getenv("EDI_DEFAULT_PASSWORD"):
+        bootstrap_path = _bootstrap_password_path()
+        bootstrap_path.write_text(new_password + "\n", encoding="utf-8")
+        try:
+            os.chmod(bootstrap_path, 0o600)
+        except OSError:
+            pass
+
     return True
 
 

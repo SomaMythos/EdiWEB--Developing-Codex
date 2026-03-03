@@ -113,3 +113,32 @@ def test_env_default_password_skips_bootstrap_file(monkeypatch, tmp_path):
 
     assert auth_engine.verify_password("senha-do-ambiente")
     assert not (storage_dir / "auth_password.txt").exists()
+
+
+def test_bootstrap_password_file_can_be_edited_after_first_start(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.delenv("EDI_DEFAULT_PASSWORD", raising=False)
+
+    auth_engine._load_or_create_password_config()
+
+    bootstrap_file = storage_dir / "auth_password.txt"
+    bootstrap_file.write_text("minha-nova-senha\n", encoding="utf-8")
+
+    assert auth_engine.verify_password("minha-nova-senha")
+    assert not auth_engine.verify_password("senha-antiga")
+
+
+def test_update_password_updates_bootstrap_password_file(monkeypatch, tmp_path):
+    storage_dir = tmp_path / "persist"
+    monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
+    monkeypatch.delenv("EDI_DEFAULT_PASSWORD", raising=False)
+
+    auth_engine._load_or_create_password_config()
+
+    bootstrap_file = storage_dir / "auth_password.txt"
+    current_password = bootstrap_file.read_text(encoding="utf-8").strip()
+
+    assert auth_engine.update_password(current_password, "senha-escolhida")
+    assert bootstrap_file.read_text(encoding="utf-8").strip() == "senha-escolhida"
+    assert auth_engine.verify_password("senha-escolhida")
