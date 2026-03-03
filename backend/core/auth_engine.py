@@ -11,8 +11,8 @@ from pathlib import Path
 from data.database import _get_edi_storage_dir
 
 
-DEFAULT_PASSWORD = "edi123"
 PASSWORD_CONFIG_FILENAME = "auth_config.json"
+BOOTSTRAP_PASSWORD_FILENAME = "auth_password.txt"
 
 
 def _legacy_password_config_paths() -> list[Path]:
@@ -57,6 +57,30 @@ def _password_config_path() -> Path:
     return target_path
 
 
+def _bootstrap_password_path() -> Path:
+    return _password_config_path().with_name(BOOTSTRAP_PASSWORD_FILENAME)
+
+
+def _resolve_initial_password() -> str:
+    env_password = os.getenv("EDI_DEFAULT_PASSWORD")
+    if env_password:
+        return env_password
+
+    bootstrap_path = _bootstrap_password_path()
+    if bootstrap_path.exists():
+        persisted_password = bootstrap_path.read_text(encoding="utf-8").strip()
+        if persisted_password:
+            return persisted_password
+
+    generated_password = secrets.token_urlsafe(12)
+    bootstrap_path.write_text(generated_password + "\n", encoding="utf-8")
+    try:
+        os.chmod(bootstrap_path, 0o600)
+    except OSError:
+        pass
+    return generated_password
+
+
 def _hash_password(password: str, salt: bytes) -> str:
     password_bytes = password.encode("utf-8")
     digest = hashlib.pbkdf2_hmac("sha256", password_bytes, salt, 200_000)
@@ -78,7 +102,7 @@ def _load_or_create_password_config() -> dict:
         with config_path.open("r", encoding="utf-8") as source:
             return json.load(source)
 
-    payload = _create_password_payload(os.getenv("EDI_DEFAULT_PASSWORD", DEFAULT_PASSWORD))
+    payload = _create_password_payload(_resolve_initial_password())
     with config_path.open("w", encoding="utf-8") as target:
         json.dump(payload, target, ensure_ascii=False, indent=2)
     return payload
