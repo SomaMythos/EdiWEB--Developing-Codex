@@ -1,0 +1,39 @@
+﻿{
+  "expo": {
+    "name": "EDI Mobile",
+    "slug": "edi-mobile",
+    "scheme": "edi-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/app-icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0603"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-dev-client"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.edi.lifemanager.mobile"
+    },
+    "android": {
+      "package": "com.edi.lifemanager.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0603"
+      }
+    },
+    "extra": {
+      "apiUrl": "http://127.0.0.1:8000/api",
+      "eas": {
+        "projectId": "a84bf470-a491-4595-9932-06492cbc6aea"
+      }
+    }
+  }
+}

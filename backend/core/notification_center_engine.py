@@ -1,6 +1,8 @@
-from datetime import date, datetime, timedelta
+﻿from datetime import date, datetime, timedelta
 import json
 import logging
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 from typing import Any, Dict, List, Optional
 
 from core.daily_log_engine import DailyLogEngine
@@ -9,12 +11,15 @@ from core.goal_engine import GoalEngine
 from data.database import Database
 
 logger = logging.getLogger(__name__)
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+EXPO_RECEIPTS_URL = "https://exp.host/--/api/v2/push/getReceipts"
+MAX_PUSH_RETRIES = 2
 
 
 class NotificationCenterEngine:
     DEFAULT_STATUS = "unread"
     SUPPORTED_SEVERITIES = {"info", "success", "warning", "critical", "neutral"}
-    DEFAULT_CHANNELS = ["in_app", "sound"]
+    DEFAULT_CHANNELS = ["in_app", "sound", "push"]
     SUPPORTED_FEATURES = ["goals", "daily", "consumables", "shopping", "custom"]
 
     @staticmethod
@@ -133,7 +138,7 @@ class NotificationCenterEngine:
                 ),
             )
             if result.rowcount == 0:
-                raise ValueError("Notificação custom não encontrada")
+                raise ValueError("NotificaÃ§Ã£o custom nÃ£o encontrada")
 
     @staticmethod
     def _normalize_severity(value: Optional[str]) -> str:
@@ -244,6 +249,331 @@ class NotificationCenterEngine:
         return require_channel in pref.get("channels", [])
 
     @staticmethod
+    def register_mobile_device(device_token: str, platform: str, device_name: Optional[str] = None):
+        normalized_token = (device_token or "").strip()
+        normalized_platform = (platform or "").strip().lower()
+        normalized_name = (device_name or "").strip() or None
+
+        if not normalized_token:
+            raise ValueError("device_token is required")
+        if normalized_platform not in {"android", "ios", "expo", "web"}:
+            raise ValueError("platform is invalid")
+
+        with Database() as db:
+            db.execute(
+                """
+                INSERT INTO mobile_devices (device_token, platform, device_name, is_active, last_seen_at, updated_at)
+                VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT(device_token) DO UPDATE SET
+                    platform = excluded.platform,
+                    device_name = excluded.device_name,
+                    is_active = 1,
+                    last_seen_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (normalized_token, normalized_platform, normalized_name),
+            )
+            row = db.fetchone(
+                """
+                SELECT id, device_token, platform, device_name, is_active, last_seen_at, created_at, updated_at
+                FROM mobile_devices
+                WHERE device_token = ?
+                """,
+                (normalized_token,),
+            )
+        return dict(row) if row else None
+
+    @staticmethod
+    def list_mobile_devices(include_inactive: bool = False):
+        query = """
+            SELECT id, device_token, platform, device_name, is_active, last_seen_at, created_at, updated_at
+            FROM mobile_devices
+        """
+        if not include_inactive:
+            query += " WHERE is_active = 1"
+        query += " ORDER BY datetime(updated_at) DESC, id DESC"
+        with Database() as db:
+            rows = db.fetchall(query)
+        return [dict(row) for row in rows]
+
+    @staticmethod
+    def deactivate_mobile_device(device_token: str):
+        normalized_token = (device_token or "").strip()
+        if not normalized_token:
+            raise ValueError("device_token is required")
+
+        with Database() as db:
+            result = db.execute(
+                """
+                UPDATE mobile_devices
+                SET is_active = 0,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE device_token = ?
+                """,
+                (normalized_token,),
+            )
+            return result.rowcount > 0
+
+    @staticmethod
+    def dispatch_push_notifications(notification_ids: Optional[List[int]] = None, dry_run: bool = False):
+        notifications = NotificationCenterEngine.list_notifications(include_read=False)
+        if notification_ids:
+            allowed_ids = set(notification_ids)
+            notifications = [item for item in notifications if item.get("id") in allowed_ids]
+
+        devices = NotificationCenterEngine.list_mobile_devices(include_inactive=False)
+        summary = {
+            "devices": len(devices),
+            "notifications": len(notifications),
+            "attempted": 0,
+            "sent": 0,
+            "failed": 0,
+            "skipped": 0,
+            "retried": 0,
+            "dry_run": dry_run,
+        }
+
+        if not devices or not notifications:
+            return summary
+
+        for notification in notifications:
+            feature_key = NotificationCenterEngine._normalize_feature_key(notification.get("source_feature"))
+            if not NotificationCenterEngine.is_feature_enabled(feature_key, require_channel="push"):
+                summary["skipped"] += len(devices)
+                continue
+
+            for device in devices:
+                delivery = NotificationCenterEngine._get_delivery(notification["id"], device["id"])
+                if delivery and not NotificationCenterEngine._should_retry_delivery(delivery):
+                    summary["skipped"] += 1
+                    continue
+
+                summary["attempted"] += 1
+                if delivery:
+                    summary["retried"] += 1
+
+                if dry_run:
+                    NotificationCenterEngine._store_push_delivery(
+                        notification["id"],
+                        device["id"],
+                        status="dry_run",
+                        retry_count=(delivery or {}).get("retry_count", 0),
+                    )
+                    summary["sent"] += 1
+                    continue
+
+                result = NotificationCenterEngine._send_expo_push(device, notification)
+                next_retry_count = ((delivery or {}).get("retry_count", 0) + 1) if result.get("status") != "sent" else (delivery or {}).get("retry_count", 0)
+                NotificationCenterEngine._store_push_delivery(
+                    notification["id"],
+                    device["id"],
+                    status=result.get("status", "failed"),
+                    ticket_id=result.get("ticket_id"),
+                    error_message=result.get("error_message"),
+                    retry_count=next_retry_count,
+                )
+                if result.get("status") == "sent":
+                    summary["sent"] += 1
+                else:
+                    summary["failed"] += 1
+
+        return summary
+
+    @staticmethod
+    def _get_delivery(notification_id: int, device_id: int):
+        with Database() as db:
+            row = db.fetchone(
+                """
+                SELECT id, notification_id, device_id, provider, ticket_id, status, error_message, retry_count, created_at, updated_at
+                FROM notification_push_deliveries
+                WHERE notification_id = ? AND device_id = ?
+                """,
+                (notification_id, device_id),
+            )
+        return dict(row) if row else None
+
+    @staticmethod
+    def _should_retry_delivery(delivery: Dict[str, Any]):
+        if not delivery:
+            return True
+        status = delivery.get("status")
+        retry_count = int(delivery.get("retry_count") or 0)
+        error_message = delivery.get("error_message") or ""
+        if status in {"sent", "receipt_ok", "dry_run", "receipt_error"}:
+            return False
+        if "DeviceNotRegistered" in error_message:
+            return False
+        return retry_count < MAX_PUSH_RETRIES
+
+    @staticmethod
+    def _store_push_delivery(notification_id: int, device_id: int, status: str, ticket_id: Optional[str] = None, error_message: Optional[str] = None, retry_count: int = 0):
+        with Database() as db:
+            db.execute(
+                """
+                INSERT INTO notification_push_deliveries (notification_id, device_id, provider, ticket_id, status, error_message, retry_count, updated_at)
+                VALUES (?, ?, 'expo', ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(notification_id, device_id) DO UPDATE SET
+                    ticket_id = excluded.ticket_id,
+                    status = excluded.status,
+                    error_message = excluded.error_message,
+                    retry_count = excluded.retry_count,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (notification_id, device_id, ticket_id, status, error_message, retry_count),
+            )
+
+    @staticmethod
+    def list_push_deliveries(limit: int = 100, status: Optional[str] = None):
+        query = """
+            SELECT
+                pd.id,
+                pd.notification_id,
+                pd.device_id,
+                pd.provider,
+                pd.ticket_id,
+                pd.status,
+                pd.error_message,
+                pd.retry_count,
+                pd.created_at,
+                pd.updated_at,
+                n.title AS notification_title,
+                n.source_feature,
+                md.device_token,
+                md.platform,
+                md.device_name,
+                md.is_active
+            FROM notification_push_deliveries pd
+            INNER JOIN notifications n ON n.id = pd.notification_id
+            INNER JOIN mobile_devices md ON md.id = pd.device_id
+        """
+        params = []
+        if status:
+            query += " WHERE pd.status = ?"
+            params.append(status)
+        query += " ORDER BY datetime(pd.updated_at) DESC, pd.id DESC LIMIT ?"
+        params.append(max(1, min(int(limit or 100), 500)))
+        with Database() as db:
+            rows = db.fetchall(query, tuple(params))
+        return [dict(row) for row in rows]
+
+    @staticmethod
+    def refresh_expo_push_receipts(ticket_ids: Optional[List[str]] = None):
+        deliveries = NotificationCenterEngine.list_push_deliveries(limit=500)
+        pending = [item for item in deliveries if item.get("ticket_id") and item.get("status") == "sent"]
+        if ticket_ids:
+            allowed = set(ticket_ids)
+            pending = [item for item in pending if item.get("ticket_id") in allowed]
+
+        if not pending:
+            return {"checked": 0, "updated": 0, "invalidated_devices": 0}
+
+        ids = [item["ticket_id"] for item in pending]
+        request = urllib_request.Request(
+            EXPO_RECEIPTS_URL,
+            data=json.dumps({"ids": ids}).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+
+        updated = 0
+        invalidated = 0
+        with urllib_request.urlopen(request, timeout=15) as response:
+            raw = response.read().decode("utf-8")
+        parsed = json.loads(raw) if raw else {}
+        receipt_map = parsed.get("data") or {}
+
+        for delivery in pending:
+            receipt = receipt_map.get(delivery["ticket_id"]) or {}
+            status = receipt.get("status")
+            details = receipt.get("details") or {}
+            if status == "ok":
+                NotificationCenterEngine._store_push_delivery(
+                    delivery["notification_id"],
+                    delivery["device_id"],
+                    status="receipt_ok",
+                    ticket_id=delivery["ticket_id"],
+                    error_message=None,
+                    retry_count=delivery.get("retry_count", 0),
+                )
+                updated += 1
+                continue
+
+            error_message = json.dumps(details) if details else receipt.get("message") or "receipt_error"
+            NotificationCenterEngine._store_push_delivery(
+                delivery["notification_id"],
+                delivery["device_id"],
+                status="receipt_error",
+                ticket_id=delivery["ticket_id"],
+                error_message=error_message,
+                retry_count=delivery.get("retry_count", 0),
+            )
+            updated += 1
+            if details.get("error") == "DeviceNotRegistered":
+                NotificationCenterEngine._deactivate_device_by_id(delivery["device_id"])
+                invalidated += 1
+
+        return {"checked": len(pending), "updated": updated, "invalidated_devices": invalidated}
+
+    @staticmethod
+    def _deactivate_device_by_id(device_id: int):
+        with Database() as db:
+            db.execute(
+                "UPDATE mobile_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (device_id,),
+            )
+
+    @staticmethod
+    def _build_expo_push_payload(device: Dict[str, Any], notification: Dict[str, Any]):
+        return {
+            "to": device["device_token"],
+            "title": notification.get("title") or "EDI",
+            "body": notification.get("message") or "Nova notificacao",
+            "sound": "default" if notification.get("sound_key") else None,
+            "data": {
+                "notification_id": notification.get("id"),
+                "source_feature": notification.get("source_feature"),
+                "notification_type": notification.get("notification_type"),
+                "meta": notification.get("meta") or {},
+            },
+        }
+
+    @staticmethod
+    def _send_expo_push(device: Dict[str, Any], notification: Dict[str, Any]):
+        payload = NotificationCenterEngine._build_expo_push_payload(device, notification)
+        body = json.dumps(payload).encode("utf-8")
+        request = urllib_request.Request(
+            EXPO_PUSH_URL,
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib_request.urlopen(request, timeout=15) as response:
+                raw = response.read().decode("utf-8")
+            parsed = json.loads(raw) if raw else {}
+            data = parsed.get("data") or {}
+            if isinstance(data, list):
+                data = data[0] if data else {}
+            if data.get("status") == "ok":
+                return {"status": "sent", "ticket_id": data.get("id")}
+            details = data.get("details") if isinstance(data, dict) else None
+            return {
+                "status": "failed",
+                "ticket_id": data.get("id") if isinstance(data, dict) else None,
+                "error_message": json.dumps(details) if details else data.get("message") if isinstance(data, dict) else "expo_error",
+            }
+        except urllib_error.HTTPError as exc:
+            return {"status": "failed", "error_message": f"http_error:{exc.code}"}
+        except urllib_error.URLError as exc:
+            return {"status": "failed", "error_message": f"url_error:{exc.reason}"}
+        except Exception as exc:
+            return {"status": "failed", "error_message": str(exc)}
+
+    @staticmethod
     def generate_system_notifications(days_ahead: int = 7):
         NotificationCenterEngine._check_stalled_goals()
         NotificationCenterEngine._check_upcoming_deadlines(days_ahead=days_ahead)
@@ -298,7 +628,7 @@ class NotificationCenterEngine:
                     "notification_type": "daily_activity_start",
                     "source_feature": "daily",
                     "title": "Hora de iniciar atividade",
-                    "message": f"A atividade '{title}' está programada para começar agora.",
+                    "message": f"A atividade '{title}' estÃ¡ programada para comeÃ§ar agora.",
                     "severity": "info",
                     "scheduled_for": scheduled_for.isoformat(),
                     "sound_key": "default",
@@ -313,7 +643,7 @@ class NotificationCenterEngine:
                 }
                 NotificationCenterEngine._insert_notification(payload)
         except Exception as exc:
-            logger.error("Erro ao verificar início de atividades da rotina: %s", exc)
+            logger.error("Erro ao verificar inÃ­cio de atividades da rotina: %s", exc)
 
     @staticmethod
     def _check_consumables(days_ahead: int = 7):
@@ -325,7 +655,7 @@ class NotificationCenterEngine:
                     unique_key=payload.get("unique_key"),
                 )
         except Exception as exc:
-            logger.error("Erro ao verificar risco de consumíveis: %s", exc)
+            logger.error("Erro ao verificar risco de consumÃ­veis: %s", exc)
 
     @staticmethod
     def _check_stalled_goals():
@@ -336,7 +666,7 @@ class NotificationCenterEngine:
                         "notification_type": "stalled_goal",
                         "source_feature": "goals",
                         "title": goal["title"],
-                        "message": f"Meta '{goal['title']}' sem progresso há mais de 3 dias",
+                        "message": f"Meta '{goal['title']}' sem progresso hÃ¡ mais de 3 dias",
                         "severity": "warning",
                         "meta": {
                             "goal_id": goal["id"],
@@ -389,8 +719,8 @@ class NotificationCenterEngine:
             payload = {
                 "notification_type": "daily_summary",
                 "source_feature": "daily",
-                "title": "Resumo diário",
-                "message": f"Hoje você completou {completed_activities} de {total_activities} atividades",
+                "title": "Resumo diÃ¡rio",
+                "message": f"Hoje vocÃª completou {completed_activities} de {total_activities} atividades",
                 "severity": "info",
                 "meta": {
                     "date": date.today().isoformat(),
@@ -402,7 +732,7 @@ class NotificationCenterEngine:
             }
             NotificationCenterEngine._insert_notification(payload)
         except Exception as exc:
-            logger.error("Erro ao gerar resumo diário: %s", exc)
+            logger.error("Erro ao gerar resumo diÃ¡rio: %s", exc)
 
     @staticmethod
     def _insert_notification(payload: Dict[str, Any], unique_key: Optional[str] = None):
@@ -497,7 +827,7 @@ class NotificationCenterEngine:
         if not isinstance(channels, list):
             channels = list(NotificationCenterEngine.DEFAULT_CHANNELS)
 
-        allowed_channels = {"in_app", "sound"}
+        allowed_channels = {"in_app", "sound", "push"}
         normalized = [channel for channel in channels if channel in allowed_channels]
         return normalized or ["in_app"]
 
@@ -591,3 +921,9 @@ class NotificationCenterEngine:
             for reminder in NotificationCenterEngine.reminder_adapter_list(status="pendente")
             if reminder.get("due_date") and reminder["due_date"] <= limit_date
         ]
+
+
+
+
+
+

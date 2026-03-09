@@ -1,4 +1,4 @@
-# core/finance_engine.py
+﻿# core/finance_engine.py
 from datetime import datetime
 from data.database import Database
 
@@ -26,13 +26,13 @@ class FinanceEngine:
         return month_start.strftime("%Y-%m"), prev_month_start.strftime("%Y-%m")
 
     # =========================================================
-    # CONFIGURAÇÃO
+    # CONFIGURAÃ‡ÃƒO
     # =========================================================
 
     @staticmethod
     def get_config():
         """
-        Retorna a configuração como um dicionário puro.
+        Retorna a configuraÃ§Ã£o como um dicionÃ¡rio puro.
         Converte sqlite3.Row (ou outros formatos) para dict para permitir .get().
         """
         db = Database()
@@ -40,27 +40,27 @@ class FinanceEngine:
         db.close()
         if not row:
             return {}
-        # sqlite3.Row -> dict(row) funciona; se falhar, constrói manualmente
+        # sqlite3.Row -> dict(row) funciona; se falhar, constrÃ³i manualmente
         try:
             return dict(row)
         except Exception:
             # fallback: construir dict a partir dos campos conhecidos (mais seguro)
-            # Se row for indexável por col name, isso tentará extrair.
+            # Se row for indexÃ¡vel por col name, isso tentarÃ¡ extrair.
             config = {}
             try:
                 for k in row.keys():
                     config[k] = row[k]
                 return config
             except Exception:
-                # por segurança, retorna row como está (mas preferimos dict)
+                # por seguranÃ§a, retorna row como estÃ¡ (mas preferimos dict)
                 return row
 
     @staticmethod
     def save_config(data: dict):
         """
-        Salva / atualiza a configuração financeira.
-        Inclui reserve_fgts (saldo atual FGTS) e fgts (depósito mensal FGTS).
-        Faz UPDATE com WHERE id=? quando já existe registro.
+        Salva / atualiza a configuraÃ§Ã£o financeira.
+        Inclui reserve_fgts (saldo atual FGTS) e fgts (depÃ³sito mensal FGTS).
+        Faz UPDATE com WHERE id=? quando jÃ¡ existe registro.
         """
         db = Database()
 
@@ -74,7 +74,7 @@ class FinanceEngine:
             data.get("reserve_cdb", 0),
             data.get("reserve_extra", 0),
             data.get("reserve_fgts", 0),     # Saldo atual FGTS
-            data.get("fgts", 0),             # Depósito mensal FGTS
+            data.get("fgts", 0),             # DepÃ³sito mensal FGTS
             data.get("monthly_contribution", 0),
             data.get("thirteenth", 0),
             data.get("cdi_rate_annual", 0),
@@ -172,6 +172,65 @@ class FinanceEngine:
         return created
 
     @staticmethod
+    def register_spend(description, amount, category, occurred_at):
+        normalized_description = (description or "").strip()
+        normalized_amount = float(amount or 0)
+
+        if not normalized_description:
+            raise ValueError("description is required")
+        if normalized_amount <= 0:
+            raise ValueError("amount must be greater than zero")
+
+        with Database() as db:
+            config = db.fetchone("SELECT * FROM finance_config LIMIT 1")
+            if not config:
+                raise ValueError("finance_config_not_found")
+
+            current_reserve = float(config["reserve_current"] or 0)
+            updated_reserve = current_reserve - normalized_amount
+
+            db.execute(
+                """
+                UPDATE finance_config
+                SET reserve_current = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    updated_reserve,
+                    datetime.now().isoformat(),
+                    config["id"],
+                ),
+            )
+
+            cursor = db.execute(
+                """
+                INSERT INTO finance_transactions (description, amount, category, occurred_at, kind)
+                VALUES (?, ?, ?, ?, 'expense')
+                """,
+                (
+                    normalized_description,
+                    normalized_amount,
+                    category,
+                    occurred_at,
+                ),
+            )
+
+            transaction_id = cursor.lastrowid
+            transaction = db.fetchone(
+                """
+                SELECT id, description, amount, category, occurred_at, kind, created_at, updated_at
+                FROM finance_transactions
+                WHERE id=?
+                """,
+                (transaction_id,),
+            )
+
+        return {
+            "transaction": transaction,
+            "reserve_current": round(updated_reserve, 2),
+        }
+
+    @staticmethod
     def update_transaction(transaction_id, description, amount, category, occurred_at, kind):
         db = Database()
         db.execute(
@@ -253,11 +312,11 @@ class FinanceEngine:
         previous_total = float(previous_total_row["total"] or 0)
         savings_vs_previous = round(previous_total - current_total, 2)
 
-        patrimônio_variation = []
+        patrimonio_variation = []
         running_balance = 0.0
         for row in monthly_rows:
             running_balance += float(row["net_change"] or 0)
-            patrimônio_variation.append(
+            patrimonio_variation.append(
                 {
                     "month": row["month"],
                     "monthly_net_change": round(float(row["net_change"] or 0), 2),
@@ -272,7 +331,7 @@ class FinanceEngine:
             "savings_vs_previous_month": savings_vs_previous,
             "largest_expense": round(float(outliers["max_expense"] or 0), 2),
             "smallest_expense": round(float(outliers["min_expense"] or 0), 2),
-            "equity_monthly_variation": patrimônio_variation,
+            "equity_monthly_variation": patrimonio_variation,
         }
 
     @staticmethod
@@ -325,7 +384,7 @@ class FinanceEngine:
     @staticmethod
     def get_summary():
         """
-        Retorna resumo com valores principais e também os saldos por conta:
+        Retorna resumo com valores principais e tambÃ©m os saldos por conta:
         - patrimonio_total, saldo_disponivel, percentual_economia, total_gastos_fixos, health_indicator
         - current, cdb, extra, fgts (para os cards do frontend)
         """
@@ -341,11 +400,11 @@ class FinanceEngine:
         total_fixed = float(total_fixed_row["total"]) if total_fixed_row and total_fixed_row["total"] is not None else 0.0
         db.close()
 
-        # agora config é dict -> usar config.get é seguro
+        # agora config Ã© dict -> usar config.get Ã© seguro
         salary = float(config.get("salary_monthly", 0) or 0)
         contribution = float(config.get("monthly_contribution", 0) or 0)
 
-        # patrimônio total considera reserve_fgts (saldo atual) também
+        # patrimÃ´nio total considera reserve_fgts (saldo atual) tambÃ©m
         patrimonio_total = (
             float(config.get("reserve_current", 0) or 0) +
             float(config.get("reserve_cdb", 0) or 0) +
@@ -363,7 +422,7 @@ class FinanceEngine:
         else:
             health = "ruim"
 
-        # Também exportar saldos individuais para o frontend mostrar “atual”
+        # TambÃ©m exportar saldos individuais para o frontend mostrar â€œatualâ€
         return {
             "patrimonio_total": round(patrimonio_total, 2),
             "saldo_disponivel": round(saldo_disponivel, 2),
@@ -377,7 +436,7 @@ class FinanceEngine:
         }
 
     # =========================================================
-    # PROJEÇÃO JUROS COMPOSTOS
+    # PROJEÃ‡ÃƒO JUROS COMPOSTOS
     # =========================================================
 
     @staticmethod
@@ -386,10 +445,10 @@ class FinanceEngine:
         if not config:
             return []
 
-        # helper para ler o config com segurança e converter para float
+        # helper para ler o config com seguranÃ§a e converter para float
         def cfg(name):
             try:
-                # config é dict graças a get_config()
+                # config Ã© dict graÃ§as a get_config()
                 v = config.get(name, 0)
             except Exception:
                 v = 0
@@ -407,15 +466,15 @@ class FinanceEngine:
         fgts_balance = cfg("reserve_fgts")  # saldo atual FGTS
 
         # ============================
-        # CONFIGURAÇÕES
+        # CONFIGURAÃ‡Ã•ES
         # ============================
         salary = cfg("salary_monthly")
         contribution = cfg("monthly_contribution")
         thirteenth = cfg("thirteenth")
-        fgts_monthly_deposit = cfg("fgts")  # fgts no config = depósito mensal
+        fgts_monthly_deposit = cfg("fgts")  # fgts no config = depÃ³sito mensal
 
         # ============================
-        # CDI - CAPITALIZAÇÃO EXPONENCIAL
+        # CDI - CAPITALIZAÃ‡ÃƒO EXPONENCIAL
         # ============================
         cdi_annual = cfg("cdi_rate_annual") / 100.0
         cdi_monthly = (1 + cdi_annual) ** (1.0 / 12.0) - 1.0
@@ -423,11 +482,11 @@ class FinanceEngine:
         cdb_rate = cdi_monthly * (cfg("cdb_percent_cdi") / 100.0)
         extra_rate = cdi_monthly * (cfg("extra_percent_cdi") / 100.0)
 
-        # Conta corrente (taxa anual própria)
+        # Conta corrente (taxa anual prÃ³pria)
         current_annual = cfg("interest_rate_current") / 100.0
         current_rate = (1 + current_annual) ** (1.0 / 12.0) - 1.0
 
-        # FGTS: taxa anual configurável (default 3%)
+        # FGTS: taxa anual configurÃ¡vel (default 3%)
         fgts_annual = cfg("interest_rate_fgts") / 100.0
         fgts_rate = (1 + fgts_annual) ** (1.0 / 12.0) - 1.0
 
@@ -451,14 +510,14 @@ class FinanceEngine:
             extra = extra * (1.0 + extra_rate)
             fgts_balance = fgts_balance * (1.0 + fgts_rate)
 
-            # 2. movimentação mensal
+            # 2. movimentaÃ§Ã£o mensal
             monthly_leftover = salary - total_fixed - contribution
             current += monthly_leftover
 
             cdb += contribution
             fgts_balance += fgts_monthly_deposit
 
-            # 13º salário no mês 12,24...
+            # 13Âº salÃ¡rio no mÃªs 12,24...
             if (m % 12) == 0 and thirteenth > 0:
                 current += thirteenth
 
@@ -474,3 +533,5 @@ class FinanceEngine:
             })
 
         return projection
+
+

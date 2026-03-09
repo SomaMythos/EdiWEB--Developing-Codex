@@ -17,7 +17,7 @@ export default function Login({ onLoginSuccess }) {
       const response = await authApi.login(password);
       const token = response?.data?.data?.token;
       if (!token) {
-        throw new Error('Token não recebido');
+        throw new Error('Token não recebido.');
       }
       onLoginSuccess(token);
     } catch (err) {

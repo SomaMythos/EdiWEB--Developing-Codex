@@ -64,3 +64,6 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Expo
+.expo/

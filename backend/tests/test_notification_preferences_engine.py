@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import sqlite3
 import sys
 
@@ -74,3 +74,24 @@ def test_feature_enabled_generates_notification(monkeypatch, tmp_path):
     assert len(notifications) == 1
     assert notifications[0]["source_feature"] == "goals"
     assert notifications[0]["notification_type"] == "stalled_goal"
+
+
+def test_preferences_accept_push_channel(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    NotificationCenterEngine.save_preferences(
+        [
+            {
+                "feature_key": "daily",
+                "enabled": True,
+                "channels": ["in_app", "push"],
+                "quiet_hours": None,
+            }
+        ]
+    )
+
+    prefs = {item["feature_key"]: item for item in NotificationCenterEngine.get_preferences()}
+    assert prefs["daily"]["channels"] == ["in_app", "push"]
+    assert NotificationCenterEngine.is_feature_enabled("daily", require_channel="push") is True

@@ -1,7 +1,21 @@
+﻿import logging
+
 from core.notification_center_engine import NotificationCenterEngine
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationEngine:
+    @staticmethod
+    def run_cycle(days_ahead=7, dry_run_push=False):
+        NotificationCenterEngine.generate_system_notifications(days_ahead=days_ahead)
+        push_summary = NotificationCenterEngine.dispatch_push_notifications(dry_run=dry_run_push)
+        unread_notifications = NotificationCenterEngine.list_notifications(include_read=False)
+        return {
+            "generated_unread": len(unread_notifications),
+            "push": push_summary,
+        }
+
     @staticmethod
     def check_stalled_goals(store=False):
         if store:

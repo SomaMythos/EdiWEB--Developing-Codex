@@ -1,8 +1,10 @@
+﻿import gc
 import sqlite3
 import os
 import logging
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -11,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_edi_storage_dir() -> Path:
-    """Retorna o diretório persistente do cliente para dados do EDI."""
+    """Retorna o diretÃ³rio persistente do cliente para dados do EDI."""
     custom_storage = os.getenv("EDI_STORAGE_DIR")
     if custom_storage:
         return Path(custom_storage).expanduser().resolve()
@@ -50,7 +52,7 @@ def _legacy_database_paths() -> List[Path]:
 
 
 def _migrate_legacy_database_file(target_path: Path) -> None:
-    """Move DB antiga do diretório do backend para storage persistente, se existir."""
+    """Move DB antiga do diretÃ³rio do backend para storage persistente, se existir."""
     if target_path.exists():
         return
 
@@ -59,9 +61,20 @@ def _migrate_legacy_database_file(target_path: Path) -> None:
             continue
 
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(legacy_path), str(target_path))
-        logger.info("Banco legado movido para storage persistente: %s -> %s", legacy_path, target_path)
-        return
+        shutil.copy2(str(legacy_path), str(target_path))
+        gc.collect()
+
+        for attempt in range(20):
+            try:
+                legacy_path.unlink()
+                logger.info("Banco legado movido para storage persistente: %s -> %s", legacy_path, target_path)
+                return
+            except PermissionError:
+                gc.collect()
+                if attempt == 19:
+                    target_path.unlink(missing_ok=True)
+                    raise
+                time.sleep(0.1 * (attempt + 1))
 
 
 def table_exists(db, table_name):
@@ -103,7 +116,7 @@ def read_migration_sql(filename: str) -> str:
 
 
 def apply_migrations(db):
-    """Aplica migrações idempotentes e aditivas para bancos existentes."""
+    """Aplica migraÃ§Ãµes idempotentes e aditivas para bancos existentes."""
     migration_log: List[Dict[str, str]] = []
 
     def run_migration(name: str, condition: Callable[[], bool], sql: str):
@@ -116,7 +129,7 @@ def apply_migrations(db):
         logger.info("[migrations] APPLIED %s", name)
         migration_log.append({"name": name, "status": "applied"})
 
-    # Tabelas adicionadas/portadas ao domínio principal
+    # Tabelas adicionadas/portadas ao domÃ­nio principal
     run_migration(
         "create_notifications_table",
         lambda: table_exists(db, "notifications"),
@@ -150,7 +163,7 @@ def apply_migrations(db):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             feature_key TEXT NOT NULL UNIQUE,
             enabled INTEGER NOT NULL DEFAULT 1,
-            channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+            channels TEXT NOT NULL DEFAULT '["in_app","sound","push"]',
             quiet_hours TEXT,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
@@ -167,21 +180,62 @@ def apply_migrations(db):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             feature_key TEXT NOT NULL UNIQUE,
             enabled INTEGER NOT NULL DEFAULT 1,
-            channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+            channels TEXT NOT NULL DEFAULT '["in_app","sound","push"]',
             quiet_hours TEXT,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
         INSERT INTO notification_preferences (feature_key, enabled, channels)
         VALUES
-            ('goals', 1, '["in_app","sound"]'),
-            ('daily', 1, '["in_app","sound"]'),
-            ('consumables', 1, '["in_app","sound"]'),
-            ('shopping', 1, '["in_app","sound"]'),
-            ('custom', 1, '["in_app","sound"]');
+            ('goals', 1, '["in_app","sound","push"]'),
+            ('daily', 1, '["in_app","sound","push"]'),
+            ('consumables', 1, '["in_app","sound","push"]'),
+            ('shopping', 1, '["in_app","sound","push"]'),
+            ('custom', 1, '["in_app","sound","push"]');
 
         DROP TABLE notification_preferences_legacy;
         """,
+    )
+    run_migration(
+        "create_mobile_devices_table",
+        lambda: table_exists(db, "mobile_devices"),
+        """
+        CREATE TABLE IF NOT EXISTS mobile_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_token TEXT NOT NULL UNIQUE,
+            platform TEXT NOT NULL,
+            device_name TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            last_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        """,
+    )
+
+    run_migration(
+        "create_notification_push_deliveries_table",
+        lambda: table_exists(db, "notification_push_deliveries"),
+        """
+        CREATE TABLE IF NOT EXISTS notification_push_deliveries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            notification_id INTEGER NOT NULL,
+            device_id INTEGER NOT NULL,
+            provider TEXT NOT NULL DEFAULT 'expo',
+            ticket_id TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            error_message TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(notification_id, device_id)
+        );
+        """,
+    )
+
+    run_migration(
+        "notification_push_deliveries_add_retry_count",
+        lambda: column_exists(db, "notification_push_deliveries", "retry_count"),
+        "ALTER TABLE notification_push_deliveries ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0",
     )
 
     run_migration(
@@ -529,7 +583,7 @@ def apply_migrations(db):
         """,
     )
 
-    # Expansões de colunas (migração aditiva, sem remoções)
+    # ExpansÃµes de colunas (migraÃ§Ã£o aditiva, sem remoÃ§Ãµes)
     run_migration(
         "add_goals_difficulty",
         lambda: column_exists(db, "goals", "difficulty"),
@@ -761,6 +815,17 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260307_add_calendar_tables",
+        lambda: (
+            table_exists(db, "calendar_events")
+            and table_exists(db, "calendar_manual_logs")
+            and index_exists(db, "idx_calendar_events_date")
+            and index_exists(db, "idx_calendar_manual_logs_date")
+        ),
+        read_migration_sql("20260307_add_calendar_tables.sql"),
+    )
+
+    run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
         "ALTER TABLE user_profile ADD COLUMN gender TEXT",
@@ -817,7 +882,7 @@ class Database:
         try:
             self.conn = sqlite3.connect(self.path)
             self.conn.row_factory = sqlite3.Row
-            logger.info(f"Conexão com banco de dados estabelecida: {self.path}")
+            logger.info(f"ConexÃ£o com banco de dados estabelecida: {self.path}")
         except Exception as e:
             logger.error(f"Erro ao conectar ao banco de dados: {e}")
             raise
@@ -827,16 +892,16 @@ class Database:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Fecha conexão e faz commit automático se não houver erros"""
+        """Fecha conexÃ£o e faz commit automÃ¡tico se nÃ£o houver erros"""
         if exc_type is None:
             try:
                 self.commit()
             except Exception as e:
                 logger.error(f"Erro ao fazer commit: {e}")
         else:
-            logger.error(f"Erro durante transação: {exc_val}")
+            logger.error(f"Erro durante transaÃ§Ã£o: {exc_val}")
         self.close()
-        return False  # Não suprime exceções
+        return False  # NÃ£o suprime exceÃ§Ãµes
 
     def execute(self, query, params=()):
         try:
@@ -850,7 +915,7 @@ class Database:
 
     @property
     def lastrowid(self):
-        """Retorna o ID da última linha inserida"""
+        """Retorna o ID da Ãºltima linha inserida"""
         return self.conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     def fetchall(self, query, params=()):
@@ -880,13 +945,13 @@ class Database:
     def close(self):
         try:
             self.conn.close()
-            logger.debug("Conexão fechada")
+            logger.debug("ConexÃ£o fechada")
         except Exception as e:
-            logger.error(f"Erro ao fechar conexão: {e}")
+            logger.error(f"Erro ao fechar conexÃ£o: {e}")
 
 
 # -------------------------
-# Inicialização do banco
+# InicializaÃ§Ã£o do banco
 # -------------------------
 
 def initialize_database():
@@ -912,3 +977,7 @@ def initialize_database():
 
     db.commit()
     db.close()
+
+
+
+

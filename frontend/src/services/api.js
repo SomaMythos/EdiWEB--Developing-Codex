@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8000/api';
 
@@ -86,7 +86,7 @@ const toGoalsFormData = (data) => {
 export const goalsApi = {
   list: () => api.get('/goals'),
   create: (data) => api.post('/goals', toGoalsFormData(data), {
-  headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data' },
   }),
   update: (id, data) => api.put(`/goals/${id}`, data),
   updateWithFormData: (id, data) => api.put(`/goals/${id}/multipart`, toGoalsFormData(data), {
@@ -96,14 +96,9 @@ export const goalsApi = {
   linkActivity: (data) => api.post('/goals/link-activity', data),
   unlinkActivity: (goalId, activityId) => api.delete(`/goals/${goalId}/activities/${activityId}`),
   getProgress: (id) => api.get(`/goals/${id}/progress`),
-  updateStatus: (id, status) => api.patch(`/goals/${id}/status?status=${status}`),
+  updateStatus: (id, status) => api.patch(`/goals/${id}/status`, null, { params: { status } }),
   getStarsTotal: () => api.get('/goals/stars/total'),
-
-  // ----- NOVOS / WoW -----
-  // dados do "home" / sumário (total_stars, recent_achievements, categories_overview)
   getHome: () => api.get('/goals/home'),
-
-  // categorias
   listCategories: () => api.get('/goals/categories'),
   createCategory: (data) => api.post('/goals/categories', data),
   updateCategory: (id, data) => api.put(`/goals/categories/${id}`, data),
@@ -111,13 +106,11 @@ export const goalsApi = {
   listByCategory: (categoryId) => api.get(`/goals/categories/${categoryId}`),
 };
 
-
-
 // Analytics
 export const analyticsApi = {
   getToday: () => api.get('/analytics/today'),
   getLastDays: (days = 7) => api.get(`/analytics/last-days/${days}`),
-  getTopActivities: (limit = 5) => api.get(`/analytics/top-activities?limit=${limit}`),
+  getTopActivities: (limit = 5) => api.get(`/analytics/top-activitieslimit=${limit}`),
   getGoalsOverview: () => api.get('/analytics/goals-overview'),
 };
 
@@ -141,13 +134,19 @@ export const notificationsApi = {
   updateStatus: (id, status) => api.patch(`/notifications/${id}/status`, { status }),
   getPreferences: () => api.get('/notifications/preferences'),
   savePreferences: (data) => api.put('/notifications/preferences', data),
+  registerDevice: (data) => api.post('/notifications/devices', data),
+  listDevices: (params = {}) => api.get('/notifications/devices', { params }),
+  deleteDevice: (deviceToken) => api.delete(`/notifications/devices/${encodeURIComponent(deviceToken)}`),
+  dispatchPush: (data = {}) => api.post('/notifications/push/dispatch', data),
+  listPushDeliveries: (params = {}) => api.get('/notifications/push/deliveries', { params }),
+  refreshPushReceipts: (data = {}) => api.post('/notifications/push/receipts', data),
 };
 
 // Export
 export const exportApi = {
   exportJson: (filename) => api.get('/export/json', { params: { filename } }),
   exportCsv: () => api.get('/export/csv'),
-  exportActivitiesReport: (startDate, endDate) => 
+  exportActivitiesReport: (startDate, endDate) =>
     api.get('/export/activities-report', { params: { start_date: startDate, end_date: endDate } }),
   exportGoalsProgress: () => api.get('/export/goals-progress'),
 };
@@ -162,34 +161,26 @@ export const userApi = {
 
 // Activity History
 export const historyApi = {
-  getHistory: (days = 30) => api.get(`/activity-history?days=${days}`),
+  getHistory: (days = 30) => api.get(`/activity-historydays=${days}`),
 };
 
 export default api;
 
 // Finance
 export const financeApi = {
-  // Configuração
   getConfig: () => api.get('/finance/config'),
   saveConfig: (data) => api.post('/finance/config', data),
-
-  // Gastos Fixos
   listFixedExpenses: () => api.get('/finance/fixed-expenses'),
   createFixedExpense: (data) => api.post('/finance/fixed-expenses', data),
   updateFixedExpense: (id, data) => api.put(`/finance/fixed-expenses/${id}`, data),
   deleteFixedExpense: (id) => api.delete(`/finance/fixed-expenses/${id}`),
-
-  // Transações
   listTransactions: (limit = 200) => api.get('/finance/transactions', { params: { limit } }),
   createTransaction: (data) => api.post('/finance/transactions', data),
   updateTransaction: (id, data) => api.put(`/finance/transactions/${id}`, data),
   deleteTransaction: (id) => api.delete(`/finance/transactions/${id}`),
-
-  // Resumo e Projeção
   getSummary: () => api.get('/finance/summary'),
-  getProjection: (months = 120) => api.get(`/finance/projection?months=${months}`),
+  getProjection: (months = 120) => api.get(`/finance/projectionmonths=${months}`),
 };
-
 
 // Dashboard + Profile
 export const dashboardApi = {
@@ -200,7 +191,7 @@ export const dashboardApi = {
 export const profileApi = {
   get: () => api.get('/profile'),
   save: (data) => api.post('/profile', data),
-  getMetrics: (limit = 30) => api.get(`/profile/metrics?limit=${limit}`),
+  getMetrics: (limit = 30) => api.get(`/profile/metricslimit=${limit}`),
   addMetric: (data) => api.post('/profile/metrics', data),
 };
 
@@ -241,7 +232,6 @@ export const paintingsApi = {
   getProgress: (paintingId) => api.get(`/visual-arts/artworks/${paintingId}/gallery`),
   complete: (paintingId, data = {}) =>
     api.patch(`/visual-arts/artworks/${paintingId}/completion-date`, { finished_at: data.finished_at || new Date().toISOString() }),
-
   createArtwork: (data) => {
     const formData = new FormData();
     formData.append('title', data.title);
@@ -263,33 +253,23 @@ export const paintingsApi = {
   },
   updateCompletionDate: (paintingId, data) =>
     api.patch(`/visual-arts/artworks/${paintingId}/completion-date`, { finished_at: data.finished_at || null }),
-
   listMediaFolders: (sectionType) => api.get('/visual-arts/media-folders', { params: { section_type: sectionType } }),
   createMediaFolder: (data) => api.post('/visual-arts/media-folders', data),
   updateMediaFolder: (folderId, data) => api.put(`/visual-arts/media-folders/${folderId}`, data),
-listMediaItems: (folderId) =>
-  api.get(`/visual-arts/media-folders/${folderId}/items`),
-
-createMediaItem: ({ folder_id, title, photo, date }) => {
-  const formData = new FormData();
-  formData.append('folder_id', folder_id);
-  formData.append('title', title);
-  formData.append('photo', photo);
-  if (date) formData.append('date', date);
-
-  return api.post('/visual-arts/media-items', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-},
-
-deleteMediaItem: (itemId) =>
-  api.delete(`/visual-arts/media-items/${itemId}`),
-
-deleteMediaFolder: (folderId) =>
-  api.delete(`/visual-arts/media-folders/${folderId}`),
-
-deleteArtwork: (paintingId) =>
-  api.delete(`/visual-arts/artworks/${paintingId}`),
+  listMediaItems: (folderId) => api.get(`/visual-arts/media-folders/${folderId}/items`),
+  createMediaItem: ({ folder_id, title, photo, date }) => {
+    const formData = new FormData();
+    formData.append('folder_id', folder_id);
+    formData.append('title', title);
+    formData.append('photo', photo);
+    if (date) formData.append('date', date);
+    return api.post('/visual-arts/media-items', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  deleteMediaItem: (itemId) => api.delete(`/visual-arts/media-items/${itemId}`),
+  deleteMediaFolder: (folderId) => api.delete(`/visual-arts/media-folders/${folderId}`),
+  deleteArtwork: (paintingId) => api.delete(`/visual-arts/artworks/${paintingId}`),
 };
 
 // Shopping
@@ -304,30 +284,19 @@ export const shoppingApi = {
   stats: () => api.get('/shopping/stats'),
 };
 
-
 export const consumablesApi = {
   listCategories: () => api.get('/consumables/categories'),
   createCategory: ({ name }) => api.post('/consumables/categories', { name }),
-
   listItems: (categoryId = undefined) => api.get('/consumables/items', {
     params: categoryId ? { category_id: categoryId } : {},
   }),
   createItem: ({ name, category_id }) => api.post('/consumables/items', { name, category_id }),
   getItemDetail: (itemId) => api.get(`/consumables/items/${itemId}`),
-
   restock: (itemId, { purchase_date, price_paid }) => api.post(`/consumables/items/${itemId}/restock`, {
     purchase_date,
     price_paid,
   }),
   finishCycle: (itemId, { ended_at }) => api.post(`/consumables/items/${itemId}/finish`, { ended_at }),
-};
-
-// Reminders & Day Plan
-export const remindersApi = {
-  list: (status = 'pendente') => api.get('/reminders', { params: { status } }),
-  create: (data) => api.post('/reminders', data),
-  complete: (id) => api.post(`/reminders/${id}/complete`),
-  upcoming: (days = 7) => api.get('/reminders/upcoming', { params: { days } }),
 };
 
 export const dayPlanApi = {
@@ -336,6 +305,14 @@ export const dayPlanApi = {
   remove: (id) => api.delete(`/day-plan/${id}`),
 };
 
+export const calendarApi = {
+  getMonth: (month) => api.get('/calendar/month', { params: { month } }),
+  getDay: (date) => api.get('/calendar/day', { params: { date } }),
+  createEvent: (data) => api.post('/calendar/events', data),
+  deleteEvent: (id) => api.delete(`/calendar/events/${id}`),
+  createManualLog: (data) => api.post('/calendar/logs', data),
+  deleteManualLog: (id) => api.delete(`/calendar/logs/${id}`),
+};
 
 // Day Engine Config
 export const dayConfigApi = {

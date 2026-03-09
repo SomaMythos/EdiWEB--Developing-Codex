@@ -15,10 +15,13 @@ def test_database_migrates_from_legacy_backend_path(monkeypatch, tmp_path):
     legacy_db = tmp_path / "legacy" / "lifemanager.db"
     legacy_db.parent.mkdir(parents=True, exist_ok=True)
 
-    with sqlite3.connect(legacy_db) as conn:
+    conn = sqlite3.connect(legacy_db)
+    try:
         conn.execute("CREATE TABLE example (id INTEGER PRIMARY KEY, value TEXT)")
         conn.execute("INSERT INTO example (value) VALUES ('ok')")
         conn.commit()
+    finally:
+        conn.close()
 
     monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
     monkeypatch.setattr(database_module, "_legacy_database_paths", lambda: [legacy_db])
@@ -55,10 +58,13 @@ def test_database_migrates_from_cwd_path(monkeypatch, tmp_path):
     storage_dir = tmp_path / "persist"
     legacy_db = tmp_path / "lifemanager.db"
 
-    with sqlite3.connect(legacy_db) as conn:
+    conn = sqlite3.connect(legacy_db)
+    try:
         conn.execute("CREATE TABLE example (id INTEGER PRIMARY KEY, value TEXT)")
         conn.execute("INSERT INTO example (value) VALUES ('cwd')")
         conn.commit()
+    finally:
+        conn.close()
 
     monkeypatch.setenv("EDI_STORAGE_DIR", str(storage_dir))
     monkeypatch.chdir(tmp_path)

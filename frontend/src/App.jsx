@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Daily from './pages/Daily';
 import Goals from './pages/Goals';
 import Financeiro from './pages/Financeiro';
+import Calendario from './pages/Calendario';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
 import Books from './pages/Books';
@@ -57,6 +58,7 @@ function App() {
           <Route path="/" element={<Daily />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/financeiro" element={<Financeiro />} />
+          <Route path="/calendario" element={<Calendario />} />
           <Route path="/anotacoes" element={<Anotacoes />} />
           <Route path="/stats" element={<Navigate to="/dashboard" replace />} />
           <Route path="/reports" element={<Navigate to="/dashboard" replace />} />

@@ -1,10 +1,10 @@
----schema.sql---
+﻿---schema.sql---
 
 
 PRAGMA foreign_keys = ON;
 
 -- =========================
--- PERFIL DO USUÁRIO
+-- PERFIL DO USUÃRIO
 -- =========================
 CREATE TABLE IF NOT EXISTS user_profile (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS activities (
 
     frequency_type TEXT DEFAULT 'flex', -- flex, everyday, workday, offday
 
-    fixed_time TEXT,       -- HH:MM se for horário fixo
-    fixed_duration INTEGER, -- duração fixa em minutos
+    fixed_time TEXT,       -- HH:MM se for horÃ¡rio fixo
+    fixed_duration INTEGER, -- duraÃ§Ã£o fixa em minutos
 
     is_disc INTEGER NOT NULL DEFAULT 1,
     is_fun INTEGER NOT NULL DEFAULT 0,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS activity_metadata (
 );
 
 -- =========================
--- LOG DIÁRIO
+-- LOG DIÃRIO
 -- =========================
 CREATE TABLE IF NOT EXISTS daily_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -432,7 +432,31 @@ CREATE TABLE IF NOT EXISTS daily_plan_blocks (
 );
 
 -- =========================
--- NOTIFICAÇÕES
+-- CALENDARIO
+-- =========================
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_date TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_time TEXT,
+    end_time TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS calendar_manual_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    log_date TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_calendar_manual_logs_date ON calendar_manual_logs(log_date);
+
+-- =========================
+-- NOTIFICAÃ‡Ã•ES
 -- =========================
 CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -457,9 +481,34 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     feature_key TEXT NOT NULL UNIQUE,
     enabled INTEGER NOT NULL DEFAULT 1,
-    channels TEXT NOT NULL DEFAULT '["in_app","sound"]',
+    channels TEXT NOT NULL DEFAULT '["in_app","sound","push"]',
     quiet_hours TEXT,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS mobile_devices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_token TEXT NOT NULL UNIQUE,
+    platform TEXT NOT NULL,
+    device_name TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    last_seen_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notification_push_deliveries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    notification_id INTEGER NOT NULL,
+    device_id INTEGER NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'expo',
+    ticket_id TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(notification_id, device_id)
 );
 
 -- =========================
@@ -489,7 +538,7 @@ CREATE TABLE IF NOT EXISTS finance_config (
 	reserve_extra REAL DEFAULT 0,
 	reserve_fgts REAL DEFAULT 0,
 
-	-- Depósito mensal FGTS
+	-- DepÃ³sito mensal FGTS
 	fgts REAL DEFAULT 0,	
 
     -- Fluxo mensal
@@ -501,9 +550,9 @@ CREATE TABLE IF NOT EXISTS finance_config (
     cdb_percent_cdi REAL DEFAULT 100,     -- Ex: 100 (% do CDI)
     extra_percent_cdi REAL DEFAULT 120,   -- Ex: 120 (% do CDI)
 
-    -- Juros específicos
-    interest_rate_current REAL DEFAULT 0, -- % ao mês
-    interest_rate_fgts REAL DEFAULT 3,    -- 3% ao ano padrão FGTS
+    -- Juros especÃ­ficos
+    interest_rate_current REAL DEFAULT 0, -- % ao mÃªs
+    interest_rate_fgts REAL DEFAULT 3,    -- 3% ao ano padrÃ£o FGTS
 
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -572,3 +621,7 @@ CREATE TABLE IF NOT EXISTS weekly_activity_stats (
     times_completed INTEGER DEFAULT 0,
     UNIQUE(week_start, activity_id)
 );
+
+
+
+
