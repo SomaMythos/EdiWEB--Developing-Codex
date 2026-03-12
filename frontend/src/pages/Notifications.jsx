@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { notificationsApi, dayPlanApi } from '../services/api';
+Ôªøimport React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BellRing, Clock3, Plus, Send, Sparkles } from 'lucide-react';
+import { notificationsApi } from '../services/api';
+import {
+  buildNotificationMeta,
+  formatNotificationTimestamp,
+  getNotificationOpenLabel,
+  getNotificationRoute,
+  getNotificationSeverity,
+  getNotificationSnoozeMinutes,
+  normalizeNotification,
+} from '../utils/notificationHelpers';
 import './Reminders.css';
 
 const MAX_MESSAGE_LENGTH = 500;
-
 const INITIAL_FORM = {
   title: '',
   message: '',
@@ -12,44 +22,57 @@ const INITIAL_FORM = {
   sound_key: '',
   color_token: '',
 };
-
 const PUSH_FILTERS = ['all', 'sent', 'failed', 'receipt_ok', 'receipt_error', 'dry_run'];
+const INBOX_FILTERS = ['all', 'critical', 'warning', 'info', 'success', 'neutral'];
+
+const sortInbox = (items) => {
+  const severityRank = { critical: 0, warning: 1, info: 2, success: 3, neutral: 4 };
+  return [...items].sort((left, right) => {
+    const dueLeft = left.is_due === false ? 1 : 0;
+    const dueRight = right.is_due === false ? 1 : 0;
+    if (dueLeft !== dueRight) return dueLeft - dueRight;
+    if (left.status !== right.status) return left.status === 'unread' ? -1 : 1;
+    const severityDiff = (severityRank[left.severity] ?? 10) - (severityRank[right.severity] ?? 10);
+    if (severityDiff !== 0) return severityDiff;
+    return String(right.scheduled_for || right.created_at || '').localeCompare(String(left.scheduled_for || left.created_at || ''));
+  });
+};
 
 const NotificationsPage = () => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
-  const [consumableNotifications, setConsumableNotifications] = useState([]);
-  const [plan, setPlan] = useState([]);
   const [devices, setDevices] = useState([]);
   const [pushDeliveries, setPushDeliveries] = useState([]);
   const [pushStatusFilter, setPushStatusFilter] = useState('all');
+  const [inboxFilter, setInboxFilter] = useState('all');
+  const [showOnlyUnread, setShowOnlyUnread] = useState(true);
+  const [showFuture, setShowFuture] = useState(false);
   const [pushActionState, setPushActionState] = useState({ loading: false, message: '', error: '' });
   const [pageState, setPageState] = useState({ loading: true, error: '' });
   const [form, setForm] = useState(INITIAL_FORM);
   const [formError, setFormError] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const loadData = async () => {
     setPageState((current) => ({ ...current, loading: true, error: '' }));
     try {
-      const today = new Date().toISOString().slice(0, 10);
       const deliveryParams = pushStatusFilter === 'all' ? { limit: 20 } : { limit: 20, status: pushStatusFilter };
-      const [n, c, p, d, deliveries] = await Promise.all([
+      const [notificationsResponse, devicesResponse, deliveriesResponse] = await Promise.all([
         notificationsApi.list({ include_read: true, include_generated: true }),
-        notificationsApi.listConsumables({ include_read: false, include_generated: true }),
-        dayPlanApi.list(today),
         notificationsApi.listDevices(),
         notificationsApi.listPushDeliveries(deliveryParams),
       ]);
-      setNotifications(n.data.data || []);
-      setConsumableNotifications(c.data.data || []);
-      setPlan(p.data.data || []);
-      setDevices(d.data.data || []);
-      setPushDeliveries(deliveries.data.data || []);
+
+      setNotifications(sortInbox((notificationsResponse.data.data || []).map(normalizeNotification)));
+      setDevices(devicesResponse.data.data || []);
+      setPushDeliveries(deliveriesResponse.data.data || []);
       setPageState({ loading: false, error: '' });
     } catch (error) {
       setPageState({
         loading: false,
-        error: error?.response?.data?.detail || 'Falha ao carregar o painel de notificaÁıes.',
+        error: error?.response?.data?.detail || 'Falha ao carregar o painel de notifica√ß√µes.',
       });
     }
   };
@@ -59,21 +82,14 @@ const NotificationsPage = () => {
   }, [pushStatusFilter]);
 
   const validateForm = () => {
-    if (!form.title.trim()) {
-      return 'TÌtulo È obrigatÛrio.';
-    }
-
+    if (!form.title.trim()) return 'T√≠tulo √© obrigat√≥rio.';
     if (form.scheduled_for) {
       const parsedDate = new Date(form.scheduled_for);
-      if (Number.isNaN(parsedDate.getTime())) {
-        return 'Data e hora inv·lidas.';
-      }
+      if (Number.isNaN(parsedDate.getTime())) return 'Data e hora inv√°lidas.';
     }
-
     if ((form.message || '').trim().length > MAX_MESSAGE_LENGTH) {
-      return `A mensagem deve ter no m·ximo ${MAX_MESSAGE_LENGTH} caracteres.`;
+      return `A mensagem deve ter no m√°ximo ${MAX_MESSAGE_LENGTH} caracteres.`;
     }
-
     return '';
   };
 
@@ -86,7 +102,6 @@ const NotificationsPage = () => {
     }
 
     setFormError('');
-
     const payload = {
       title: form.title.trim(),
       message: form.message.trim() || null,
@@ -126,30 +141,6 @@ const NotificationsPage = () => {
     setFormError('');
   };
 
-  const handleStatus = async (id, status) => {
-    await notificationsApi.updateStatus(id, status);
-    await loadData();
-  };
-
-  const handleDeviceRemoval = async (deviceToken) => {
-    await runPushAction(
-      () => notificationsApi.deleteDevice(deviceToken),
-      'Device removido',
-    );
-  };
-
-  const getConsumableCta = (notificationType) => {
-    if (notificationType === 'consumable_overdue') {
-      return { label: 'Finalizar ciclo', href: '/consumiveis' };
-    }
-    return { label: 'Registrar reposiÁ„o', href: '/consumiveis' };
-  };
-
-  const isCustomNotification = (notification) => (
-    (notification.notification_type || notification.type) === 'custom_notification'
-    && notification.source_feature === 'custom'
-  );
-
   const runPushAction = async (fn, successMessage) => {
     setPushActionState({ loading: true, message: '', error: '' });
     try {
@@ -162,247 +153,277 @@ const NotificationsPage = () => {
       setPushActionState({
         loading: false,
         message: '',
-        error: error?.response?.data?.detail || 'Falha ao executar aÁ„o de push.',
+        error: error?.response?.data?.detail || 'Falha ao executar a√ß√£o de push.',
       });
     }
   };
 
+  const handleInboxAction = async (notification, action) => {
+    setActionLoadingId(notification.id);
+    try {
+      if (action === 'open') {
+        await notificationsApi.updateStatus(notification.id, 'read');
+        navigate(getNotificationRoute(notification));
+      } else if (action === 'read') {
+        await notificationsApi.updateStatus(notification.id, 'read');
+      } else if (action === 'complete') {
+        await notificationsApi.updateStatus(notification.id, 'completed');
+      } else if (action === 'snooze') {
+        await notificationsApi.snooze(notification.id, getNotificationSnoozeMinutes(notification));
+      }
+      await loadData();
+    } catch (error) {
+      console.error('Error applying inbox action:', error);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleBulkAction = async (status) => {
+    if (filteredNotifications.length === 0) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(filteredNotifications.map((notification) => notificationsApi.updateStatus(notification.id, status)));
+      await loadData();
+    } catch (error) {
+      console.error('Error applying bulk action:', error);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleDeviceRemoval = async (deviceToken) => {
+    await runPushAction(() => notificationsApi.deleteDevice(deviceToken), 'Device removido');
+  };
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notification) => {
+      if (showOnlyUnread && notification.status !== 'unread') return false;
+      if (!showFuture && notification.is_due === false) return false;
+      if (inboxFilter !== 'all' && getNotificationSeverity(notification) !== inboxFilter) return false;
+      return true;
+    });
+  }, [inboxFilter, notifications, showFuture, showOnlyUnread]);
+
+  const summary = useMemo(() => ({
+    unread: notifications.filter((item) => item.status === 'unread').length,
+    critical: notifications.filter((item) => getNotificationSeverity(item) === 'critical' && item.status === 'unread').length,
+    scheduled: notifications.filter((item) => item.scheduled_for && item.status === 'unread').length,
+    devices: devices.length,
+  }), [devices.length, notifications]);
+
+  const isCustomNotification = (notification) => (
+    (notification.notification_type || notification.type) === 'custom_notification'
+    && notification.source_feature === 'custom'
+  );
+
   return (
-    <div className="page-container fade-in reminders-page">
-      <div className="reminders-page-header">
+    <div className="page-container fade-in reminders-page notifications-upgrade-page">
+      <section className="notifications-hero glass-strong">
         <div>
-          <h1>NotificaÁıes</h1>
-          <p className="notification-meta">Painel unificado para inbox, devices mÛveis e entregas de push.</p>
+          <span className="notifications-hero-kicker"><Sparkles size={16} /> {'Inbox operacional'}</span>
+          <h1>{'Notifica√ß√µes'}</h1>
+          <p>{'Press√£o concentrada onde faz diferen√ßa, com a√ß√µes r√°pidas e snooze sem sair da tela.'}</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={loadData}
-          disabled={pageState.loading || pushActionState.loading}
-        >
+        <button type="button" className="btn btn-secondary" onClick={loadData} disabled={pageState.loading || pushActionState.loading}>
           {pageState.loading ? 'Atualizando...' : 'Atualizar painel'}
         </button>
-      </div>
+      </section>
+
+      <section className="notifications-summary-grid">
+        <article className="notification-summary-card glass-strong">
+          <span>Unread</span>
+          <strong>{summary.unread}</strong>
+          <p>{'Itens ainda pedindo resposta.'}</p>
+        </article>
+        <article className="notification-summary-card glass-strong is-critical">
+          <span>{'Cr√≠ticas'}</span>
+          <strong>{summary.critical}</strong>
+          <p>{'Press√£o real do sistema agora.'}</p>
+        </article>
+        <article className="notification-summary-card glass-strong">
+          <span>{'Agendadas'}</span>
+          <strong>{summary.scheduled}</strong>
+          <p>{'Notifica√ß√µes com hor√°rio definido.'}</p>
+        </article>
+        <article className="notification-summary-card glass-strong">
+          <span>Devices</span>
+          <strong>{summary.devices}</strong>
+          <p>{'Dispositivos m√≥veis ativos.'}</p>
+        </article>
+      </section>
 
       {pageState.error ? <p className="form-error">{pageState.error}</p> : null}
 
-      <form onSubmit={handleSubmit} className="card reminders-card notifications-form-grid">
-        <input
-          className="input"
-          value={form.title}
-          onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))}
-          placeholder="TÌtulo da notificaÁ„o"
-          required
-        />
-        <textarea
-          className="input"
-          value={form.message}
-          onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))}
-          placeholder="DescriÁ„o / mensagem"
-          maxLength={MAX_MESSAGE_LENGTH}
-        />
-        <input
-          type="datetime-local"
-          className="input"
-          value={form.scheduled_for}
-          onChange={(e) => setForm((current) => ({ ...current, scheduled_for: e.target.value }))}
-        />
-        <select
-          className="input"
-          value={form.severity}
-          onChange={(e) => setForm((current) => ({ ...current, severity: e.target.value }))}
-        >
-          <option value="info">Informativa</option>
-          <option value="success">Sucesso</option>
-          <option value="warning">Aviso</option>
-          <option value="critical">CrÌtica</option>
-          <option value="neutral">Neutra</option>
-        </select>
-        <select
-          className="input"
-          value={form.color_token}
-          onChange={(e) => setForm((current) => ({ ...current, color_token: e.target.value }))}
-        >
-          <option value="">Cor padr„o</option>
-          <option value="primary">Prim·ria</option>
-          <option value="accent">Destaque</option>
-          <option value="success">Sucesso</option>
-          <option value="warning">Aviso</option>
-          <option value="danger">Perigo</option>
-        </select>
-        <select
-          className="input"
-          value={form.sound_key}
-          onChange={(e) => setForm((current) => ({ ...current, sound_key: e.target.value }))}
-        >
-          <option value="">Sem som</option>
-          <option value="default">Padr„o</option>
-          <option value="soft_chime">Toque suave</option>
-          <option value="urgent_ping">Toque urgente</option>
-        </select>
-
-        {formError && <p className="form-error">{formError}</p>}
-
-        <div className="notifications-form-actions">
-          <button className="btn btn-primary">
-            {editingId ? 'Salvar ediÁ„o' : 'Criar notificaÁ„o personalizada'}
-          </button>
-          {editingId && (
-            <button type="button" className="btn btn-secondary" onClick={cancelEditing}>
-              Cancelar ediÁ„o
-            </button>
-          )}
-        </div>
-      </form>
-
-      <div className="card reminders-card push-ops-card">
-        <div className="push-ops-header">
-          <div>
-            <h3>OperaÁ„o de push</h3>
-            <p>{devices.length} device(s) ativos conectados ao backend.</p>
+      <section className="notifications-main-grid">
+        <div className="notifications-inbox-column glass-strong">
+          <div className="section-toolbar">
+            <div>
+              <h2><BellRing size={18} /> {'Inbox acion√°vel'}</h2>
+              <p>{filteredNotifications.length} {'item(ns) vis√≠vel(is) no filtro atual.'}</p>
+            </div>
+            <div className="notifications-toolbar-actions">
+              <select className="input" value={inboxFilter} onChange={(event) => setInboxFilter(event.target.value)}>
+                {INBOX_FILTERS.map((filter) => <option key={filter} value={filter}>{filter === 'all' ? 'Todas severidades' : filter}</option>)}
+              </select>
+              <label className="checkbox-row">
+                <input type="checkbox" checked={showOnlyUnread} onChange={(event) => setShowOnlyUnread(event.target.checked)} />
+                <span>{'Apenas n√£o lidas'}</span>
+              </label>
+              <label className="checkbox-row">
+                <input type="checkbox" checked={showFuture} onChange={(event) => setShowFuture(event.target.checked)} />
+                <span>{'Mostrar futuras'}</span>
+              </label>
+            </div>
           </div>
-          <div className="push-ops-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={pushActionState.loading}
-              onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: true }), 'Dry run executado')}
-            >
-              Dry run
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={pushActionState.loading}
-              onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: false }), 'Dispatch executado')}
-            >
-              Disparar push
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={pushActionState.loading}
-              onClick={() => runPushAction(() => notificationsApi.refreshPushReceipts({}), 'Receipts atualizados')}
-            >
-              Atualizar receipts
-            </button>
-          </div>
-        </div>
 
-        {pushActionState.message ? <p className="push-ops-message">{pushActionState.message}</p> : null}
-        {pushActionState.error ? <p className="form-error">{pushActionState.error}</p> : null}
-
-        <div className="push-device-list">
-          {devices.length === 0 ? <p>Nenhum device ativo registrado.</p> : null}
-          {devices.map((device) => (
-            <div key={device.id} className="push-device-row">
-              <div>
-                <strong>{device.device_name || 'Device sem nome'}</strong>
-                <div className="notification-meta">{device.platform} ï {device.device_token}</div>
-                <div className="notification-meta">Atualizado em {device.updated_at || device.created_at || 'n/d'}</div>
-              </div>
-              <button
-                type="button"
-                className="btn btn-danger"
-                disabled={pushActionState.loading}
-                onClick={() => handleDeviceRemoval(device.device_token)}
-              >
-                Remover
+          <div className="notifications-bulk-bar">
+            <span>{'Use o inbox como triagem r√°pida quando quiser limpar volume.'}</span>
+            <div className="notifications-form-actions">
+              <button type="button" className="btn btn-secondary btn-sm" disabled={bulkLoading || filteredNotifications.length === 0} onClick={() => handleBulkAction('read')}>
+                {'Marcar vis√≠veis como lidas'}
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={bulkLoading || filteredNotifications.length === 0} onClick={() => handleBulkAction('completed')}>
+                {'Concluir vis√≠veis'}
               </button>
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card reminders-card">
-        <div className="push-delivery-header">
-          <h3>Entregas de push</h3>
-          <select
-            className="input push-status-filter"
-            value={pushStatusFilter}
-            onChange={(event) => setPushStatusFilter(event.target.value)}
-          >
-            {PUSH_FILTERS.map((status) => (
-              <option key={status} value={status}>{status === 'all' ? 'Todos os status' : status}</option>
-            ))}
-          </select>
-        </div>
-        {pushDeliveries.length === 0 ? <p>Nenhuma entrega registrada.</p> : null}
-        {pushDeliveries.map((delivery) => (
-          <div key={delivery.id} className="push-delivery-row">
-            <div>
-              <strong>{delivery.notification_title || `Notification #${delivery.notification_id}`}</strong>
-              <div className="notification-meta">
-                {delivery.status} ï {delivery.platform} ï retry {delivery.retry_count ?? 0}
-              </div>
-              <div className="notification-meta">device #{delivery.device_id} ï enviado em {delivery.sent_at || 'n/d'}</div>
-              {delivery.ticket_id ? <div className="notification-meta">ticket: {delivery.ticket_id}</div> : null}
-              {delivery.receipt_id ? <div className="notification-meta">receipt: {delivery.receipt_id}</div> : null}
-              {delivery.error_message ? <div className="push-error-text">{delivery.error_message}</div> : null}
-            </div>
           </div>
-        ))}
-      </div>
 
-      <div className="card reminders-card">
-        <h3>ConsumÌveis com risco</h3>
-        {consumableNotifications.length === 0 && (
-          <p>Nenhum consumÌvel precisa de aÁ„o no momento.</p>
-        )}
-        {consumableNotifications.map((n) => {
-          const cta = getConsumableCta(n.notification_type || n.type);
-          return (
-            <div key={n.id} className="consumable-notification-row">
+          <div className="notifications-inbox-list">
+            {filteredNotifications.length === 0 ? <p className="review-empty">{'Nenhuma notifica√ß√£o nesse filtro.'}</p> : null}
+            {filteredNotifications.map((notification) => {
+              const details = buildNotificationMeta(notification);
+              return (
+                <article key={notification.id} className={`notification-upgrade-card severity-${notification.severity}`}>
+                  <div className="notification-upgrade-topline">
+                    <div>
+                      <strong>{notification.title || 'Notifica√ß√£o'}</strong>
+                      <p>{notification.message}</p>
+                    </div>
+                    <span className={`notification-status-pill status-${notification.severity}`}>{notification.severity}</span>
+                  </div>
+
+                  <div className="notification-upgrade-meta">
+                    <span>{formatNotificationTimestamp(notification.scheduled_for || notification.created_at)}</span>
+                    <span>{notification.status}</span>
+                    {notification.is_due === false ? <span>{'agendada'}</span> : <span>{'ativa agora'}</span>}
+                    {details.map((detail) => <span key={detail}>{detail}</span>)}
+                  </div>
+
+                  <div className="notifications-form-actions">
+                    <button type="button" className="btn btn-primary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'open')}>
+                      {getNotificationOpenLabel(notification)}
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'snooze')}>
+                      <Clock3 size={14} /> {'Adiar '}{getNotificationSnoozeMinutes(notification)}m
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'read')}>
+                      {'Marcar lida'}
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'complete')}>
+                      {'Concluir'}
+                    </button>
+                    {isCustomNotification(notification) ? (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEditing(notification)}>
+                        {'Editar'}
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="notifications-side-column">
+          <form onSubmit={handleSubmit} className="glass-strong notifications-compose-card notifications-form-grid">
+            <div className="section-toolbar">
               <div>
-                <strong>{n.meta?.item_name || n.title || 'ConsumÌvel'}</strong>
-                <div>{n.message || 'Sem mensagem.'}</div>
+                <h2><Plus size={18} /> {'Notifica√ß√£o personalizada'}</h2>
+                <p>{'Crie lembretes manuais com severidade e hor√°rio.'}</p>
               </div>
-              <a className="btn btn-secondary" href={cta.href}>{cta.label}</a>
             </div>
-          );
-        })}
-      </div>
+            <input className="input" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} placeholder={'T√≠tulo da notifica√ß√£o'} required />
+            <textarea className="input" value={form.message} onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))} placeholder={'Descri√ß√£o / mensagem'} maxLength={MAX_MESSAGE_LENGTH} />
+            <input type="datetime-local" className="input" value={form.scheduled_for} onChange={(e) => setForm((current) => ({ ...current, scheduled_for: e.target.value }))} />
+            <select className="input" value={form.severity} onChange={(e) => setForm((current) => ({ ...current, severity: e.target.value }))}>
+              <option value="info">{'Informativa'}</option>
+              <option value="success">{'Sucesso'}</option>
+              <option value="warning">{'Aviso'}</option>
+              <option value="critical">{'Cr√≠tica'}</option>
+              <option value="neutral">{'Neutra'}</option>
+            </select>
+            <select className="input" value={form.color_token} onChange={(e) => setForm((current) => ({ ...current, color_token: e.target.value }))}>
+              <option value="">{'Cor padr√£o'}</option>
+              <option value="primary">{'Prim√°ria'}</option>
+              <option value="accent">{'Destaque'}</option>
+              <option value="success">{'Sucesso'}</option>
+              <option value="warning">{'Aviso'}</option>
+              <option value="danger">{'Perigo'}</option>
+            </select>
+            <select className="input" value={form.sound_key} onChange={(e) => setForm((current) => ({ ...current, sound_key: e.target.value }))}>
+              <option value="">{'Sem som'}</option>
+              <option value="default">{'Padr√£o'}</option>
+              <option value="soft_chime">{'Toque suave'}</option>
+              <option value="urgent_ping">{'Toque urgente'}</option>
+            </select>
+            {formError ? <p className="form-error">{formError}</p> : null}
+            <div className="notifications-form-actions">
+              <button className="btn btn-primary">{editingId ? 'Salvar edi√ß√£o' : 'Criar notifica√ß√£o'}</button>
+              {editingId ? <button type="button" className="btn btn-secondary" onClick={cancelEditing}>{'Cancelar'}</button> : null}
+            </div>
+          </form>
 
-      <div className="card reminders-card">
-        <h3>Caixa de entrada de notificaÁıes</h3>
-        {notifications.map((n) => (
-          <div key={n.id} className="notification-row">
-            <div>
-              <strong>{n.title || n.notification_type}</strong> - {n.message || 'Sem mensagem.'}
-              <div className="notification-meta">Status: {n.status}</div>
+          <div className="glass-strong push-ops-card">
+            <div className="section-toolbar">
+              <div>
+                <h2><Send size={18} /> {'Opera√ß√£o de push'}</h2>
+                <p>{devices.length} {'device(s) ativos conectados ao backend.'}</p>
+              </div>
+              <select className="input push-status-filter" value={pushStatusFilter} onChange={(e) => setPushStatusFilter(e.target.value)}>
+                {PUSH_FILTERS.map((status) => <option key={status} value={status}>{status === 'all' ? 'Todos os receipts' : status}</option>)}
+              </select>
             </div>
-            <div className="notification-row-actions">
-              {isCustomNotification(n) && (
-                <button type="button" className="btn btn-secondary" onClick={() => startEditing(n)}>
-                  Editar
-                </button>
-              )}
-              {n.status !== 'read' && n.status !== 'completed' && n.status !== 'canceled' && (
-                <button type="button" className="btn btn-secondary" onClick={() => handleStatus(n.id, 'read')}>
-                  Marcar como lida
-                </button>
-              )}
-              {n.status !== 'completed' && n.status !== 'canceled' && (
-                <button type="button" className="btn btn-primary" onClick={() => handleStatus(n.id, 'completed')}>
-                  Concluir
-                </button>
-              )}
-              {n.status !== 'canceled' && (
-                <button type="button" className="btn btn-danger" onClick={() => handleStatus(n.id, 'canceled')}>
-                  Cancelar
-                </button>
-              )}
+
+            <div className="push-ops-actions">
+              <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: true }), 'Dry run executado')}>Dry run</button>
+              <button type="button" className="btn btn-primary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: false }), 'Dispatch executado')}>{'Disparar push'}</button>
+              <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.refreshPushReceipts({}), 'Receipts atualizados')}>{'Atualizar receipts'}</button>
+            </div>
+
+            {pushActionState.message ? <p className="push-ops-message">{pushActionState.message}</p> : null}
+            {pushActionState.error ? <p className="form-error">{pushActionState.error}</p> : null}
+
+            <div className="push-device-list">
+              {devices.length === 0 ? <p>{'Nenhum device ativo registrado.'}</p> : null}
+              {devices.map((device) => (
+                <div key={device.id} className="push-device-row">
+                  <div>
+                    <strong>{device.device_name || 'Device sem nome'}</strong>
+                    <div className="notification-meta">{device.platform} - {device.device_token}</div>
+                    <div className="notification-meta">{'Atualizado em '}{device.updated_at || device.created_at || 'n/d'}</div>
+                  </div>
+                  <button type="button" className="btn btn-danger" disabled={pushActionState.loading} onClick={() => handleDeviceRemoval(device.device_token)}>
+                    {'Remover'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="push-device-list">
+              {pushDeliveries.map((delivery) => (
+                <div key={delivery.id} className="push-delivery-row">
+                  <div>
+                    <strong>{delivery.notification_title || 'Push'}</strong>
+                    <div className="notification-meta">{delivery.status} - {delivery.platform} - {delivery.device_name || delivery.device_token}</div>
+                    {delivery.error_message ? <div className="push-error-text">{delivery.error_message}</div> : null}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="card reminders-card">
-        <h3>Blocos de hoje</h3>
-        {plan.map((b) => (
-          <div key={b.id}>{b.start_time} - {b.duration} min</div>
-        ))}
-      </div>
+        </div>
+      </section>
     </div>
   );
 };

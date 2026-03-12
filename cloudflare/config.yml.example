@@ -1,0 +1,7 @@
+﻿tunnel: SEU-TUNNEL-ID
+credentials-file: C:\Users\Rafael\.cloudflared\SEU-TUNNEL-ID.json
+
+ingress:
+  - hostname: edi.seu-dominio.com
+    service: http://localhost:3000
+  - service: http_status:404

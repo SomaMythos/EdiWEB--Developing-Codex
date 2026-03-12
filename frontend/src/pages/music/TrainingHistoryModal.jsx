@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+﻿import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -9,35 +8,32 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import api from "../../services/api";
 
 export default function TrainingHistoryModal({ trainingId, onClose }) {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get(`/music/training/${trainingId}/history`);
+        const formatted = res.data.data.map((item, index) => ({
+          ...item,
+          index: index + 1,
+        }));
+        setHistory(formatted);
+      } catch (err) {
+        console.error("Erro ao buscar historico:", err);
+      }
+    };
+
     fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:8000/api/music/training/${trainingId}/history`
-      );
-
-      const formatted = res.data.data.map((item, index) => ({
-        ...item,
-        index: index + 1,
-      }));
-
-      setHistory(formatted);
-    } catch (err) {
-      console.error("Erro ao buscar histórico:", err);
-    }
-  };
+  }, [trainingId]);
 
   return (
     <div className="modal-overlay">
       <div className="glass-strong modal-container history-modal">
-        <h3>Histórico de BPM</h3>
+        <h3>Historico de BPM</h3>
 
         {history.length === 0 ? (
           <p>Nenhum registro ainda.</p>

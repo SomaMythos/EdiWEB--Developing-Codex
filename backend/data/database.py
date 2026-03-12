@@ -826,6 +826,23 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260311_add_goals_notes_journal",
+        lambda: (
+            column_exists(db, "goals", "goal_mode")
+            and table_exists(db, "goal_milestones")
+            and table_exists(db, "note_contexts")
+            and table_exists(db, "notes")
+            and table_exists(db, "weekly_journal_settings")
+            and table_exists(db, "weekly_journal_entries")
+            and index_exists(db, "idx_goal_milestones_goal_id")
+            and index_exists(db, "idx_notes_context_id")
+            and index_exists(db, "idx_notes_updated_at")
+            and index_exists(db, "idx_weekly_journal_entries_week_start")
+        ),
+        read_migration_sql("20260311_add_goals_notes_journal.sql"),
+    )
+
+    run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
         "ALTER TABLE user_profile ADD COLUMN gender TEXT",

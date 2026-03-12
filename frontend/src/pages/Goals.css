@@ -1,1035 +1,299 @@
-/* src/pages/Goals.css
-   Versão substituta completa — colar por cima do arquivo atual.
-   Objetivos:
-   - estrela principal (badge) centralizada verticalmente no lado direito do card
-   - botões (emoji) pequenos, alinhados horizontalmente no canto inferior direito
-   - botões aparecem ao hover / focus-within do card (acessível por teclado)
-   - evitar conflitos / regras duplicadas
-*/
-
-/* container */
-.goals-page-wow {
-  display: flex;
-  gap: 30px;
-  padding: 4px;
+﻿.goals-page-wow {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
   min-height: calc(100vh - 40px);
-  box-sizing: border-box;
 }
 
-/* left column */
 .goals-left-column {
-  width: 210px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .category-btn {
-  position: relative;
-  overflow: hidden;
-
-  padding: 8px 16px;
-
-  background: var(--elevation-1-surface);
-  border: 1px solid var(--elevation-1-border);
-  backdrop-filter: var(--elevation-1-blur);
-
-  border-radius: var(--radius-md);
-
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border-default);
+  background: var(--glass-surface-soft);
   color: var(--glass-text-secondary);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-
-  box-shadow: var(--elevation-1-shadow);
-
+  text-align: left;
   cursor: pointer;
-
-  transition:
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    color var(--motion-fast);
 }
 
-/* camada frost interna sutil */
-.category-btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-/* hover refinado */
-.category-btn:hover {
-  background: var(--elevation-2-surface);
-  border-color: var(--elevation-2-border);
-  color: var(--glass-text-primary);
-
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 10px 22px rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.04);
-}
-
-/* active selecionado */
 .category-btn.active {
-  background: var(--glass-accent-neutral);
-  border-color: var(--glass-border-accent);
   color: var(--glass-text-primary);
-
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.06) inset,
-    0 0 18px rgba(255,255,255,0.06);
+  border-color: var(--glass-border-accent);
+  background: var(--glass-accent-neutral);
 }
 
-/* focus acessível */
-.category-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-/* main */
-.goals-main {
-  padding: var(--spacing-xl) var(--spacing-2xl);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-xl);
+.goals-main,
+.summary-card-block,
+.goal-form-card,
+.goal-card,
+.empty,
+.goals-loading {
   background: var(--elevation-0-surface);
   border: 1px solid var(--elevation-0-border);
   backdrop-filter: var(--elevation-0-blur);
-  -webkit-backdrop-filter: var(--elevation-0-blur);
   box-shadow: var(--elevation-0-shadow);
 }
 
-/* HEADER */
-.goals-header-wrapper {
-  position: relative;
-  margin-bottom: 30px;
+.goals-main {
+  padding: 24px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.goals-feedback {
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.goals-feedback.success {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.goals-feedback.error {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.goals-header-wrapper,
+.goals-header-centered,
+.header-actions-right,
+.create-category-inline,
+.category-action-group,
+.stars-centered,
+.goal-title-row,
+.goal-card-badges,
+.goal-meta-line,
+.goal-actions-inline,
+.goal-form-inline,
+.goal-milestone-editor-head,
+.milestone-draft-card,
+.form-actions,
+.progress-row-compact,
+.recent-item-wide {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.goals-header-wrapper,
+.goal-title-row,
+.goal-meta-line,
+.goal-actions-inline,
+.form-actions,
+.progress-row-compact,
+.recent-item-wide {
+  justify-content: space-between;
 }
 
 .goals-header-centered {
-  font-weight: 640;
-  letter-spacing: -0.8px;
-  color: var(--text-primary);
-  display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.goal-category-header h2 {
-  font-weight: 540;
-  letter-spacing: -0.3px;
-  color: var(--text-secondary);
-}
-
-.stars-centered {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+.goals-title,
+.goal-category-header h2,
+.section-title,
+.goal-form-card h3 {
+  margin: 0;
 }
 
 .star-yellow {
   color: #facc15;
-  fill: #facc15;
 }
 
-.stars-number {
-  font-size: 18px;
-  font-weight: bold;
+.create-category-inline input,
+.goal-form-grid input,
+.goal-form-grid textarea,
+.goal-form-grid select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--glass-text-primary);
+  padding: 10px 12px;
 }
 
-.header-actions-right {
-  position: absolute;
-  right: 0;
-  top: 0;
+.goals-summary-grid,
+.category-body,
+.goals-list,
+.goal-form-grid,
+.goal-milestone-editor,
+.goal-milestones-list {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.create-category-inline input {
-  padding: 8px 12px;
-
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-default);
-  backdrop-filter: var(--glass-blur);
-  border-radius: 10px;
-
-  color: rgba(255,255,255,0.88);
-  backdrop-filter: blur(10px);
-
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.create-category-inline input:focus {
-  outline: none;
-  border-color: rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.08);
-}
-
-
-
-/* --------- SUMMARY VIEW ---------- */
-.section-title {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  opacity: 0.85;
-}
-
-
-/* recent items */
-.recent-item-wide {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 14px;
-  border-bottom: 1px solid var(--border);
-  padding: 10px 0;
+}
+
+.summary-card-block,
+.goal-form-card,
+.goal-card,
+.empty,
+.goals-loading {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.goal-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.goal-card-media .thumb-box,
+.goal-thumb,
+.goal-thumb-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 16px;
+  object-fit: cover;
 }
 
 .thumb-box {
-  width: 64px;
-  height: 64px;
-  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+}
+
+.goal-card-body {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.goal-thumb-img {
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-/* center text in the recent item */
-.recent-mid {
-  flex: 1;
-  text-align: center;
-}
-
-.recent-title {
-  font-weight: 700;
-}
-
-.recent-right {
-  width: 120px;
-  text-align: right;
-}
-
-.progress-row-compact {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  margin-bottom: 8px;
+}
+
+.goal-title {
+  margin: 0;
+}
+
+.goal-desc,
+.goal-category-header p,
+.recent-desc,
+.empty-centered {
+  color: var(--glass-text-secondary);
+}
+
+.goal-mode-badge,
+.goal-stars-badge,
+.journal-pending-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.goal-stars-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.goal-meta-line {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  color: var(--glass-text-secondary);
+}
+
+.goal-meta-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.goal-milestones-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.goal-milestone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--glass-text-primary);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.goal-milestone-chip.done {
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #bbf7d0;
+}
+
+.goal-form-inline {
+  align-items: stretch;
+}
+
+.goal-form-inline label,
+.goal-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.milestone-draft-card {
+  align-items: stretch;
 }
 
 .progress-label-compact {
-  width: 140px;
+  width: 160px;
   font-weight: 600;
 }
 
 .progress-bar-outer-compact {
   flex: 1;
-  height: 14px;
-  border-radius: var(--radius-full);
-
-  background: var(--glass-surface-soft);
-  border: 1px solid var(--glass-border-subtle);
-
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  position: relative;
 }
 
 .progress-bar-inner-compact {
   height: 100%;
-  border-radius: var(--radius-full);
-  position: relative;
-
-  background: linear-gradient(
-    90deg,
-    rgba(255,243,196,0.55),
-    rgba(255,243,196,0.85),
-    rgba(255,243,196,0.55)
-  );
-
-  backdrop-filter: blur(6px);
-
-  box-shadow:
-    0 0 12px rgba(248,231,176,0.35),
-    0 0 28px rgba(248,231,176,0.18);
-
-  animation: progressPulse 1s ease-in-out infinite;
-
-  transition: width 0.2s cubic-bezier(0.22,1,0.36,1);
-}
-
-.progress-bar-inner-compact::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    90deg,
-    transparent 90%,
-    rgba(255,255,255,0.4) 100%,
-    transparent 50%
-  );
-
-  transform: translateX(-120%);
-  animation: progressSheen 15.6s ease-in-out infinite;
-  mix-blend-mode: screen;
-}
-
-@keyframes progressSheen {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(0%); }
-}
-
-.progress-bar-inner-compact::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: -6px;
-  width: 40px;
-  height: calc(100% + 12px);
-
-  background: radial-gradient(
-    circle,
-    rgba(255,243,196,0.6),
-    rgba(255,243,196,0.15) 60%,
-    transparent 80%
-  );
-
-  filter: blur(12px);
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-@keyframes progressPulse {
-  0%,100% {
-    box-shadow:
-      0 0 6px rgba(248,231,176,0.4),
-      0 0 14px rgba(248,231,176,0.15);
-  }
-  50% {
-    box-shadow:
-      0 0 18px rgba(248,231,176,0.75),
-      0 0 32px rgba(248,231,176,0.35);
-  }
-}
-
-
-
-
-
-.progress-count-compact {
-  width: 60px;
-  text-align: right;
-}
-
-/* CATEGORY VIEW */
-.goal-category-header h2 {
-  font-weight: 500;
-  opacity: 0.75;
-}
-
-.goals-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* GOAL CARD - container base (IMPORTANTE) */
-
-
-.goal-card:hover {
-  transform: translateY(-4px);
-  background: var(--elevation-2-surface);
-  border-color: var(--elevation-2-border);
-  box-shadow: var(--elevation-2-shadow);
-}
-
-/* left thumbnail column */
-.goal-left {
-  width: 78px;
-  flex: 0 0 78px;
-}
-
-/* main middle column (título e descrição) */
-.goal-middle {
-  flex: 1;
-  text-align: center;
-}
-
-/* title styling */
-.goal-title {
-  font-weight: 600;
-  letter-spacing: -0.2px;
-  font-size: 18px;
-}
-
-/* right column (conteúdo auxiliar) */
-
-
-/* FORM */
-.goal-form-card {
-  max-width: 650px;
-  margin: 0 auto 25px auto;
-}
-
-.goal-form-card h3 {
-  margin-bottom: 18px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 16px;
-}
-
-.form-row label {
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
-
-.form-row input,
-.form-row textarea {
-  background: var(--glass-surface-soft);
-  padding: 10px;
-  color: var(--glass-text-primary);
-  backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--glass-border-default);
-  font-size: 14px;
-  transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast),
-    box-shadow var(--motion-fast);
-}
-
-.form-row textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.star-picker-row {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.stars-picker {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.star-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
-}
-
-.star-btn.filled {
-  color: var(--accent-warning);
-  background: rgba(250, 204, 21, 0.2);
-  border-color: rgba(250, 204, 21, 0.55);
-  box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
-}
-
-.stars-selected-count {
-  font-weight: 700;
-  font-size: 13px;
-  min-width: 36px;
-  color: var(--glass-text-secondary);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-
-/* thumbnail specifics (form & list) */
-.thumb-box {
-  width: 64px;
-  height: 64px;
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  overflow: hidden; /* garante constraints */
-}
-
-.goal-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-/* ===========================
-   CUSTOM: estrela + ações (substituir bloco inteiro)
-   =========================== */
-
-/* ⭐ Badge: estrela grande, centralizada verticalmente à direita do card */
-.goal-stars-badge {
-  position: absolute;
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
-  width: 46px;     /* ⭐ maior */
-  height: 46px;    /* ⭐ maior */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(248,242,220,0.12),
-    transparent 70%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 5;
-  transition: transform 180ms ease, filter 180ms ease;
-}
-
-/* Caso use SVG (StarIcon), forçar preenchimento e zero outline */
-.goal-stars-badge svg {
-  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.35));
-  opacity: 0.95;
-  width: 100%;
-  height: 100%;
-  fill: #facc15;
-  color: #facc15;
-  stroke: none;
-}
-
-/* Se estiver usando emoji/star diretamente, reduzir o contorno óbvio do emoji não é possível pelo CSS.
-   Melhor usar o StarIcon (SVG) no JSX para aparência consistente.
-   Número dentro da estrela (se houver <span>) */
-.goal-stars-badge span {
-  position: absolute;
-  font-size: 13px;
-  font-weight: 800;
-  color: #111;
-  pointer-events: none;
-}
-
-.goal-card:hover .goal-stars-badge {
-  transform: translateY(-50%) scale(1.08);
-}
-
-/* ===========================
-   AÇÕES (botões emoji) — canto inferior direito, reveladas por hover / foco
-   =========================== */
-
-/* container das ações (por padrão escondido) */
-.goal-actions {
-  position: absolute;
-  bottom: 12px;   /* gruda no rodapé do CARD */
-  right: 16px;    /* gruda na lateral direita do CARD */
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 180ms ease, transform 180ms ease;
-  pointer-events: none;
-  z-index: 10;    /* acima da estrela */
-}
-
-/* mostrar ações quando o card estiver hover ou houver foco interno (acessibilidade) */
-.goal-card:hover .goal-actions,
-.goal-card:focus-within .goal-actions {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-/* botões emoji — pequenos e discretos */
-.goal-icon-btn,
-.emoji-btn {
-  background: transparent;   /* ❌ remove fundo */
-  border: none;              /* ❌ remove borda */
-  font-size: 13px;           /* 🔹 menor */
-  cursor: pointer;
-  padding: 2px;              /* 🔹 mais compacto */
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none;          /* ❌ remove sombra */
-  transition: transform 120ms ease;
-}
-
-/* hover/focus nos botões para feedback */
-.goal-icon-btn:hover,
-.goal-icon-btn:focus,
-.emoji-btn:hover,
-.emoji-btn:focus {
-  transform: translateY(-2px);
-  background: var(--elevation-3-surface);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--elevation-3-shadow);
-  outline: none;
-}
-
-/* diminuir ainda mais o ícone do concluir/editar */
-.goal-icon-btn.small {
-  font-size: 14px;
-  padding: 3px 5px;
-}
-
-
-/* foco visível (acessibilidade) */
-.goal-icon-btn:focus,
-.emoji-btn:focus {
-  box-shadow: 0 0 0 3px rgba(100,100,255,0.08);
-  border-radius: 6px;
-}
-
-/* ===========================
-   Fallbacks / pequenas melhorias
-   =========================== */
-
-/* Se o layout apresentar colisão entre estrela e ações (ajuste fino),
-   aumentar o padding-right do .goal-right ou mover a estrela mais para esquerda:
-   ex: .goal-stars-badge { right: 26px } ou .goal-right { padding-right: 36px } */
-
-/* Forçar que .goal-right não empurre conteúdo sobre a estrela */
-.goal-right { padding-right: 62px; } /* o suficiente para "não cair em cima" da estrela */
-
-/* garantir consistência visual em telas pequenas */
-@media (max-width: 900px) {
-  .goals-page-wow {
-	  padding: 18px; gap: 12px; }
-  .goals-left-column { width: 170px; }
-  .goal-stars-badge { width: 40px; height: 40px; right: 12px; }
-}
-
-
-
-
-/* ===============================
-   STATUS VISUAL — SaaS moderno
-   =============================== */
-
-/* Base refinada */
-.goal-card {
-  background: var(--elevation-1-surface);
-  border: 1px solid var(--elevation-1-border);
-  backdrop-filter: var(--elevation-1-blur);
-  -webkit-backdrop-filter: var(--elevation-1-blur);
-  box-shadow: var(--elevation-1-shadow);
-
-  border-radius: var(--radius-lg);
-
-  display: flex;
-  align-items: center;
-  gap: 20px;
-
-  position: relative;
-
-  padding: 18px 28px;   /* AQUI está a diferença */
-
-  min-height: 92px;
-
-  transition: all var(--motion-normal) ease;
-}
-
-/* Meta ativa */
-.goal-card.goal-active {
-  background: var(--elevation-2-surface);
-  border: 1px solid var(--elevation-2-border);
-  box-shadow: var(--elevation-2-shadow);
-}
-
-.goal-active .goal-title {
-  color: var(--text-primary);
-}
-
-.goal-active .goal-desc {
-  opacity: 0.5;
-}
-
-/* Meta concluída — elegante */
-.goal-card.goal-completed {
-  border: 1px solid rgba(248,242,220,0.25);
-
-  background:
-    radial-gradient(
-      600px circle at 15% 50%,
-      rgba(248,242,220,0.08),
-      rgba(248,242,220,0.03) 40%,
-      transparent 65%
-    ),
-    rgba(15,15,18,0.78);
-
-  box-shadow:
-    0 12px 30px rgba(0,0,0,0.6);
-
-  transition: all 0.5s ease;
-}
-
-
-
-/* Texto não some — apenas suaviza */
-.goal-completed .goal-title {
-  color: rgba(248,242,220,0.9);
-  font-weight: 500;
-}
-
-.goal-completed .goal-desc {
-  opacity: 0.4;
-}
-
-.goal-card.goal-completed::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-
-  background: radial-gradient(
-    circle at 20% 50%,
-    rgba(248,242,220,0.08),
-    transparent 60%
-  );
-
-  mix-blend-mode: screen;
-}
-
-/* ⭐ DEFAULT (não active, não completed) */
-.goal-card:not(.goal-active):not(.goal-completed) .goal-stars-badge svg {
-  fill: var(--glass-accent-star);
-  opacity: 0.8;
-  transform: scale(0.9);
-  filter: drop-shadow(0 0 4px var(--glass-accent-star-soft));
-}
-
-/* ⭐ ACTIVE */
-.goal-card.goal-active .goal-stars-badge svg {
-  fill: #facc15; /* amarelo visível */
-  opacity: 1;
-  transform: scale(1);
-  filter: drop-shadow(0 0 8px rgba(250,204,21,0.6));
-}
-
-.goal-completed .goal-stars-badge svg {
-  fill: #fff3c4;
-
-  filter:
-    drop-shadow(0 0 12px rgba(248,242,220,0.6))
-    drop-shadow(0 0 24px rgba(248,242,220,0.2));
-
-  opacity: 1;
-  transform: scale(1.06);
-
-  animation: starPulse 2.4s ease-in-out infinite;
-}
-
-@keyframes starPulse {
-  0%,100% { filter: drop-shadow(0 0 6px rgba(248,231,176,0.5)); }
-  50% { filter: drop-shadow(0 0 14px rgba(248,231,176,0.8)); }
-}
-
-
-.goal-check {
-  color: #fff3c4;
-  filter:
-    drop-shadow(0 0 6px rgba(248,231,176,0.5));
- transform: scale(0.0);
-  opacity: 0.7;
-  position: relative;
-  right: 530px;
-  bottom: 3px;
-}
-
-/* CATEGORY ACTIONS */
-
-.category-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-}
-
-.category-name {
-  flex: 1;
-  cursor: pointer;
-}
-
-.category-actions {
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.category-item:hover .category-actions {
-  opacity: 1;
-}
-
-.category-icon-btn {
-  background: transparent;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 2px;
-}
-
-.category-action-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
-  opacity: 0.9;
-}
-
-.category-action-group .btn {
-  min-width: 160px;
-}
-
-.upload-feedback {
-  margin-top: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.upload-feedback.success {
-  color: var(--success);
-  text-shadow: 0 0 12px rgba(248,242,220,0.2);
-}
-
-.upload-feedback.error {
-  color: #c0392b;
-}
-
-.goals-page-wow .btn[disabled] {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(5, 8, 14, 0.45) 0%, rgba(3, 6, 12, 0.78) 100%);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
-  padding: 16px;
-  animation: overlay-fade var(--motion-normal) var(--ease-standard);
-}
-
-.goal-card,
-.goal-form-card,
-.recent-item-wide,
-.modal-card {
-  border-color: var(--glass-border-default);
-  background: var(--glass-surface-strong);
-  box-shadow: var(--glass-shadow-strong);
-}
-
-.modal-card {
-  position: relative;
-  overflow: hidden;
-  background: var(--glass-premium-bg-raised);
-  border: 1px solid var(--glass-premium-border-strong);
-  backdrop-filter: var(--glass-premium-blur-active);
-  -webkit-backdrop-filter: var(--glass-premium-blur-active);
-  box-shadow: var(--glass-premium-highlight-strong), var(--glass-premium-shadow-active);
-  animation: modal-pop var(--motion-smooth) var(--ease-emphasized);
-}
-
-.modal-card::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  background: var(--glass-shine-overlay);
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-.modal-form {
-  display: grid;
-  gap: 10px;
-}
-
-.modal-actions {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* ===== UI refresh: unified surfaces + microinteractions ===== */
-.goals-page-wow {
-  gap: clamp(0.9rem, 2vw, 1.6rem);
-  padding: clamp(0.5rem, 1.2vw, 1rem);
-}
-
-
-
-.goals-left-column
-.goal-card,
-.goal-form-card,
-.recent-item-wide {
-  border-color: var(--border);
-  background: var(--glass-surface-strong);
-  box-shadow: var(--glass-shadow-strong);
-}
-
-.category-btn,
-.goal-card,
-.goal-icon-btn,
-.emoji-btn,
- .goals-page-wow .btn,
-.category-icon-btn {
-  transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease, box-shadow var(--motion-normal) ease, border-color var(--motion-fast) ease, background-color var(--motion-fast) ease;
-}
-
-.category-btn:hover,
- .goals-page-wow .btn:hover,
-.goal-icon-btn:hover,
-.emoji-btn:hover,
-.category-icon-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--elevation-1-shadow);
-}
-
-.goal-card {
-  border-width: 1px;
-  border-radius: var(--radius-lg);
-}
-
-
-@media (max-width: 900px) {
-  .goals-page-wow {
-    flex-direction: column;
-    padding: 0.75rem;
-  }
-
-  .goals-left-column {
-    width: 100%;
-  }
-
-  .header-actions-right {
-    position: static;
-    margin-top: 0.75rem;
-    justify-content: center;
-  }
-}
-
-.goal-completed::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 20%;
-  height: 60%;
-  width: 3px;
-  border-radius: 6px;
-  background: var(--glass-border-accent);
-  box-shadow: var(--glass-glow-soft);
-}
-
-
-.goal-title {
-  font-weight: 650;
-  letter-spacing: -0.2px;
-}
-
-.goal-desc {
-  color: var(--text-tertiary);
-  opacity: 0.45;
-}
-
-.goal-date {
-  margin-top: 6px;
-
-  font-size: 0.60rem;
-  font-style: italic;
-  font-weight: 480;
-  letter-spacing: 0.2px;
-
-  color: var(--text-tertiary);
-  opacity: 0.3;
-}
-
-/* Recent card — combinando com o estilo "black card" do layout */
-.goals-page-wow .card.recent-card-full {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 8px 16px; /* card container leve */
-  box-shadow:
-    0 12px 32px rgba(2,6,23,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.02);
-  overflow: hidden;
-}
-
-/* Items dentro do recent: tirar fundo e deixar só linhas dentro do card */
-.recent-item-wide {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 18px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
-  background: transparent; /* garante que não sobrescreva o fundo do card */
-}
-
-.recent-item-wide:last-child {
-  border-bottom: none;
+  background: linear-gradient(90deg, #facc15, #fde68a);
 }
 
+.progress-count-compact,
 .recent-right {
-  width: 140px;
+  min-width: 90px;
   text-align: right;
-  color: var(--text-secondary);
-  font-weight: 600;
 }
 
-/* thumb dentro do recent agora combina com o tom escuro */
-.recent-card-full .thumb-box {
-  border: 1px solid rgba(255,255,255,0.04);
-  background: rgba(255,255,255,0.01);
+.recent-mid {
+  flex: 1;
 }
 
-/* pequenas melhorias tipográficas */
-.recent-title {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.recent-desc { color: var(--text-tertiary); font-size: .95rem; }
+@media (max-width: 980px) {
+  .goals-page-wow {
+    grid-template-columns: 1fr;
+  }
 
-/* adaptativo: reduzir padding em telas pequenas */
-@media (max-width: 900px) {
-  .goals-page-wow .card.recent-card-full { padding: 6px 10px; }
-  .recent-item-wide { padding: 12px 8px; gap: 12px; }
+  .goal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .goals-header-wrapper,
+  .recent-item-wide,
+  .progress-row-compact,
+  .goal-title-row,
+  .goal-actions-inline,
+  .goal-form-inline,
+  .milestone-draft-card,
+  .header-actions-right,
+  .category-action-group,
+  .create-category-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

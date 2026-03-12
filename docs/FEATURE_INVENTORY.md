@@ -1,33 +1,75 @@
-# Feature Inventory Matrix (Legacy ➜ Web)
+﻿# Feature Inventory - EDI Web
 
-## Resumo executivo
+## Resumo Executivo
 
-- Backend FastAPI atual centraliza **153 rotas HTTP** em `backend/main.py`.
-- Frontend React expõe **17 rotas** em `frontend/src/App.jsx`.
-- O legado Kivy foi removido do repositório; a matriz mantém apenas rastreabilidade histórica.
+Estado atual consolidado do projeto:
 
-## Matriz por domínio
+- Backend FastAPI com 174 endpoints em `backend/main.py`.
+- Frontend React com autenticação e rotas por domínio em `frontend/src/App.jsx`.
+- Suporte a execução local visível, execução silenciosa no Windows e publicação externa por Cloudflare.
+- Atalho de Área de Trabalho e inicialização automática controláveis a partir da tela de Configurações.
 
-| Domínio | Referência legada (histórica) | Backend atual | Endpoints FastAPI (exemplos) | Frontend atual |
+## Matriz por Domínio
+
+| Domínio | Backend atual | Endpoints principais | Frontend atual | Status |
 |---|---|---|---|---|
-| Daily (rotina do dia) | `core/day_plan_engine.py`, `core/routine_engine.py` | `backend/core/day_engine.py`, `backend/core/daily_*_engine.py` | `/api/daily/routines`, `/api/daily/generate`, `/api/daily/summary`, `/api/daily/consistency`, `/api/day-config` | `/` → `frontend/src/pages/Daily.jsx` |
-| Atividades + log | `core/activity_engine.py`, `core/daily_log_engine.py` | `backend/core/activity_engine.py`, `backend/core/daily_log_engine.py` | `/api/activities`, `/api/activities/{id}/toggle`, `/api/daily-log/register`, `/api/activity-history` | Fluxo integrado na página Daily |
-| Metas (Goals) | `core/goal_engine.py` | `backend/core/goal_engine.py` | `/api/goals`, `/api/goals/{id}/status`, `/api/goals/categories`, `/api/goals/home`, `/api/goals/{id}/multipart` | `/goals` → `frontend/src/pages/Goals.jsx` |
-| Dashboard / Analytics / Reports | `core/dashboard_engine.py`, `core/analytics_engine.py` | `backend/core/dashboard_engine.py`, `backend/core/analytics_engine.py` | `/api/dashboard/overview`, `/api/dashboard/weekly`, `/api/analytics/today`, `/api/reports/*` | `/dashboard` → `frontend/src/pages/Dashboard.jsx` |
-| Financeiro | *(novo no web)* | `backend/core/finance_engine.py` | `/api/finance/config`, `/api/finance/fixed-expenses`, `/api/finance/transactions`, `/api/finance/summary`, `/api/finance/projection` | `/financeiro` → `frontend/src/pages/Financeiro.jsx` |
-| Leitura | `core/book_engine.py` | `backend/core/book_engine.py` | `/api/books`, `/api/books/{book_id}/sessions`, `/api/books/stats`, `/api/books/stats-by-type` | `/hobby/leitura` → `frontend/src/pages/Books.jsx` |
-| Artes visuais | `core/painting_engine.py`, `core/progress_photo_engine.py` | `backend/core/painting_engine.py`, `backend/core/progress_photo_engine.py` | `/api/visual-arts/artworks`, `/api/visual-arts/artworks/{id}/updates`, `/api/visual-arts/media-folders`, `/api/visual-arts/media-items` | `/hobby/artes-visuais` → `frontend/src/pages/HobbyVisualArts.jsx` |
-| Música | *(evolução no web)* | `backend/core/music_engine.py` | `/api/music/training`, `/api/music/training/{id}/session`, `/api/music/albums`, `/api/music/artists` | `/hobby/musica` → `frontend/src/pages/music/Music.jsx` |
-| Games | *(novo no web)* | (sem engine dedicada hoje) | (sem namespace dedicado em `main.py`) | `/hobby/games` → `frontend/src/pages/Games.jsx` |
-| Assistir (watchlist) | *(novo no web)* | `backend/core/watch_engine.py` | `/api/watch/categories`, `/api/watch/items`, `/api/watch/items/{item_id}/watched` | `/hobby/assistir` → `frontend/src/pages/Watch.jsx` |
-| Shopping | `core/shopping_engine.py` | `backend/core/shopping_engine.py` | `/api/shopping/wishlist`, `/api/shopping/items`, `/api/shopping/stats` | `/shopping` → `frontend/src/pages/Shopping.jsx` |
-| Consumíveis | *(novo no web)* | `backend/core/consumables_engine.py` | `/api/consumables/categories`, `/api/consumables/items`, `/api/consumables/items/{id}/restock`, `/api/consumables/items/{id}/finish` | `/shopping/consumiveis` → `frontend/src/pages/Consumiveis.jsx` |
-| Notificações (domínio único) | legado em `core/reminder_engine.py` | `backend/core/notification_center_engine.py` | `/api/notifications`, `/api/notifications/custom`, `/api/notifications/{id}/status`, `/api/notifications/preferences`, `/api/notifications/consumables` | `/notifications` → `frontend/src/pages/Notifications.jsx` |
-| Perfil e métricas | `core/user_profile_engine.py` | `backend/core/user_profile_engine.py` | `/api/profile`, `/api/profile/metrics`, `/api/user/profile`, `/api/user/metrics` | `/settings` + cards do dashboard |
-| Notas | *(novo no web)* | (persistência via backend principal) | (sem namespace dedicado no backend atual) | `/anotacoes` → `frontend/src/pages/Anotacoes.jsx` |
+| Autenticação | `core/auth_engine.py` | `/api/auth/status`, `/api/auth/login`, `/api/auth/change-password` | `/Login.jsx` | Implementado |
+| Daily | `core/day_engine.py`, `core/daily_*_engine.py`, `core/routine_engine.py` | `/api/daily/*`, `/api/day-config`, `/api/day-plan` | `/` -> `Daily.jsx` | Implementado |
+| Atividades e log diário | `core/activity_engine.py`, `core/daily_log_engine.py` | `/api/activities`, `/api/daily-log/*`, `/api/activity-history*` | Fluxo integrado em `Daily.jsx` | Implementado |
+| Goals | `core/goal_engine.py` | `/api/goals*`, `/api/goals/categories*`, `/api/goals/home`, `/api/goals/stars/total` | `/goals` -> `Goals.jsx` | Implementado |
+| Dashboard / Analytics / Reports | `core/dashboard_engine.py`, `core/analytics_engine.py` | `/api/dashboard/*`, `/api/analytics/*`, `/api/reports/*` | `/dashboard` -> `Dashboard.jsx` | Implementado |
+| Financeiro | `core/finance_engine.py` | `/api/finance/config`, `/api/finance/fixed-expenses*`, `/api/finance/transactions*`, `/api/finance/summary`, `/api/finance/projection*` | `/financeiro` -> `Financeiro.jsx` | Implementado |
+| Calendário | `core/calendar_engine.py` | `/api/calendar/month`, `/api/calendar/day`, `/api/calendar/events*`, `/api/calendar/logs*` | `/calendario` -> `Calendario.jsx` | Implementado |
+| Perfil e métricas | `core/user_profile_engine.py` | `/api/user/profile`, `/api/user/metrics`, `/api/profile*` | `/settings` -> `Settings.jsx` | Implementado |
+| Notificações | `core/notification_center_engine.py`, `core/notification_engine.py` | `/api/notifications*`, `/api/notifications/preferences`, `/api/notifications/push/*` | `/notifications` -> `Notifications.jsx` | Implementado |
+| Shopping | `core/shopping_engine.py` | `/api/shopping/wishlist*`, `/api/shopping/items*`, `/api/shopping/stats` | `/shopping` -> `Shopping.jsx` | Implementado |
+| Consumíveis | `core/consumables_engine.py` | `/api/consumables/categories*`, `/api/consumables/items*` | `/shopping/consumiveis` -> `Consumiveis.jsx` | Implementado |
+| Leitura | `core/book_engine.py` | `/api/books*`, `/api/books/stats*`, `/api/books/types*`, `/api/books/log` | `/hobby/leitura` -> `Books.jsx` | Implementado |
+| Artes visuais | `core/painting_engine.py`, `core/progress_photo_engine.py` | `/api/visual-arts/artworks*`, `/api/visual-arts/media-*` | `/hobby/artes-visuais` -> `HobbyVisualArts.jsx` | Implementado |
+| Música | `core/music_engine.py` | `/api/music/training*`, `/api/music/artists*`, `/api/music/albums*` | `/hobby/musica` -> `music/Music.jsx` | Implementado |
+| Assistir | `core/watch_engine.py` | `/api/watch/categories*`, `/api/watch/items*` | `/hobby/assistir` -> `Watch.jsx` | Implementado |
+| Games | suporte frontend atual | sem namespace dedicado no backend hoje | `/hobby/games` -> `Games.jsx` | Parcial |
+| Anotações | suporte frontend atual | sem namespace dedicado no backend hoje | `/anotacoes` -> `Anotacoes.jsx` | Parcial |
+| Exportação | `core/export_engine.py` | `/api/export/json`, `/api/export/csv`, `/api/export/activities-report`, `/api/export/goals-progress` | integrada em `Settings.jsx` | Implementado |
+| Integração Windows | `core/system_integration_engine.py` | `/api/system/integration`, `/api/system/desktop-shortcut`, `/api/system/windows-startup` | integrada em `Settings.jsx` | Implementado |
+| Publicação externa | integração por scripts + Vite proxy | acesso por `/api` mesmo host + Cloudflare Tunnel | navegável pela mesma SPA | Implementado |
+
+## Features de Destaque
+
+### Daily e produtividade
+
+- Geração automática da agenda diária.
+- Rotinas separadas por dia útil e dia de folga.
+- Resumo do dia, consistência e estatísticas semanais.
+- Validação de conflitos entre atividades fixas, sono, trabalho e blocos de rotina.
+
+### Metas
+
+- CRUD completo.
+- Categorias e organização visual.
+- Upload de imagem por multipart.
+- Cálculo de progresso e status.
+- Relação entre meta e atividades.
+
+### Notificações
+
+- Preferências por feature.
+- Notificações customizadas.
+- Mensagens automáticas de metas, consumíveis e resumo diário.
+- Som local configurável no frontend.
+- Normalização de textos com acentuação para evitar mojibake em registros antigos e novos.
+
+### Execução e operação
+
+- `start_edi.bat`: sobe o ambiente local com janelas visíveis.
+- `start_edi_silent.vbs`: sobe silenciosamente e abre o navegador padrão.
+- `start_edi_cloudflare.bat`: sobe o app e publica por Cloudflare.
+- Configuração de `Run at Windows startup` no app.
+- Criação de atalho com `icon.ico` pela UI.
 
 ## Observações
 
-- O backend mantém compatibilidade com o legado (`/api/reminders`) ao mesmo tempo em que prioriza o namespace novo de notificações (`/api/notifications`).
-- O frontend utiliza `HashRouter`, ajudando no empacotamento com Electron e deploy estático.
-- Para a lista completa de rotas e schemas, consulte `backend/main.py` e `http://localhost:8000/docs`.
+- O frontend usa `HashRouter`, o que ajuda no empacotamento Electron e em cenários estáticos.
+- O backend já trata URLs públicas de uploads com base no host da requisição, importante para Cloudflare.
+- A API continua com alguns endpoints legados convivendo com namespaces mais novos.
+- Os domínios `Games` e `Anotações` já têm páginas, mas ainda não têm a mesma profundidade de backend dos demais módulos.

@@ -1,258 +1,227 @@
-# 🔧 Troubleshooting - EDI Web
+﻿# Troubleshooting - EDI Web
 
-## Erro: ModuleNotFoundError: No module named 'core'
+## O app não abre em `http://localhost:3000`
 
-### Solução 1: Verificar Estrutura
+Verifique se backend e frontend realmente subiram.
 
-A estrutura do backend deve ser:
+### Subida manual
 
-```
-backend/
-├── core/
-│   ├── __init__.py
-│   ├── activity_engine.py
-│   ├── activity_type_engine.py
-│   ├── daily_log_engine.py
-│   ├── goal_engine.py
-│   ├── routine_engine.py
-│   ├── analytics_engine.py
-│   ├── notification_engine.py
-│   └── export_engine.py
-├── data/
-│   ├── __init__.py
-│   ├── database.py
-│   └── schema.sql
-├── main.py
-└── requirements.txt
-```
+Backend:
 
-### Solução 2: Executar do Diretório Correto
-
-**IMPORTANTE**: Execute o uvicorn a partir da pasta `backend/`
-
-```bash
-# ERRADO ❌
-cd edi-web
-uvicorn backend.main:app --reload
-
-# CORRETO ✅
-cd edi-web/backend
-uvicorn main:app --reload
-```
-
-### Solução 3: Criar __init__.py Manualmente (se necessário)
-
-Se os arquivos `__init__.py` estiverem faltando:
-
-**Windows (PowerShell):**
-```powershell
-cd backend\core
-New-Item __init__.py -ItemType File -Force
-
-cd ..\data
-New-Item __init__.py -ItemType File -Force
-```
-
-**Windows (CMD):**
-```cmd
-cd backend\core
-type nul > __init__.py
-
-cd ..\data
-type nul > __init__.py
-```
-
-**Linux/Mac:**
-```bash
-touch backend/core/__init__.py
-touch backend/data/__init__.py
-```
-
-## Outros Erros Comuns
-
-### Erro: Port already in use (Porta em uso)
-
-**Solução:**
-```bash
-# Use outra porta
-uvicorn main:app --reload --port 8001
-```
-
-### Erro: Module 'fastapi' not found
-
-**Solução:**
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-### Erro: npm command not found
-
-**Solução:**
-Instale o Node.js: https://nodejs.org/
-
-### Erro: Database locked
-
-**Solução:**
-```bash
-# Feche todas as instâncias do backend
-# Ou apague o banco e deixe criar novamente
-cd backend/data
-rm lifemanager.db
-```
-
-### Frontend não carrega
-
-**Solução:**
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-npm run dev
-```
-
-### CORS Error
-
-**Solução:**
-Verifique se o backend está rodando em http://localhost:8000
-O frontend está configurado para usar essa porta.
-
-## Comandos de Verificação
-
-### Verificar Estrutura
-
-**Windows:**
-```cmd
-cd backend
-dir /s /b
-```
-
-**Linux/Mac:**
-```bash
-cd backend
-find . -type f
-```
-
-### Verificar Python
-
-```bash
-python --version
-# Deve ser 3.8 ou superior
-```
-
-### Verificar Node.js
-
-```bash
-node --version
-npm --version
-```
-
-### Testar Backend Isoladamente
-
-```bash
-cd backend
-python -c "from core.activity_engine import ActivityEngine; print('OK')"
-```
-
-## Instalação Limpa
-
-Se nada funcionar, siga estes passos:
-
-### 1. Limpar Tudo
-
-```bash
-# Backend
-cd backend
-pip uninstall -y -r requirements.txt
-
-# Frontend
-cd frontend
-rm -rf node_modules package-lock.json
-```
-
-### 2. Reinstalar Backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-### 3. Reinstalar Frontend
-
-```bash
-cd frontend
-npm install
-```
-
-### 4. Verificar Estrutura
-
-Certifique-se de que os arquivos `__init__.py` existem em:
-- `backend/core/__init__.py`
-- `backend/data/__init__.py`
-
-### 5. Executar
-
-**Terminal 1:**
 ```bash
 cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Terminal 2:**
+Frontend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-## Logs e Debug
+### Subida por script no Windows
 
-### Ver Logs Detalhados (Backend)
+- Use `start_edi.bat` para modo visível.
+- Use `start_edi_silent.vbs` para modo silencioso.
+
+## O launcher silencioso não abre nada
+
+Confira estes pontos:
+
+- `start_edi_silent.vbs` existe na raiz do projeto.
+- `scripts/start_edi_hidden.ps1` existe e aponta para `scripts/run_backend_dev.bat` e `scripts/run_frontend_dev.bat`.
+- O `icon.ico` está presente na raiz.
+- O PowerShell está disponível no Windows.
+
+Se necessário, teste o script oculto manualmente:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start_edi_hidden.ps1
+```
+
+## O atalho da Área de Trabalho não foi criado
+
+A criação do atalho depende do Windows Script Host e da integração local do backend.
+
+Verifique:
+
+- a API `GET /api/system/integration`
+- o botão de criação em Configurações
+- permissões da pasta `Desktop`
+
+O atalho esperado fica em:
+
+```text
+C:\Users\<usuario>\Desktop\EDI Web.lnk
+```
+
+## `Run at Windows startup` não funcionou
+
+O app usa um atalho na pasta Startup do Windows.
+
+Caminho esperado:
+
+```text
+C:\Users\<usuario>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\EDI Web Startup.lnk
+```
+
+Se o toggle não surtir efeito:
+
+- desative e ative novamente em Configurações
+- confirme se o backend está rodando
+- valide `GET /api/system/integration`
+
+## O navegador abre, mas a senha não funciona
+
+Verifique qual arquivo de senha o backend está lendo.
+
+Pontos importantes:
+
+- a senha atual fica no diretório persistente do EDI
+- o arquivo padrão é `~/Documents/EDI/auth_password.txt`
+- o hash correspondente fica em `auth_config.json`
+- a URL pública antiga do quick tunnel pode já ter expirado
+
+Para Cloudflare quick tunnel, sempre confirme a URL pública mais recente antes de testar o login.
+
+## O quick tunnel do Cloudflare parou de funcionar
+
+Isso é esperado para URLs `trycloudflare.com`.
+
+- quick tunnels são temporários
+- ao reiniciar, a URL muda
+- para endereço fixo, use túnel nomeado com domínio seu
+
+Veja [CLOUDFLARE.md](/D:/Studio/Projects/EdiWEB--Developing/docs/CLOUDFLARE.md).
+
+## CORS ou API quebrando por host externo
+
+O app foi ajustado para operar com `/api` no mesmo host público, mas confira:
+
+- `VITE_API_URL=/api`
+- `VITE_BACKEND_URL=http://127.0.0.1:8000`
+- `EDI_CORS_ALLOW_ORIGIN_REGEX=https://.*\.trycloudflare\.com$`
+
+Se estiver usando domínio próprio, revise `EDI_CORS_ALLOW_ORIGINS` ou a regex correspondente.
+
+## Imagens ou uploads não aparecem externamente
+
+O backend monta URLs públicas de upload com base no host da requisição. Se ainda falhar:
+
+- confirme que o frontend acessa pelo mesmo host público
+- verifique o proxy `/uploads`
+- só defina `PUBLIC_UPLOADS_BASE_URL` se quiser sobrescrever manualmente a base pública
+
+## Caracteres acentuados aparecem quebrados
+
+O projeto já teve problema de mojibake em notificações e alguns textos antigos.
+
+Situação atual:
+
+- as notificações do backend são normalizadas ao ler e ao salvar
+- a UI principal já foi corrigida
+- o terminal do Windows ainda pode exibir acentos incorretamente por causa do encoding do console
+
+Se a API estiver correta e o terminal mostrar texto quebrado, o problema pode ser apenas de exibição do console.
+
+## `npm` falha no PowerShell com política de execução
+
+Em alguns ambientes Windows, `npm` pode ser bloqueado por Execution Policy.
+
+Use:
+
+```powershell
+npm.cmd run build
+npm.cmd run dev
+```
+
+Isso evita o bloqueio do `npm.ps1`.
+
+## `ModuleNotFoundError: No module named 'core'`
+
+Execute o backend a partir da pasta `backend/`.
+
+Errado:
+
+```bash
+uvicorn backend.main:app --reload
+```
+
+Correto:
 
 ```bash
 cd backend
-uvicorn main:app --reload --log-level debug
+uvicorn main:app --reload
 ```
 
-### Ver Logs (Frontend)
+## Porta 8000 ou 3000 em uso
 
-Os erros aparecem no console do navegador (F12)
-
-### Testar API Diretamente
+Backend em outra porta:
 
 ```bash
-# Com curl
-curl http://localhost:8000/
-
-# Ou abra no navegador
-http://localhost:8000/docs
+cd backend
+uvicorn main:app --reload --port 8001
 ```
 
-## Suporte por Sistema Operacional
+Se o frontend precisar mudar, ajuste a porta em `frontend/vite.config.js`.
 
-### Windows
+## Frontend não sobe ou está desatualizado
 
-- Use PowerShell ou CMD como administrador
-- Pode ser necessário ajustar o Windows Defender
-- Verifique variáveis de ambiente PATH
+```bash
+cd frontend
+npm install
+npm.cmd run dev
+```
 
-### macOS
+Se precisar limpar:
 
-- Pode precisar de Xcode Command Line Tools
-- `xcode-select --install`
+```bash
+cd frontend
+rmdir /s /q node_modules
+npm install
+```
 
-### Linux
+## Backend com erro de dependência
 
-- Pode precisar de python3-venv
-- `sudo apt install python3-venv` (Ubuntu/Debian)
+```bash
+cd backend
+pip install -r requirements.txt --force-reinstall
+```
 
-## Contato
+## Banco bloqueado ou estado inconsistente
 
-Se o problema persistir:
-1. Verifique a estrutura de pastas
-2. Confirme que está executando do diretório correto
-3. Tente instalação limpa
-4. Verifique os logs de erro completos
+Antes de pensar em apagar dados:
 
----
+- feche processos duplicados do backend
+- confirme se o launcher silencioso e o launcher visível não estão rodando ao mesmo tempo sem necessidade
+- cheque o diretório persistente configurado em `EDI_STORAGE_DIR`
 
-**Última atualização**: Fevereiro 2026
+## Verificações rápidas
+
+### Python
+
+```bash
+python --version
+```
+
+### Node.js
+
+```bash
+node --version
+npm.cmd --version
+```
+
+### API
+
+```bash
+curl http://localhost:8000/
+```
+
+### Swagger
+
+Abra:
+
+```text
+http://localhost:8000/docs
+```

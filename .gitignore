@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -67,3 +67,6 @@ htmlcov/
 
 # Expo
 .expo/
+cloudflare/config.yml
+cloudflare/*.json
+

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+﻿import { useState } from "react";
+import api from "../../services/api";
 
 export default function TrainingUploadModal({ onClose, onCreated }) {
   const [name, setName] = useState("");
@@ -18,11 +18,7 @@ export default function TrainingUploadModal({ onClose, onCreated }) {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://localhost:8000/api/music/training",
-        formData
-      );
-
+      const res = await api.post("/music/training", formData);
       onCreated(res.data.data);
       onClose();
     } catch (err) {

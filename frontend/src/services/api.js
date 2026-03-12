@@ -1,10 +1,16 @@
 ﻿import axios from 'axios';
 
-const DEFAULT_API_URL = 'http://127.0.0.1:8000/api';
+const DEFAULT_API_URL = '/api';
+const normalizeUrl = (value) => value.replace(/\/+$/, '');
 
-const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const envApiUrl = normalizeUrl((import.meta.env.VITE_API_URL || '').trim());
 
 export const API_URL = envApiUrl || DEFAULT_API_URL;
+export const API_ORIGIN = /^https?:\/\//i.test(API_URL)
+  ? new URL(API_URL).origin
+  : (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8000');
+
+axios.defaults.baseURL = API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -104,13 +110,16 @@ export const goalsApi = {
   updateCategory: (id, data) => api.put(`/goals/categories/${id}`, data),
   removeCategory: (id) => api.delete(`/goals/categories/${id}`),
   listByCategory: (categoryId) => api.get(`/goals/categories/${categoryId}`),
+  listMilestones: (goalId) => api.get(`/goals/${goalId}/milestones`),
+  syncMilestones: (goalId, data) => api.put(`/goals/${goalId}/milestones`, data),
+  updateMilestoneStatus: (milestoneId, isCompleted) => api.patch(`/goals/milestones/${milestoneId}/status`, { is_completed: isCompleted }),
 };
 
 // Analytics
 export const analyticsApi = {
   getToday: () => api.get('/analytics/today'),
   getLastDays: (days = 7) => api.get(`/analytics/last-days/${days}`),
-  getTopActivities: (limit = 5) => api.get(`/analytics/top-activitieslimit=${limit}`),
+  getTopActivities: (limit = 5) => api.get(`/analytics/top-activities?limit=${limit}`),
   getGoalsOverview: () => api.get('/analytics/goals-overview'),
 };
 
@@ -132,6 +141,7 @@ export const notificationsApi = {
   createCustom: (data) => api.post('/notifications/custom', data),
   updateCustom: (id, data) => api.put(`/notifications/custom/${id}`, data),
   updateStatus: (id, status) => api.patch(`/notifications/${id}/status`, { status }),
+  snooze: (id, minutes = 30) => api.post(`/notifications/${id}/snooze`, { minutes }),
   getPreferences: () => api.get('/notifications/preferences'),
   savePreferences: (data) => api.put('/notifications/preferences', data),
   registerDevice: (data) => api.post('/notifications/devices', data),
@@ -140,6 +150,34 @@ export const notificationsApi = {
   dispatchPush: (data = {}) => api.post('/notifications/push/dispatch', data),
   listPushDeliveries: (params = {}) => api.get('/notifications/push/deliveries', { params }),
   refreshPushReceipts: (data = {}) => api.post('/notifications/push/receipts', data),
+};
+
+// Notes and Weekly Journal
+export const notesApi = {
+  listContexts: () => api.get('/notes/contexts'),
+  createContext: (data) => api.post('/notes/contexts', data),
+  updateContext: (id, data) => api.put(`/notes/contexts/${id}`, data),
+  deleteContext: (id) => api.delete(`/notes/contexts/${id}`),
+  list: (params = {}) => api.get('/notes', { params }),
+  search: (query) => api.get('/notes/search', { params: { query } }),
+  create: (data) => api.post('/notes', data),
+  update: (id, data) => api.put(`/notes/${id}`, data),
+  delete: (id) => api.delete(`/notes/${id}`),
+};
+
+export const journalApi = {
+  getSettings: () => api.get('/journal/settings'),
+  updateSettings: (data) => api.put('/journal/settings', data),
+  getCurrent: (referenceDate) => api.get('/journal/current', { params: { reference_date: referenceDate } }),
+  listEntries: (limit = 12) => api.get('/journal/entries', { params: { limit } }),
+  saveEntry: (data) => api.post('/journal/entries', data),
+};
+
+// System Integration
+export const systemIntegrationApi = {
+  getStatus: () => api.get('/system/integration'),
+  createDesktopShortcut: () => api.post('/system/desktop-shortcut'),
+  setWindowsStartup: (enabled) => api.put('/system/windows-startup', { enabled }),
 };
 
 // Export
@@ -161,7 +199,7 @@ export const userApi = {
 
 // Activity History
 export const historyApi = {
-  getHistory: (days = 30) => api.get(`/activity-historydays=${days}`),
+  getHistory: (days = 30) => api.get(`/activity-history?days=${days}`),
 };
 
 export default api;
@@ -179,19 +217,21 @@ export const financeApi = {
   updateTransaction: (id, data) => api.put(`/finance/transactions/${id}`, data),
   deleteTransaction: (id) => api.delete(`/finance/transactions/${id}`),
   getSummary: () => api.get('/finance/summary'),
-  getProjection: (months = 120) => api.get(`/finance/projectionmonths=${months}`),
+  getProjection: (months = 120) => api.get(`/finance/projection?months=${months}`),
 };
 
 // Dashboard + Profile
 export const dashboardApi = {
   getOverview: () => api.get('/dashboard/overview'),
   getWeekly: () => api.get('/dashboard/weekly'),
+  getFrontpage: () => api.get('/dashboard/frontpage'),
+  search: (query, limitPerSection = 5) => api.get('/dashboard/search', { params: { query, limit_per_section: limitPerSection } }),
 };
 
 export const profileApi = {
   get: () => api.get('/profile'),
   save: (data) => api.post('/profile', data),
-  getMetrics: (limit = 30) => api.get(`/profile/metricslimit=${limit}`),
+  getMetrics: (limit = 30) => api.get(`/profile/metrics?limit=${limit}`),
   addMetric: (data) => api.post('/profile/metrics', data),
 };
 
@@ -319,3 +359,5 @@ export const dayConfigApi = {
   get: () => api.get('/day-config'),
   save: (data) => api.post('/day-config', data),
 };
+
+

@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from core.daily_log_engine import DailyLogEngine
 from core.consumables_engine import ConsumablesEngine
 from core.goal_engine import GoalEngine
+from core.note_engine import NoteEngine
 from data.database import Database
 
 logger = logging.getLogger(__name__)
@@ -15,12 +16,36 @@ EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 EXPO_RECEIPTS_URL = "https://exp.host/--/api/v2/push/getReceipts"
 MAX_PUSH_RETRIES = 2
 
+_MOJIBAKE_SEQUENCES = (
+    "Ã¡", "Ã¢", "Ã£", "Ã¤", "Ã§", "Ã©", "Ãª", "Ã­", "Ã³", "Ã´", "Ãµ", "Ãº", "Ã¼",
+    "Ã ", "Ã‰", "Ã“", "Ãš", "Â", "â€", "â€œ", "â€", "â€˜", "â€™", "â€“", "â€”",
+)
+
+
+def _repair_mojibake_text(value: Any) -> Any:
+    if not isinstance(value, str) or not value:
+        return value
+    if not any(token in value for token in _MOJIBAKE_SEQUENCES):
+        return value
+    try:
+        return value.encode("latin-1").decode("utf-8")
+    except UnicodeError:
+        return value
+
+
+def _repair_mojibake_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _repair_mojibake_payload(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_repair_mojibake_payload(item) for item in value]
+    return _repair_mojibake_text(value)
+
 
 class NotificationCenterEngine:
     DEFAULT_STATUS = "unread"
     SUPPORTED_SEVERITIES = {"info", "success", "warning", "critical", "neutral"}
     DEFAULT_CHANNELS = ["in_app", "sound", "push"]
-    SUPPORTED_FEATURES = ["goals", "daily", "consumables", "shopping", "custom"]
+    SUPPORTED_FEATURES = ["goals", "daily", "consumables", "shopping", "custom", "journal"]
 
     @staticmethod
     def list_notifications(
@@ -29,6 +54,7 @@ class NotificationCenterEngine:
         source_feature: Optional[str] = None,
         severity: Optional[str] = None,
         include_read: bool = False,
+        due_only: bool = False,
     ):
         query = """
             SELECT
@@ -70,6 +96,9 @@ class NotificationCenterEngine:
             query += " AND severity = ?"
             params.append(severity)
 
+        if due_only:
+            query += " AND (scheduled_for IS NULL OR datetime(scheduled_for) <= CURRENT_TIMESTAMP)"
+
         query += " ORDER BY COALESCE(datetime(scheduled_for), datetime(created_at)) DESC, id DESC"
 
         with Database() as db:
@@ -79,20 +108,63 @@ class NotificationCenterEngine:
         for row in rows:
             item = dict(row)
             item["type"] = item.get("notification_type")
+            item["title"] = _repair_mojibake_text(item.get("title"))
+            item["message"] = _repair_mojibake_text(item.get("message"))
             meta_payload = item.get("meta")
             if meta_payload:
                 try:
-                    item["meta"] = json.loads(meta_payload)
+                    item["meta"] = _repair_mojibake_payload(json.loads(meta_payload))
                 except json.JSONDecodeError:
                     item["meta"] = {}
             else:
                 item["meta"] = {}
+            scheduled_for = item.get("scheduled_for")
+            item["is_due"] = True
+            if scheduled_for:
+                parsed_schedule = NotificationCenterEngine._parse_datetime_value(scheduled_for)
+                if parsed_schedule is not None:
+                    item["is_due"] = parsed_schedule <= datetime.now()
             result.append(item)
 
         return result
 
     @staticmethod
+    def get_notification(notification_id: int):
+        with Database() as db:
+            row = db.fetchone(
+                """
+                SELECT
+                    id,
+                    notification_type,
+                    source_feature,
+                    title,
+                    message,
+                    severity,
+                    status,
+                    scheduled_for,
+                    meta,
+                    sound_key,
+                    color_token,
+                    created_at,
+                    read_at,
+                    completed_at,
+                    unique_key
+                FROM notifications
+                WHERE id = ?
+                """,
+                (notification_id,),
+            )
+        if not row:
+            return None
+        items = NotificationCenterEngine.list_notifications(include_read=True)
+        for item in items:
+            if item.get("id") == notification_id:
+                return item
+        return None
+
+    @staticmethod
     def create_custom_notification(payload: Dict[str, Any]):
+        payload = _repair_mojibake_payload(payload)
         data = {
             "notification_type": payload.get("notification_type") or "custom_notification",
             "source_feature": payload.get("source_feature") or "custom",
@@ -110,6 +182,7 @@ class NotificationCenterEngine:
 
     @staticmethod
     def update_custom_notification(notification_id: int, payload: Dict[str, Any]):
+        payload = _repair_mojibake_payload(payload)
         with Database() as db:
             result = db.execute(
                 """
@@ -138,7 +211,7 @@ class NotificationCenterEngine:
                 ),
             )
             if result.rowcount == 0:
-                raise ValueError("NotificaÃ§Ã£o custom nÃ£o encontrada")
+                raise ValueError("Notificação custom não encontrada")
 
     @staticmethod
     def _normalize_severity(value: Optional[str]) -> str:
@@ -166,6 +239,46 @@ class NotificationCenterEngine:
                 """,
                 (status, notification_id),
             )
+
+    @staticmethod
+    def snooze_notification(notification_id: int, minutes: int):
+        snooze_minutes = max(1, int(minutes or 0))
+        notification = NotificationCenterEngine.get_notification(notification_id)
+        if not notification:
+            raise ValueError("Notificacao nao encontrada")
+
+        now = datetime.now()
+        scheduled_for = NotificationCenterEngine._parse_datetime_value(notification.get("scheduled_for")) or now
+        if scheduled_for < now:
+            scheduled_for = now
+        snoozed_until = scheduled_for + timedelta(minutes=snooze_minutes)
+
+        meta = dict(notification.get("meta") or {})
+        meta["snoozed_from_id"] = notification_id
+        meta["snooze_minutes"] = snooze_minutes
+        meta["snooze_count"] = int(meta.get("snooze_count") or 0) + 1
+
+        unique_key = f"{notification.get('unique_key') or NotificationCenterEngine._unique_key(notification)}:snooze:{int(snoozed_until.timestamp())}"
+        new_id = NotificationCenterEngine._insert_notification(
+            {
+                "notification_type": notification.get("notification_type") or notification.get("type") or "custom_notification",
+                "source_feature": notification.get("source_feature") or "custom",
+                "title": notification.get("title"),
+                "message": notification.get("message"),
+                "severity": notification.get("severity") or "info",
+                "status": NotificationCenterEngine.DEFAULT_STATUS,
+                "scheduled_for": snoozed_until.isoformat(timespec="minutes"),
+                "meta": meta,
+                "sound_key": notification.get("sound_key"),
+                "color_token": notification.get("color_token"),
+            },
+            unique_key=unique_key,
+        )
+        NotificationCenterEngine.update_notification_status(notification_id, "canceled")
+        return NotificationCenterEngine.get_notification(new_id) if new_id else {
+            "id": None,
+            "scheduled_for": snoozed_until.isoformat(timespec="minutes"),
+        }
 
     @staticmethod
     def get_preferences():
@@ -527,7 +640,7 @@ class NotificationCenterEngine:
         return {
             "to": device["device_token"],
             "title": notification.get("title") or "EDI",
-            "body": notification.get("message") or "Nova notificacao",
+            "body": notification.get("message") or "Nova notificação",
             "sound": "default" if notification.get("sound_key") else None,
             "data": {
                 "notification_id": notification.get("id"),
@@ -580,6 +693,7 @@ class NotificationCenterEngine:
         NotificationCenterEngine._check_consumables(days_ahead=days_ahead)
         NotificationCenterEngine._check_daily_routine_start_notifications()
         NotificationCenterEngine._store_daily_summary()
+        NotificationCenterEngine._check_weekly_journal_prompt()
 
     @staticmethod
     def _check_daily_routine_start_notifications(lookback_minutes: int = 15):
@@ -628,7 +742,7 @@ class NotificationCenterEngine:
                     "notification_type": "daily_activity_start",
                     "source_feature": "daily",
                     "title": "Hora de iniciar atividade",
-                    "message": f"A atividade '{title}' estÃ¡ programada para comeÃ§ar agora.",
+                    "message": f"A atividade '{title}' está programada para começar agora.",
                     "severity": "info",
                     "scheduled_for": scheduled_for.isoformat(),
                     "sound_key": "default",
@@ -643,7 +757,7 @@ class NotificationCenterEngine:
                 }
                 NotificationCenterEngine._insert_notification(payload)
         except Exception as exc:
-            logger.error("Erro ao verificar inÃ­cio de atividades da rotina: %s", exc)
+            logger.error("Erro ao verificar início de atividades da rotina: %s", exc)
 
     @staticmethod
     def _check_consumables(days_ahead: int = 7):
@@ -655,7 +769,7 @@ class NotificationCenterEngine:
                     unique_key=payload.get("unique_key"),
                 )
         except Exception as exc:
-            logger.error("Erro ao verificar risco de consumÃ­veis: %s", exc)
+            logger.error("Erro ao verificar risco de consumíveis: %s", exc)
 
     @staticmethod
     def _check_stalled_goals():
@@ -666,7 +780,7 @@ class NotificationCenterEngine:
                         "notification_type": "stalled_goal",
                         "source_feature": "goals",
                         "title": goal["title"],
-                        "message": f"Meta '{goal['title']}' sem progresso hÃ¡ mais de 3 dias",
+                        "message": f"Meta '{goal['title']}' sem progresso há mais de 3 dias",
                         "severity": "warning",
                         "meta": {
                             "goal_id": goal["id"],
@@ -719,8 +833,8 @@ class NotificationCenterEngine:
             payload = {
                 "notification_type": "daily_summary",
                 "source_feature": "daily",
-                "title": "Resumo diÃ¡rio",
-                "message": f"Hoje vocÃª completou {completed_activities} de {total_activities} atividades",
+                "title": "Resumo diário",
+                "message": f"Hoje você completou {completed_activities} de {total_activities} atividades",
                 "severity": "info",
                 "meta": {
                     "date": date.today().isoformat(),
@@ -732,10 +846,41 @@ class NotificationCenterEngine:
             }
             NotificationCenterEngine._insert_notification(payload)
         except Exception as exc:
-            logger.error("Erro ao gerar resumo diÃ¡rio: %s", exc)
+            logger.error("Erro ao gerar resumo diário: %s", exc)
+
+    @staticmethod
+    def _check_weekly_journal_prompt():
+        try:
+            if not NoteEngine.is_weekly_journal_due():
+                return
+            journal_state = NoteEngine.get_journal_entry()
+            week = journal_state.get("week") or {}
+            settings = NoteEngine.get_journal_settings()
+            reminder_time = settings.get("reminder_time") or NoteEngine.DEFAULT_JOURNAL_TIME
+            scheduled_for = f"{date.today().isoformat()}T{reminder_time}"
+            payload = {
+                "notification_type": "weekly_journal_prompt",
+                "source_feature": "journal",
+                "title": "Diário semanal pendente",
+                "message": f"Seu diário da semana {week.get('label', '')} ainda não foi preenchido.",
+                "severity": "warning",
+                "status": NotificationCenterEngine.DEFAULT_STATUS,
+                "scheduled_for": scheduled_for,
+                "meta": {
+                    "week_start": week.get("week_start"),
+                    "week_end": week.get("week_end"),
+                    "label": week.get("label"),
+                },
+                "sound_key": "soft_chime",
+                "color_token": "warning",
+            }
+            NotificationCenterEngine._insert_notification(payload)
+        except Exception as exc:
+            logger.error("Erro ao gerar prompt do diário semanal: %s", exc)
 
     @staticmethod
     def _insert_notification(payload: Dict[str, Any], unique_key: Optional[str] = None):
+        payload = _repair_mojibake_payload(payload)
         source_feature = payload.get("source_feature") or "system"
         feature_key = NotificationCenterEngine._normalize_feature_key(source_feature)
         if not NotificationCenterEngine.is_feature_enabled(feature_key=feature_key, require_channel="in_app"):
@@ -785,6 +930,24 @@ class NotificationCenterEngine:
                 ),
             )
             return db.lastrowid
+
+    @staticmethod
+    def _parse_datetime_value(value: Optional[str]) -> Optional[datetime]:
+        if not value:
+            return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            pass
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+        return None
 
     @staticmethod
     def _default_feature_preference(feature_key: str):
@@ -855,6 +1018,8 @@ class NotificationCenterEngine:
             return f"{notification_type}:{meta.get('goal_id')}:{meta.get('deadline')}"
         if notification_type == "daily_activity_start":
             return f"{notification_type}:{meta.get('plan_block_id')}:{meta.get('date')}:{meta.get('start_time')}"
+        if notification_type == "weekly_journal_prompt":
+            return f"{notification_type}:{meta.get('week_start')}"
 
         title = notification.get("title") or ""
         message = notification.get("message") or ""
@@ -921,6 +1086,9 @@ class NotificationCenterEngine:
             for reminder in NotificationCenterEngine.reminder_adapter_list(status="pendente")
             if reminder.get("due_date") and reminder["due_date"] <= limit_date
         ]
+
+
+
 
 
 

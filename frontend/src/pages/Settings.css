@@ -387,3 +387,74 @@
   gap: var(--spacing-md);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
+
+/* ======================================================
+   SYSTEM INTEGRATION
+====================================================== */
+
+.integration-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.integration-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--glass-surface-soft);
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-lg);
+}
+
+.integration-item-action {
+  align-items: flex-start;
+}
+
+.integration-button {
+  flex-shrink: 0;
+}
+
+.integration-meta {
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--glass-text-muted);
+  word-break: break-all;
+}
+
+.integration-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--glass-text-secondary);
+  font-size: 0.9rem;
+}
+
+.integration-hint a {
+  color: var(--glass-text-accent);
+}
+
+@media (max-width: 768px) {
+  .integration-item,
+  .integration-item-action,
+  .notification-sound-row,
+  .notification-feature-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .integration-button {
+    width: 100%;
+  }
+
+  .notification-volume-control {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .notification-volume-control input {
+    width: 100%;
+  }
+}

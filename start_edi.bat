@@ -1,5 +1,9 @@
-@echo off
+﻿@echo off
 setlocal
+set "ROOT=%~dp0"
+set "EDI_CORS_ALLOW_ORIGIN_REGEX=https://.*\.trycloudflare\.com$"
+set "VITE_API_URL=/api"
+set "VITE_BACKEND_URL=http://127.0.0.1:8000"
 
 echo ========================================
 echo  EDI - Life Manager Web
@@ -7,19 +11,18 @@ echo  Starting Backend and Frontend...
 echo ========================================
 echo.
 
-if not exist "frontend\node_modules" (
+if not exist "%ROOT%frontend\node_modules" (
     echo [setup] frontend\node_modules nao encontrado. Executando npm install...
-    call cmd /c "cd frontend && npm install"
+    pushd "%ROOT%frontend"
+    npm install
+    popd
 )
 
-REM Start backend in new window
-start "EDI Backend" cmd /k "cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+start "EDI Backend" "%ROOT%scripts\run_backend_dev.bat"
 
-REM Wait a bit for backend to start
 timeout /t 3 /nobreak > nul
 
-REM Start frontend in new window
-start "EDI Frontend" cmd /k "cd frontend && npm run dev"
+start "EDI Frontend" "%ROOT%scripts\run_frontend_dev.bat"
 
 echo.
 echo ========================================

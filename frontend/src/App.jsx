@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+﻿import React, { useEffect, useState } from 'react';
+import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import Daily from './pages/Daily';
 import Goals from './pages/Goals';
@@ -55,14 +55,16 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<Daily />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/daily" element={<Daily />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/anotacoes" element={<Anotacoes />} />
-          <Route path="/stats" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/anotacoes/diario" element={<Anotacoes />} />
+          <Route path="/stats" element={<Navigate to="/" replace />} />
+          <Route path="/reports" element={<Navigate to="/" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/hobby/leitura" element={<Books />} />
           <Route path="/hobby/artes-visuais" element={<HobbyVisualArts />} />
           <Route path="/hobby/musica" element={<Music />} />

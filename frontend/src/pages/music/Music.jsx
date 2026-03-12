@@ -1,37 +1,33 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+﻿import { useEffect, useState } from "react";
 import Metronome from "./Metronome";
 import ImageViewer from "./ImageViewer";
 import BpmModal from "./BpmModal";
 import TrainingUploadModal from "./TrainingUploadModal";
 import TrainingHistoryModal from "./TrainingHistoryModal";
+import api from "../../services/api";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 import "./music.css";
 
 export default function Music() {
   const [activeTab, setActiveTab] = useState("training");
-
-  // ================= TRAINING =================
   const [trainings, setTrainings] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [historyTraining, setHistoryTraining] = useState(null);
-
-  // ================= LISTENING =================
   const [artistsGrouped, setArtistsGrouped] = useState({});
   const [albums, setAlbums] = useState([]);
-  const [expandedArtists, setExpandedArtists] = useState({});
   const [showArtistModal, setShowArtistModal] = useState(false);
   const [newArtistName, setNewArtistName] = useState("");
   const [newArtistImage, setNewArtistImage] = useState(null);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState("");
+  const [newAlbumImage, setNewAlbumImage] = useState(null);
   const [selectedArtistId, setSelectedArtistId] = useState(null);
 
-  // ================= FETCH =================
   const fetchTrainings = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/music/training");
+      const res = await api.get("/music/training");
       setTrainings(res.data.data);
     } catch (err) {
       console.error("Erro ao buscar treinos:", err);
@@ -41,8 +37,8 @@ export default function Music() {
   const fetchListening = async () => {
     try {
       const [artistsRes, albumsRes] = await Promise.all([
-        axios.get("http://localhost:8000/api/music/artists"),
-        axios.get("http://localhost:8000/api/music/albums"),
+        api.get("/music/artists"),
+        api.get("/music/albums"),
       ]);
 
       setArtistsGrouped(artistsRes.data.data);
@@ -62,9 +58,8 @@ export default function Music() {
     }
   }, [activeTab]);
 
-  // ================= TRAINING RENDER =================
   const renderSection = (instrumentKey, label) => {
-    const filtered = trainings.filter((t) => t.instrument === instrumentKey);
+    const filtered = trainings.filter((training) => training.instrument === instrumentKey);
     if (filtered.length === 0) return null;
 
     return (
@@ -74,200 +69,124 @@ export default function Music() {
         </h3>
 
         <div className="training-grid stagger">
-          {filtered.map((t) => (
-            <div key={t.id} className="card training-card perf-willchange">
-              <div className="training-thumb">
-                <img
-                  src={`http://localhost:8000/${t.image_path}`}
-                  alt={t.name}
-                  onClick={() =>
-                    setSelectedImage(
-                      `http://localhost:8000/${t.image_path}`
-                    )
-                  }
-                  style={{ cursor: "zoom-in" }}
-                />
+          {filtered.map((training) => {
+            const imageUrl = resolveMediaUrl(training.image_path);
 
-                {t.last_bpm && (
-                  <div className="bpm-badge">{t.last_bpm} BPM</div>
+            return (
+              <div key={training.id} className="card training-card perf-willchange">
+                <div className="training-thumb">
+                  <img
+                    src={imageUrl}
+                    alt={training.name}
+                    onClick={() => setSelectedImage(imageUrl)}
+                    style={{ cursor: "zoom-in" }}
+                  />
+
+                  {training.last_bpm && (
+                    <div className="bpm-badge">{training.last_bpm} BPM</div>
+                  )}
+                </div>
+
+                <h4>{training.name}</h4>
+
+                {training.last_bpm && (
+                  <p className="training-meta">
+                    Ultimo registro: {training.last_bpm} BPM
+                  </p>
                 )}
+
+                <div className="training-actions">
+                  <button
+                    className="btn btn-secondary btn-sm perf-willchange"
+                    onClick={() => setSelectedTraining(training.id)}
+                  >
+                    Registrar BPM
+                  </button>
+
+                  <button
+                    className="btn btn-ghost btn-sm perf-willchange"
+                    onClick={() => setHistoryTraining(training.id)}
+                  >
+                    Historico
+                  </button>
+                </div>
               </div>
-
-              <h4>{t.name}</h4>
-
-              {t.last_bpm && (
-                <p className="training-meta">
-                  Último registro: {t.last_bpm} BPM
-                </p>
-              )}
-
-              <div className="training-actions">
-                <button
-                  className="btn btn-secondary btn-sm perf-willchange"
-                  onClick={() => setSelectedTraining(t.id)}
-                >
-                  Registrar BPM
-                </button>
-
-                <button
-                  className="btn btn-ghost btn-sm perf-willchange"
-                  onClick={() => setHistoryTraining(t.id)}
-                >
-                  Histórico
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
   };
-
-  // ================= LISTENING =================
-
-
-const [newAlbumImage, setNewAlbumImage] = useState(null);
-
-
 
   const openAlbumModal = (artistId) => {
     setSelectedArtistId(artistId);
     setShowAlbumModal(true);
   };
 
-const createArtist = async () => {
-  if (!newArtistName.trim()) return;
+  const createArtist = async () => {
+    if (!newArtistName.trim()) return;
 
-  try {
-    const formData = new FormData();
-    formData.append("name", newArtistName.trim());
+    try {
+      const formData = new FormData();
+      formData.append("name", newArtistName.trim());
 
-    if (newArtistImage) {
-      formData.append("image", newArtistImage);
-    }
+      if (newArtistImage) {
+        formData.append("image", newArtistImage);
+      }
 
-    await axios.post(
-      "http://localhost:8000/api/music/artists",
-      formData,
-      {
+      await api.post("/music/artists", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
-    );
+      });
 
-    setNewArtistName("");
-    setNewArtistImage(null);
-    setShowArtistModal(false);
-    fetchListening();
-
-  } catch (err) {
-    console.error("Erro ao criar artista:", err);
-  }
-};
-
-const createAlbum = async () => {
-  if (!newAlbumName.trim() || !selectedArtistId) return;
-
-  try {
-    const formData = new FormData();
-    formData.append("artist_id", selectedArtistId);
-    formData.append("name", newAlbumName.trim());
-
-    if (newAlbumImage) {
-      formData.append("image", newAlbumImage);
+      setNewArtistName("");
+      setNewArtistImage(null);
+      setShowArtistModal(false);
+      fetchListening();
+    } catch (err) {
+      console.error("Erro ao criar artista:", err);
     }
-
-    await axios.post(
-      "http://localhost:8000/api/music/albums",
-      formData
-    );
-
-    setNewAlbumName("");
-    setNewAlbumImage(null);
-    setSelectedArtistId(null);
-    setShowAlbumModal(false);
-    fetchListening();
-
-  } catch (err) {
-    console.error("Erro ao criar álbum:", err);
-  }
-};
-
-const confirmAlbum = async (albumId) => {
-  try {
-    await axios.patch(
-      `http://localhost:8000/api/music/albums/${albumId}/confirm`
-    );
-
-    fetchListening();
-
-  } catch (err) {
-    console.error("Erro ao confirmar álbum:", err);
-  }
-};
-
-  const renderArtistAlbums = (artist) => {
-    const artistAlbums = albums.filter((a) => a.artist === artist.name);
-    const planned = artistAlbums.filter((a) => a.status === "planned");
-    const listened = artistAlbums.filter((a) => a.status === "listened");
-
-    return (
-      <div className="artist-albums">
-        <button
-          className="btn btn-secondary btn-sm perf-willchange"
-          onClick={() => openAlbumModal(artist.id)}
-        >
-          + Álbum
-        </button>
-
-        {planned.length > 0 && (
-          <div className="album-group planned-group">
-            <h4>🕓 Planned</h4>
-            {planned.map((album) => (
-              <div key={album.id} className="album-item">
-                <div className="album-info">
-  {album.image_path && (
-    <img
-      src={`http://localhost:8000/${album.image_path}`}
-      alt={album.name}
-      className="album-cover"
-    />
-  )}
-  <span>{album.name}</span>
-</div>
-                <button
-                  className="btn btn-success btn-sm"
-                  onClick={() => confirmAlbum(album.id)}
-                >
-                  Confirmar ouvido
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {listened.length > 0 && (
-          <div className="album-group listened-group">
-            <h4>✅ Listened</h4>
-            {listened.map((album) => (
-              <div key={album.id} className="album-item listened">
-                {album.name}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
   };
 
-  // ================= RENDER =================
+  const createAlbum = async () => {
+    if (!newAlbumName.trim() || !selectedArtistId) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("artist_id", selectedArtistId);
+      formData.append("name", newAlbumName.trim());
+
+      if (newAlbumImage) {
+        formData.append("image", newAlbumImage);
+      }
+
+      await api.post("/music/albums", formData);
+
+      setNewAlbumName("");
+      setNewAlbumImage(null);
+      setSelectedArtistId(null);
+      setShowAlbumModal(false);
+      fetchListening();
+    } catch (err) {
+      console.error("Erro ao criar album:", err);
+    }
+  };
+
+  const confirmAlbum = async (albumId) => {
+    try {
+      await api.patch(`/music/albums/${albumId}/confirm`);
+      fetchListening();
+    } catch (err) {
+      console.error("Erro ao confirmar album:", err);
+    }
+  };
 
   return (
     <>
       <div className="music-page">
         <div className="glass-strong music-container">
-          <h1 className="music-title">Música</h1>
+          <h1 className="music-title">Musica</h1>
 
           <div className="music-tabs">
             <button
@@ -285,7 +204,6 @@ const confirmAlbum = async (albumId) => {
             </button>
           </div>
 
-          {/* TRAINING */}
           {activeTab === "training" && (
             <>
               <div className="music-toolbar">
@@ -306,92 +224,79 @@ const confirmAlbum = async (albumId) => {
             </>
           )}
 
-          {/* LISTENING */}
           {activeTab === "listening" && (
-  <div className="music-library">
+            <div className="music-library">
+              <div className="library-header">
+                <h2>Biblioteca</h2>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowArtistModal(true)}
+                >
+                  + Novo Artista
+                </button>
+              </div>
 
-  <div className="library-header">
-    <h2>Biblioteca</h2>
-    <button
-      className="btn btn-primary"
-      onClick={() => setShowArtistModal(true)}
-    >
-      + Novo Artista
-    </button>
-  </div>
+              <h3 className="section-title">Artistas</h3>
 
-  {/* ===== ARTISTAS (Spotify style) ===== */}
-  <h3 className="section-title">Artistas</h3>
+              <div className="artist-grid">
+                {Object.values(artistsGrouped).flat().map((artist) => (
+                  <div
+                    key={artist.id}
+                    className="artist-card"
+                    onClick={() => openAlbumModal(artist.id)}
+                  >
+                    <div className="artist-avatar">
+                      {artist.image_path ? (
+                        <img
+                          src={resolveMediaUrl(artist.image_path)}
+                          alt={artist.name}
+                        />
+                      ) : (
+                        "🎤"
+                      )}
+                    </div>
+                    <div className="artist-name">{artist.name}</div>
+                  </div>
+                ))}
+              </div>
 
-  <div className="artist-grid">
-    {Object.values(artistsGrouped).flat().map((artist) => (
-      <div
-        key={artist.id}
-        className="artist-card"
-        onClick={() => openAlbumModal(artist.id)}
-      >
-        <div className="artist-avatar">
-  {artist.image_path ? (
-    <img
-      src={`http://localhost:8000/${artist.image_path}`}
-      alt={artist.name}
-    />
-  ) : (
-    "🎤"
-  )}
-</div>
-        <div className="artist-name">
-          {artist.name}
-        </div>
-      </div>
-    ))}
-  </div>
+              <h3 className="section-title">Albuns</h3>
 
-  {/* ===== ÁLBUNS ===== */}
-  <h3 className="section-title">Álbuns</h3>
+              <div className="album-grid">
+                {albums.map((album) => (
+                  <div key={album.id} className={`album-card ${album.status}`}>
+                    <div className="album-cover-wrapper">
+                      {album.image_path ? (
+                        <img
+                          src={resolveMediaUrl(album.image_path)}
+                          alt={album.name}
+                        />
+                      ) : (
+                        <div className="album-placeholder">🎵</div>
+                      )}
 
-  <div className="album-grid">
-    {albums.map((album) => (
-      <div
-        key={album.id}
-        className={`album-card ${album.status}`}
-      >
-        <div className="album-cover-wrapper">
-          {album.image_path ? (
-            <img
-              src={`http://localhost:8000/${album.image_path}`}
-              alt={album.name}
-            />
-          ) : (
-            <div className="album-placeholder">
-              🎵
+                      {album.status === "planned" && (
+                        <button
+                          className="album-overlay-button"
+                          onClick={() => confirmAlbum(album.id)}
+                        >
+                          Marcar como ouvido
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="album-meta">
+                      <span className="album-name">{album.name}</span>
+                      <span className="album-artist">{album.artist}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-
-          {album.status === "planned" && (
-            <button
-              className="album-overlay-button"
-              onClick={() => confirmAlbum(album.id)}
-            >
-              Marcar como ouvido
-            </button>
-          )}
-        </div>
-
-        <div className="album-meta">
-          <span className="album-name">{album.name}</span>
-          <span className="album-artist">{album.artist}</span>
-        </div>
-      </div>
-    ))}
-  </div>
-
-</div>
-)}
         </div>
       </div>
 
-      {/* ARTIST MODAL */}
       {showArtistModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -403,12 +308,12 @@ const confirmAlbum = async (albumId) => {
               onChange={(e) => setNewArtistName(e.target.value)}
               className="input"
             />
-			<input
-  type="file"
-  accept="image/*"
-  onChange={(e) => setNewArtistImage(e.target.files[0])}
-  className="input"
-/>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setNewArtistImage(e.target.files[0])}
+              className="input"
+            />
             <div className="modal-actions">
               <button
                 className="btn btn-ghost"
@@ -416,10 +321,7 @@ const confirmAlbum = async (albumId) => {
               >
                 Cancelar
               </button>
-              <button
-                className="btn btn-primary"
-                onClick={createArtist}
-              >
+              <button className="btn btn-primary" onClick={createArtist}>
                 Criar
               </button>
             </div>
@@ -427,44 +329,40 @@ const confirmAlbum = async (albumId) => {
         </div>
       )}
 
-      {/* ALBUM MODAL */}
       {showAlbumModal && selectedArtistId && (
-  <div className="modal-overlay">
-    <div className="modal-content">
-      <h3>Novo Álbum</h3>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Novo Album</h3>
 
-      <input
-        type="text"
-        placeholder="Nome do álbum"
-        value={newAlbumName}
-        onChange={(e) => setNewAlbumName(e.target.value)}
-        className="input"
-      />
+            <input
+              type="text"
+              placeholder="Nome do album"
+              value={newAlbumName}
+              onChange={(e) => setNewAlbumName(e.target.value)}
+              className="input"
+            />
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setNewAlbumImage(e.target.files[0])}
-        className="input"
-      />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setNewAlbumImage(e.target.files[0])}
+              className="input"
+            />
 
-      <div className="modal-actions">
-        <button
-          className="btn btn-ghost"
-          onClick={() => setShowAlbumModal(false)}
-        >
-          Cancelar
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={createAlbum}
-        >
-          Criar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="modal-actions">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowAlbumModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={createAlbum}>
+                Criar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUploadModal && (
         <TrainingUploadModal

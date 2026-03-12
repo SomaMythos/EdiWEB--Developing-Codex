@@ -1,20 +1,26 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const devPort = Number(process.env.VITE_DEV_PORT || 3000)
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
 
 export default defineConfig({
   plugins: [react()],
-  base: "./",   // 👈 ESSA LINHA É A CORREÇÃO
+  base: './',
   server: {
-    port: 3000,
+    host: '0.0.0.0',
+    port: devPort,
+    strictPort: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: backendUrl,
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:8000',
+        target: backendUrl,
         changeOrigin: true,
-      }
-    }
-  }
+      },
+    },
+  },
 })

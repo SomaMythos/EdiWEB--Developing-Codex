@@ -1,113 +1,122 @@
-# 🚀 QUICKSTART — EDI Web
+﻿# Quickstart - EDI Web
 
-## 1) Instalar dependências
+## 1. Instalar dependências
 
 ### Backend
+
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
 ```
 
-## 2) Configurar frontend (`.env`)
+## 2. Configuração mínima
 
-```bash
-cd frontend
-cp .env.example .env 2>/dev/null || touch .env
-```
-
-Edite `frontend/.env`:
+O frontend já pode funcionar com a configuração padrão, mas o cenário recomendado é usar as mesmas bases abaixo:
 
 ```env
-VITE_API_URL=http://localhost:8000/api
+VITE_API_URL=/api
+VITE_BACKEND_URL=http://127.0.0.1:8000
 ```
 
-## 3) Subir o projeto
+Se quiser, copie `frontend/.env.example` para `frontend/.env` e ajuste a partir dele.
 
-### Opção recomendada (script)
+## 3. Subir o projeto
 
-**Linux/macOS**
-```bash
-./scripts/start_edi.sh
-```
+### Opção A: Windows com janelas visíveis
 
-**Windows**
 ```bat
-scripts\start_edi.bat
+start_edi.bat
 ```
 
-### Opção manual
+### Opção B: Windows silencioso
 
-**Backend**
+```text
+Execute start_edi_silent.vbs
+```
+
+Esse modo inicia backend e frontend em segundo plano e abre `http://localhost:3000` automaticamente no navegador padrão.
+
+### Opção C: acesso externo por Cloudflare
+
+```bat
+start_edi_cloudflare.bat
+```
+
+Se não houver túnel nomeado configurado, o script sobe um quick tunnel temporário `trycloudflare.com`.
+
+### Opção D: manual
+
+Backend:
+
 ```bash
 cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Frontend**
+Frontend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-## 4) URLs
+## 4. URLs esperadas
 
 - App: `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
 
----
+## 5. Primeiro login
 
-## Primeiros fluxos para validar
+- Na primeira execução, o backend gera a senha inicial no diretório persistente do EDI.
+- O arquivo padrão fica em `~/Documents/EDI/auth_password.txt`, a menos que `EDI_STORAGE_DIR` esteja configurado.
+- O hash correspondente fica em `auth_config.json` no mesmo diretório.
 
-1. **Daily**
-   - abrir `/`
-   - gerar agenda diária
-   - marcar um bloco como concluído
+## 6. Fluxos rápidos para validar
 
-2. **Goals**
-   - criar uma meta
-   - vincular uma atividade
-   - alterar status (ativa/concluída/cancelada)
+### Núcleo
 
-3. **Hobbies**
-   - Leitura: criar livro e registrar sessão
-   - Artes visuais: cadastrar obra e enviar update com imagem
-   - Música: criar treino e registrar BPM
+1. Abrir o app e fazer login.
+2. Ir em Daily e gerar a agenda do dia.
+3. Marcar ao menos um bloco como concluído.
 
-4. **Financeiro**
-   - configurar renda
-   - adicionar despesa fixa
-   - consultar resumo/projeção
+### Metas
 
----
+1. Criar uma meta.
+2. Vincular uma atividade.
+3. Alterar o status da meta.
 
-## Problemas comuns
+### Hobbies
 
-### Porta 8000 ocupada
-```bash
-uvicorn main:app --reload --port 8001
-```
+1. Leitura: criar livro e registrar sessão.
+2. Artes visuais: cadastrar obra e enviar update com imagem.
+3. Música: criar treino e registrar sessão.
+4. Assistir: adicionar item à watchlist.
 
-### Porta 3000 ocupada
-Ajuste `frontend/vite.config.js` (`server.port`) e reinicie o frontend.
+### Financeiro e shopping
 
-### Erro de dependência no backend
-```bash
-cd backend
-pip install -r requirements.txt --force-reinstall
-```
+1. Configurar renda.
+2. Adicionar transação ou despesa fixa.
+3. Criar item de shopping.
+4. Registrar um consumível com restock.
 
-### Erro de dependência no frontend
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
+### Configurações
 
-Para mais detalhes: `docs/TROUBLESHOOTING.md`.
+1. Validar preferências de notificações.
+2. Testar som local das notificações.
+3. Criar o atalho silencioso da Área de Trabalho.
+4. Ativar `Executar ao iniciar o Windows`, se desejar.
+
+## 7. Documentos úteis
+
+- [README.md](/D:/Studio/Projects/EdiWEB--Developing/README.md)
+- [FEATURE_INVENTORY.md](/D:/Studio/Projects/EdiWEB--Developing/docs/FEATURE_INVENTORY.md)
+- [CLOUDFLARE.md](/D:/Studio/Projects/EdiWEB--Developing/docs/CLOUDFLARE.md)
+- [TROUBLESHOOTING.md](/D:/Studio/Projects/EdiWEB--Developing/docs/TROUBLESHOOTING.md)

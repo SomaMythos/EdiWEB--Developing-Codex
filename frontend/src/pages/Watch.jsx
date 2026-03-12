@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+﻿import { useEffect, useState } from "react";
+import api from "../services/api";
+import { resolveMediaUrl } from "../utils/mediaUrl";
 import "./Watch.css";
-
 
 export default function Watch() {
   const [categories, setCategories] = useState([]);
@@ -15,14 +15,12 @@ export default function Watch() {
   const [newItemImage, setNewItemImage] = useState(null);
 
   const fetchCategories = async () => {
-    const res = await axios.get("http://localhost:8000/api/watch/categories");
+    const res = await api.get("/watch/categories");
     setCategories(res.data.data);
   };
 
   const fetchItems = async (categoryId) => {
-    const res = await axios.get(
-      `http://localhost:8000/api/watch/items/${categoryId}`
-    );
+    const res = await api.get(`/watch/items/${categoryId}`);
 
     setItems((prev) => ({
       ...prev,
@@ -46,8 +44,8 @@ export default function Watch() {
   const createCategory = async () => {
     if (!newCategoryName.trim()) return;
 
-    await axios.post(
-      "http://localhost:8000/api/watch/categories",
+    await api.post(
+      "/watch/categories",
       new URLSearchParams({ name: newCategoryName })
     );
 
@@ -67,7 +65,7 @@ export default function Watch() {
       formData.append("image", newItemImage);
     }
 
-    await axios.post("http://localhost:8000/api/watch/items", formData);
+    await api.post("/watch/items", formData);
 
     setNewItemName("");
     setNewItemImage(null);
@@ -76,9 +74,7 @@ export default function Watch() {
   };
 
   const markWatched = async (itemId, categoryId) => {
-    await axios.patch(
-      `http://localhost:8000/api/watch/items/${itemId}/watched`
-    );
+    await api.patch(`/watch/items/${itemId}/watched`);
     fetchItems(categoryId);
   };
 
@@ -130,7 +126,7 @@ export default function Watch() {
                       <div className="watch-image">
                         {item.image_path ? (
                           <img
-                            src={`http://localhost:8000/${item.image_path}`}
+                            src={resolveMediaUrl(item.image_path)}
                             alt={item.name}
                           />
                         ) : (
@@ -143,7 +139,7 @@ export default function Watch() {
 
                         {item.watched_at && (
                           <small>
-                            Assistido em{" "}
+                            Assistido em {" "}
                             {new Date(item.watched_at).toLocaleDateString()}
                           </small>
                         )}
@@ -168,7 +164,6 @@ export default function Watch() {
         </div>
       </div>
 
-      {/* CATEGORY MODAL */}
       {showCategoryModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -195,7 +190,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* ITEM MODAL */}
       {showItemModal && (
         <div className="modal-overlay">
           <div className="modal-content">

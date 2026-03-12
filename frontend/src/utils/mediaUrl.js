@@ -1,4 +1,4 @@
-const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || 'http://localhost:8000';
+﻿import { API_ORIGIN } from '../services/api';
 
 export const resolveMediaUrl = (...candidates) => {
   const raw = candidates.find((value) => typeof value === 'string' && value.trim());
@@ -11,7 +11,7 @@ export const resolveMediaUrl = (...candidates) => {
   }
 
   if (value.startsWith('/')) {
-    return value.startsWith('/uploads/') ? value : `${API_ORIGIN}${value}`;
+    return `${API_ORIGIN}${value}`;
   }
 
   return `${API_ORIGIN}/${value}`;

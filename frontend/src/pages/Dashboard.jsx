@@ -1,258 +1,261 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home } from 'lucide-react';
-import {
-  analyticsApi,
-  dashboardApi,
-  financeApi,
-  goalsApi,
-  notificationsApi,
-  reportsApi,
-  shoppingApi,
-} from '../services/api';
-import DailyReportCard from '../components/reports/DailyReportCard';
-import GoalReportCard from '../components/reports/GoalReportCard';
-import HobbyReportFeed from '../components/reports/HobbyReportFeed';
-import FinanceReportPanel from '../components/reports/FinanceReportPanel';
+import { CalendarClock, Coins, ReceiptText, ScrollText } from 'lucide-react';
+import { dashboardApi } from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
+import '../components/daily/DailyTimeline.css';
 import './Dashboard.css';
+
+const SUGGESTION_ORDER = [
+  { key: 'goal', label: 'Meta', empty: 'Nenhuma meta ativa agora.' },
+  { key: 'reading', label: 'Leitura', empty: 'Nenhuma leitura em aberto.' },
+  { key: 'music', label: 'Música', empty: 'Nada pendente em música.' },
+  { key: 'watch', label: 'Assistir', empty: 'Nada pendente para assistir.' },
+];
+
+const nextIndexFor = (currentIndex, total) => {
+  if (!total) return 0;
+  if (total === 1) return 0;
+  let candidate = currentIndex;
+  while (candidate === currentIndex) {
+    candidate = Math.floor(Math.random() * total);
+  }
+  return candidate;
+};
+
+const formatDuration = (minutes) => {
+  const total = Number(minutes || 0);
+  if (!total) return '0 min';
+  if (total < 60) return `${total} min`;
+  const hours = Math.floor(total / 60);
+  const remainder = total % 60;
+  return remainder ? `${hours}h ${remainder}min` : `${hours}h`;
+};
+
+const getPlaceholderLabel = (label) => label.slice(0, 1).toUpperCase();
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState(7);
-  const [overview, setOverview] = useState(null);
-  const [todayData, setTodayData] = useState(null);
-  const [lastDaysData, setLastDaysData] = useState([]);
-  const [topActivities, setTopActivities] = useState([]);
-  const [selectedActivityId, setSelectedActivityId] = useState(null);
-  const [goalsOverview, setGoalsOverview] = useState([]);
-  const [dailyOverview, setDailyOverview] = useState(null);
-  const [dailyStreaks, setDailyStreaks] = useState(null);
-  const [timeseries, setTimeseries] = useState([]);
-  const [activityDetail, setActivityDetail] = useState(null);
-  const [goalsSummary, setGoalsSummary] = useState(null);
-  const [hobbyLog, setHobbyLog] = useState([]);
-  const [financeSummary, setFinanceSummary] = useState(null);
-  const [moduleSummary, setModuleSummary] = useState({
-    goals: 0,
-    notifications: 0,
-    shoppingPending: 0,
-    financeFixedExpenses: 0,
-  });
-
-  const quickActions = useMemo(
-    () => [
-      { path: '/', label: 'Daily' },
-      { path: '/goals', label: 'Metas' },
-      { path: '/financeiro', label: 'Financeiro' },
-      { path: '/shopping', label: 'Shopping' },
-      { path: '/notifications', label: 'Notificações' },
-    ],
-    []
-  );
-
-  const formatMinutes = (minutes) => {
-    const total = Number(minutes || 0);
-    const hours = Math.floor(total / 60);
-    const mins = total % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  const completionRateToday =
-    todayData && todayData.total > 0 ? Math.round((todayData.done / todayData.total) * 100) : 0;
-
-  const averageCompletionRate =
-    lastDaysData.length > 0
-      ? Math.round(lastDaysData.reduce((sum, day) => sum + (day.completion_rate || 0), 0) / lastDaysData.length)
-      : 0;
-
-  const totalPeriodActivityTime = lastDaysData.reduce((sum, day) => sum + (day.total_time || 0), 0);
-  const activeDays = lastDaysData.filter((d) => (d.total || 0) > 0).length;
+  const [frontpage, setFrontpage] = useState(null);
+  const [indexes, setIndexes] = useState({});
 
   useEffect(() => {
-    const loadData = async () => {
+    let active = true;
+
+    const loadFrontpage = async () => {
       setLoading(true);
-      const [
-        dashboardRes,
-        todayRes,
-        lastDaysRes,
-        topActivitiesRes,
-        goalsOverviewRes,
-        goalsRes,
-        notificationsRes,
-        shoppingStatsRes,
-        financeExpensesRes,
-        reportsOverviewRes,
-        reportsStreakRes,
-        reportsTimeseriesRes,
-        goalsSummaryRes,
-        hobbiesLogRes,
-        financeSummaryRes,
-      ] = await Promise.allSettled([
-        dashboardApi.getOverview(),
-        analyticsApi.getToday(),
-        analyticsApi.getLastDays(selectedPeriod),
-        analyticsApi.getTopActivities(10),
-        analyticsApi.getGoalsOverview(),
-        goalsApi.list(),
-        notificationsApi.list({ status: 'unread', include_generated: true }),
-        shoppingApi.stats(),
-        financeApi.listFixedExpenses(),
-        reportsApi.getDailyOverview(),
-        reportsApi.getDailyStreaks(),
-        reportsApi.getDailyTimeseries(selectedPeriod),
-        reportsApi.getGoalsSummary(),
-        reportsApi.getHobbiesLog({ limit: 120 }),
-        reportsApi.getFinanceSummary(),
-      ]);
-
-      if (dashboardRes.status === 'fulfilled') setOverview(dashboardRes.value?.data?.data || null);
-      if (todayRes.status === 'fulfilled') setTodayData(todayRes.value?.data?.data || null);
-      if (lastDaysRes.status === 'fulfilled') setLastDaysData(lastDaysRes.value?.data?.data || []);
-      if (reportsOverviewRes.status === 'fulfilled') setDailyOverview(reportsOverviewRes.value?.data?.data || null);
-      if (reportsStreakRes.status === 'fulfilled') setDailyStreaks(reportsStreakRes.value?.data?.data || null);
-      if (reportsTimeseriesRes.status === 'fulfilled') setTimeseries(reportsTimeseriesRes.value?.data?.data || []);
-      if (goalsSummaryRes.status === 'fulfilled') setGoalsSummary(goalsSummaryRes.value?.data?.data || null);
-      if (hobbiesLogRes.status === 'fulfilled') setHobbyLog(hobbiesLogRes.value?.data?.data || []);
-      if (financeSummaryRes.status === 'fulfilled') setFinanceSummary(financeSummaryRes.value?.data?.data || null);
-
-      if (topActivitiesRes.status === 'fulfilled') {
-        const activities = topActivitiesRes.value?.data?.data || [];
-        setTopActivities(activities);
-        setSelectedActivityId((prev) => prev || activities[0]?.id || null);
+      try {
+        const response = await dashboardApi.getFrontpage();
+        if (!active) return;
+        const data = response?.data?.data || null;
+        setFrontpage(data);
+        setIndexes(
+          SUGGESTION_ORDER.reduce((accumulator, group) => {
+            const total = data?.suggestion_groups?.[group.key]?.items?.length || 0;
+            accumulator[group.key] = total ? Math.floor(Math.random() * total) : 0;
+            return accumulator;
+          }, {})
+        );
+      } catch (error) {
+        console.error('Error loading home frontpage:', error);
+      } finally {
+        if (active) setLoading(false);
       }
-
-      if (goalsOverviewRes.status === 'fulfilled') setGoalsOverview(goalsOverviewRes.value?.data?.data || []);
-
-      setModuleSummary({
-        goals: goalsRes.status === 'fulfilled' ? (goalsRes.value?.data?.data || []).length : 0,
-        notifications: notificationsRes.status === 'fulfilled' ? (notificationsRes.value?.data?.data || []).length : 0,
-        shoppingPending:
-          shoppingStatsRes.status === 'fulfilled' ? Number(shoppingStatsRes.value?.data?.data?.unbought_items || 0) : 0,
-        financeFixedExpenses:
-          financeExpensesRes.status === 'fulfilled' ? (financeExpensesRes.value?.data?.data || []).length : 0,
-      });
-
-      setLoading(false);
     };
 
-    loadData();
-  }, [selectedPeriod]);
+    loadFrontpage();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  useEffect(() => {
-    if (!selectedActivityId) {
-      setActivityDetail(null);
-      return;
-    }
+  const suggestionCards = useMemo(() => {
+    const groups = frontpage?.suggestion_groups || {};
+    return SUGGESTION_ORDER.map((group) => {
+      const items = groups[group.key]?.items || [];
+      const currentIndex = indexes[group.key] || 0;
+      const item = items[currentIndex] || null;
+      return {
+        ...group,
+        item,
+        path: groups[group.key]?.path || '/',
+        total: items.length,
+      };
+    });
+  }, [frontpage, indexes]);
 
-    reportsApi
-      .getDailyActivityDetail(selectedActivityId)
-      .then((res) => setActivityDetail(res?.data?.data || null))
-      .catch(() => setActivityDetail(null));
-  }, [selectedActivityId]);
+  const handleReroll = (key, total) => {
+    setIndexes((current) => ({
+      ...current,
+      [key]: nextIndexFor(current[key] || 0, total),
+    }));
+  };
+
+  const nextActivity = frontpage?.next_activity;
+  const consumables = frontpage?.consumables_due || [];
+  const expenses = frontpage?.recent_expenses || [];
+  const nextEvent = frontpage?.next_event;
+  const activityLog = frontpage?.activity_log || [];
 
   return (
-    <div className="page-container fade-in dashboard-page">
-      <header className="dashboard-header">
-        <div>
-          <h1>
-            <Home size={28} className="dashboard-title-icon" />
-            Reports Dashboard
-          </h1>
-          <p>Painel principal de reports por módulos: Daily, Metas, Hobbies e Financeiro.</p>
+    <div className="page-container fade-in home-page">
+      <section className="home-block home-block--daily glass-strong">
+        <div className="home-block__header">
+          <div>
+            <span className="home-block__eyebrow">Daily</span>
+            <h1>Próxima atividade</h1>
+          </div>
+          <Link to="/daily" className="home-block__link">Abrir daily</Link>
         </div>
 
-        <div className="dashboard-header-controls">
-          <div className="period-selector" role="group" aria-label="Filtrar período">
-            {[7, 30, 90].map((period) => (
+        {nextActivity ? (
+          <Link to={nextActivity.path} className="home-daily-link">
+            <div className={`daily-block daily-block--${nextActivity.block_category || 'disciplina'} home-daily-block`}>
+              <div className="daily-block__left">
+                <div className="daily-block__meta">
+                  <div className="daily-block__time">
+                    {nextActivity.start_time} - {nextActivity.end_time || '--:--'}
+                  </div>
+                  <div className="daily-block__duration">{formatDuration(nextActivity.duration)}</div>
+                </div>
+              </div>
+              <div className="daily-block__name">{nextActivity.title}</div>
+              <div className="home-daily-block__pill">Agora</div>
+            </div>
+          </Link>
+        ) : (
+          <div className="home-empty-state">Nenhuma atividade pendente programada para hoje.</div>
+        )}
+      </section>
+
+      <section className="home-suggestion-grid">
+        {suggestionCards.map((group) => {
+          const imageUrl = resolveMediaUrl(group.item?.image_path);
+          const cardPath = group.item?.path || group.path;
+          return (
+            <article
+              key={group.key}
+              className={`home-suggestion-card home-suggestion-card--${group.key} ${group.item ? '' : 'is-empty'} glass-strong`}
+            >
               <button
-                key={period}
-                className={`btn ${selectedPeriod === period ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setSelectedPeriod(period)}
+                type="button"
+                className="home-suggestion-card__dice"
+                onClick={() => handleReroll(group.key, group.total)}
+                disabled={group.total <= 1}
+                aria-label={`Sortear outra sugestão de ${group.label}`}
               >
-                {period} dias
+                🎲
               </button>
-            ))}
+
+              <Link to={cardPath} className="home-suggestion-card__surface">
+                <div className="home-suggestion-card__media">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={group.item?.title || group.label} />
+                  ) : (
+                    <div className="home-suggestion-card__placeholder">{getPlaceholderLabel(group.label)}</div>
+                  )}
+                </div>
+                <div className="home-suggestion-card__overlay" />
+                <div className="home-suggestion-card__content">
+                  <span className="home-suggestion-card__label">{group.item?.badge || group.label}</span>
+                  <strong>{group.item?.title || group.label}</strong>
+                  <p>{group.item?.description || group.empty}</p>
+                  <small>{group.item?.meta || 'Abrir módulo'}</small>
+                </div>
+              </Link>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="home-strip-grid">
+        <article className="home-strip-card glass-strong">
+          <div className="home-strip-card__header">
+            <span className="home-strip-card__title"><Coins size={16} /> Consumíveis</span>
+            <Link to="/shopping/consumiveis" className="home-strip-card__link">Ver</Link>
           </div>
-          <div className="dashboard-quick-actions">
-            {quickActions.map((item) => (
-              <Link key={item.path} to={item.path} className="btn btn-secondary btn-sm">
-                Abrir {item.label}
+          <div className="home-strip-card__body">
+            {consumables.length === 0 ? <p className="home-strip-card__empty">Nada previsto para os próximos 3 dias.</p> : null}
+            {consumables.map((item) => (
+              <Link key={item.id} to={item.path} className="home-strip-line">
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.subtitle}</span>
+                </div>
+                <div className="home-strip-line__meta">
+                  <em>{item.status}</em>
+                  <span>{item.date_label}</span>
+                </div>
               </Link>
             ))}
           </div>
+        </article>
+
+        <article className="home-strip-card glass-strong">
+          <div className="home-strip-card__header">
+            <span className="home-strip-card__title"><ReceiptText size={16} /> Últimos gastos</span>
+            <Link to="/financeiro" className="home-strip-card__link">Ver</Link>
+          </div>
+          <div className="home-strip-card__body">
+            {expenses.length === 0 ? <p className="home-strip-card__empty">Nenhum gasto recente.</p> : null}
+            {expenses.map((item) => (
+              <Link key={item.id} to={item.path} className="home-strip-line">
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.subtitle}</span>
+                </div>
+                <div className="home-strip-line__meta">
+                  <em>{item.amount}</em>
+                  <span>{item.occurred_at}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="home-strip-card glass-strong">
+          <div className="home-strip-card__header">
+            <span className="home-strip-card__title"><CalendarClock size={16} /> Próximo evento</span>
+            <Link to="/calendario" className="home-strip-card__link">Ver</Link>
+          </div>
+          <div className="home-strip-card__body home-strip-card__body--event">
+            {nextEvent ? (
+              <Link to={nextEvent.path} className="home-event-card">
+                <strong>{nextEvent.title}</strong>
+                <span>{nextEvent.description}</span>
+                <div>
+                  <em>{nextEvent.date_label}</em>
+                  <em>{nextEvent.schedule}</em>
+                </div>
+              </Link>
+            ) : (
+              <p className="home-strip-card__empty">Nenhum evento futuro cadastrado.</p>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="home-block home-block--log glass-strong">
+        <div className="home-block__header">
+          <div>
+            <span className="home-block__eyebrow">Log</span>
+            <h2>Movimento recente</h2>
+          </div>
+          <Link to="/calendario" className="home-block__link">Timeline</Link>
         </div>
-      </header>
 
-      <div className="reports-modules-layout">
-        <DailyReportCard
-          overview={overview}
-          todayData={todayData}
-          completionRateToday={completionRateToday}
-          averageCompletionRate={averageCompletionRate}
-          totalPeriodActivityTime={totalPeriodActivityTime}
-          activeDays={activeDays}
-          topActivities={topActivities}
-          selectedActivityId={selectedActivityId}
-          onSelectActivity={setSelectedActivityId}
-          activityDetail={activityDetail}
-          dailyOverview={dailyOverview}
-          dailyStreaks={dailyStreaks}
-          timeseries={timeseries}
-          formatMinutes={formatMinutes}
-        />
-
-        <GoalReportCard
-          overview={overview}
-          goalsOverview={goalsOverview}
-          totalGoals={moduleSummary.goals}
-        />
-
-        <HobbyReportFeed hobbyLog={hobbyLog} />
-
-        <FinanceReportPanel moduleSummary={moduleSummary} financeSummary={financeSummary} />
-
-
-      <section className="report-module goals-summary-report">
-        <div className="report-module-header">
-          <h2>Report de Metas</h2>
-          <p>Concluídas na semana, no mês e ranking por categoria.</p>
-        </div>
-
-        <div className="report-grid report-grid--two">
-          <article className="stat-card">
-            <div>
-              <p className="stat-label">Concluídas na semana</p>
-              <p className="stat-value">{goalsSummary?.completed_week || 0}</p>
-            </div>
-          </article>
-          <article className="stat-card">
-            <div>
-              <p className="stat-label">Concluídas no mês</p>
-              <p className="stat-value">{goalsSummary?.completed_month || 0}</p>
-            </div>
-          </article>
-        </div>
-
-        <div className="report-grid report-grid--two">
-          <article className="goal-overview-card">
-            <p className="stat-label">Categoria com mais concluídas</p>
-            <p className="stat-value">{goalsSummary?.ranking?.most_completed?.category || 'Sem categoria'}</p>
-            <p className="empty-state">
-              Total: {goalsSummary?.ranking?.most_completed?.completed || 0}
-            </p>
-          </article>
-          <article className="goal-overview-card">
-            <p className="stat-label">Categoria com menos concluídas</p>
-            <p className="stat-value">{goalsSummary?.ranking?.least_completed?.category || 'Sem categoria'}</p>
-            <p className="empty-state">
-              Total: {goalsSummary?.ranking?.least_completed?.completed || 0}
-            </p>
-          </article>
+        <div className="home-log-list">
+          {activityLog.length === 0 ? <p className="home-strip-card__empty">Ainda não há registros recentes.</p> : null}
+          {activityLog.map((entry) => (
+            <Link key={entry.id} to={entry.path} className={`home-log-entry home-log-entry--${entry.category}`}>
+              <span className="home-log-entry__text">{entry.text}</span>
+              <time>{entry.timestamp}</time>
+            </Link>
+          ))}
         </div>
       </section>
-      </div>
 
-      {loading && <p className="dashboard-loading">Atualizando dados...</p>}
+      {loading ? <p className="home-loading"><ScrollText size={16} /> Montando a home...</p> : null}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+﻿import { useState } from "react";
+import api from "../../services/api";
 
 export default function BpmModal({ trainingId, onClose, onSaved }) {
   const [bpm, setBpm] = useState("");
@@ -11,12 +11,9 @@ export default function BpmModal({ trainingId, onClose, onSaved }) {
 
     try {
       setLoading(true);
-
-      await axios.post(
-        `http://localhost:8000/api/music/training/${trainingId}/session`,
-        { bpm: Number(bpm) }   // 🔥 agora vai no body
-      );
-
+      await api.post(`/music/training/${trainingId}/session`, {
+        bpm: Number(bpm),
+      });
       onSaved();
       onClose();
     } catch (err) {

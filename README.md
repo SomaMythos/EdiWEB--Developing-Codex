@@ -1,177 +1,211 @@
-# 🤖 EDI - Life Manager Web
+﻿# EDI - Life Manager Web
 
-Aplicação web para gestão de rotina, metas e hobbies, com **backend FastAPI**, **frontend React + Vite** e empacotamento desktop via **Electron**.
+Aplicação web para gestão de rotina, metas, finanças, hobbies, notificações e acompanhamento pessoal, com backend em FastAPI, frontend em React + Vite e suporte a empacotamento desktop via Electron.
 
----
+## Visão Geral
 
-## 📌 Visão Geral
+O projeto está ativo e funcional em três frentes:
 
-O projeto está organizado em três partes principais:
+- `backend/`: API REST, regras de negócio, autenticação, persistência SQLite e integrações locais do Windows.
+- `frontend/`: SPA React com páginas por domínio, login, dashboard e fluxos operacionais do dia a dia.
+- raiz do projeto: scripts de inicialização local, acesso externo por Cloudflare e launcher silencioso para Windows.
 
-- **`backend/`**: API REST, regras de negócio (`core/*_engine.py`) e persistência SQLite.
-- **`frontend/`**: SPA React com páginas por domínio (Daily, Goals, Dashboard, Financeiro, Hobbies etc.).
-- **raiz (Electron)**: `main.js` + `package.json` para build de distribuição desktop.
+Hoje o backend expõe 174 endpoints HTTP em `backend/main.py`, e o frontend já cobre os principais domínios do app em produção local.
 
-Os artefatos legados foram removidos para manter a base ativa mais enxuta e focada na versão web.
+## Features Implementadas
 
----
+### Núcleo do app
 
-## ✅ Domínios Funcionais Atuais
+- Login por senha com geração de senha inicial fora do código e sessão por token em header.
+- Planejamento diário com geração automática de agenda, resumo do dia, consistência e rotina por tipo de dia.
+- Cadastro de atividades com frequências fixas/flexíveis, validação de conflitos de horário e log diário.
+- Dashboard com visão consolidada, analytics e relatórios por domínio.
+- Perfil do usuário com métricas corporais e histórico recente.
+- Exportação de dados em JSON, CSV e relatórios específicos.
 
-- **Planejamento diário**: rotina por tipo de dia, geração automática de agenda, marcação de blocos e consistência semanal.
-- **Metas (Goals)**: CRUD completo, categorias, vínculo com atividades, cálculo de progresso e status.
-- **Atividades e log diário**: cadastro, frequências fixas/flexíveis, validação de conflitos de horário e registro diário.
-- **Financeiro**: configuração de renda, despesas fixas, transações, resumo e projeções.
-- **Hobbies**:
-  - Leitura (books + sessões + estatísticas)
-  - Artes visuais (obras, updates com mídia, galeria e pastas de referência)
-  - Música (treinos por BPM, artistas e álbuns)
-  - Games
-  - Assistir (watchlist por categoria)
-- **Shopping e consumíveis**: wishlist, itens comprados, categorias de consumíveis, restock/finish e alertas.
-- **Notificações**: central única para lembretes custom, alertas de metas/consumíveis e preferências de inbox.
-- **Perfil e métricas**: dados de perfil e histórico de métricas corporais.
-- **Analytics / dashboard / reports**: visão diária, semanal e relatórios por domínio.
-- **Exportação**: JSON/CSV/relatórios de atividades e metas.
+### Metas e produtividade
 
-> Para detalhes completos de payloads e respostas, use Swagger em `http://localhost:8000/docs`.
+- CRUD completo de metas.
+- Categorias de metas.
+- Vínculo entre metas e atividades.
+- Cálculo de progresso, total de estrelas e status.
+- Detecção de metas estagnadas.
 
----
+### Agenda, calendário e notas
 
+- Calendário mensal e diário.
+- Eventos manuais e registros no calendário.
+- Blocos persistidos no planejamento do dia.
+- Página de anotações no frontend.
 
-## 🔐 Login ao iniciar
+### Notificações
 
-- O app agora exige senha no início da sessão.
-- A configuração da senha é salva em `auth_config.json` **na mesma pasta do banco `lifemanager.db`** (diretório `EDI_STORAGE_DIR` ou padrão `~/Documents/EDI`).
-- A senha inicial não fica mais fixa no código: na primeira execução é gerada uma senha individual e salva em `auth_password.txt` no mesmo diretório persistente da base.
-- O hash + salt continuam em `auth_config.json` no mesmo diretório.
-- Para customizar a senha inicial na primeira execução, use `EDI_DEFAULT_PASSWORD` (essa variável tem prioridade e não cria `auth_password.txt`).
+- Central de notificações do app.
+- Notificações customizadas.
+- Preferências por feature.
+- Alertas de metas sem progresso.
+- Alertas de consumíveis.
+- Resumo diário.
+- Configuração local de som das notificações.
+- Correção de textos com acentuação em mensagens novas e já persistidas.
 
----
+### Financeiro
 
-## 🧰 Stack
+- Configuração de renda e parâmetros financeiros.
+- Despesas fixas.
+- Transações.
+- Resumo financeiro.
+- Projeção de longo prazo.
+- Relatórios financeiros.
 
-### Backend
-- FastAPI
-- Uvicorn
-- Pydantic
-- SQLite
+### Shopping e consumíveis
 
-### Frontend
-- React 18
-- Vite
-- React Router (HashRouter)
-- Axios
-- Lucide React
-- Recharts
+- Wishlist.
+- Itens de compra e status.
+- Estatísticas de shopping.
+- Categorias de consumíveis.
+- Restock e encerramento de ciclos de consumíveis.
+- Alertas automáticos ligados ao centro de notificações.
 
-### Desktop
-- Electron
-- electron-builder
+### Hobbies
 
----
+- Leitura: livros, sessões, estatísticas e tipos.
+- Artes visuais: obras, updates, galeria, uploads e mídia de referência.
+- Música: treinos, BPM, artistas, álbuns e histórico.
+- Games: página dedicada no frontend.
+- Assistir: watchlist por categoria e acompanhamento de itens assistidos.
 
-## 📦 Instalação
+### Operação e acesso
+
+- Frontend configurado para operar com `/api` no mesmo host público.
+- Uploads com URL pública derivada do host da requisição.
+- Quick Tunnel do Cloudflare para acesso externo temporário.
+- Suporte a túnel nomeado do Cloudflare para domínio fixo.
+- Launcher silencioso no Windows sem janelas de prompt.
+- Criação de atalho na Área de Trabalho com `icon.ico` do projeto.
+- Opção em Configurações para ativar `Run at Windows startup`.
+- Abertura automática de `http://localhost:3000` no navegador padrão ao usar o launcher silencioso.
+
+## Modos de Inicialização
+
+### 1. Inicialização visível local
+
+Use [start_edi.bat](/D:/Studio/Projects/EdiWEB--Developing/start_edi.bat) para subir backend e frontend com janelas visíveis no Windows.
+
+### 2. Inicialização silenciosa no Windows
+
+Use [start_edi_silent.vbs](/D:/Studio/Projects/EdiWEB--Developing/start_edi_silent.vbs) para iniciar o app sem janelas de prompt. Esse launcher chama [start_edi_hidden.ps1](/D:/Studio/Projects/EdiWEB--Developing/scripts/start_edi_hidden.ps1), sobe backend/frontend em segundo plano e abre `http://localhost:3000` no navegador padrão.
+
+### 3. Acesso externo por Cloudflare
+
+Use [start_edi_cloudflare.bat](/D:/Studio/Projects/EdiWEB--Developing/start_edi_cloudflare.bat) para subir o ambiente local e publicar o app externamente via Cloudflare Tunnel. Mais detalhes em [CLOUDFLARE.md](/D:/Studio/Projects/EdiWEB--Developing/docs/CLOUDFLARE.md).
+
+### 4. Execução manual
+
+Backend:
+
+```bash
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+## URLs Principais
+
+- App local: `http://localhost:3000`
+- API local: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
+- URL pública temporária: `https://<subdominio>.trycloudflare.com`
+
+## Autenticação e Persistência
+
+- A senha inicial não fica hardcoded no código.
+- Na primeira execução, o app gera uma senha individual e salva em `auth_password.txt` no diretório persistente do EDI.
+- O hash e o salt ficam em `auth_config.json` no mesmo diretório.
+- O diretório persistente padrão é `~/Documents/EDI`, a menos que `EDI_STORAGE_DIR` seja definido.
+- O backend aceita token pelo header `x-edi-auth-token` ou por `Authorization: Bearer ...`.
+
+Arquivos persistidos relevantes:
+
+- `lifemanager.db`
+- `auth_password.txt`
+- `auth_config.json`
+- `uploads/`
+
+## Instalação
 
 ### Pré-requisitos
+
 - Python 3.10+
 - Node.js 18+
 - npm
+- Windows 10/11 para os recursos de atalho silencioso e inicialização automática
 
-### 1) Backend
+### Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 2) Frontend
+### Frontend
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 3) Variáveis de ambiente (frontend)
+## Variáveis de Ambiente Úteis
 
-Crie `frontend/.env` e configure:
+### Frontend
 
-```env
-VITE_API_URL=http://localhost:8000/api
-```
-
-Fallbacks usados pelo frontend:
-- desenvolvimento: `http://localhost:8000/api`
-- produção: `/api`
-
----
-
-## ▶️ Executando
-
-### Opção A — scripts do repositório
-
-**Linux/macOS**
-```bash
-./scripts/start_edi.sh
-```
-
-**Windows**
-```bat
-scripts\\start_edi.bat
-```
-
-### Opção B — manual
-
-**Terminal 1 (backend)**
-```bash
-cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Terminal 2 (frontend)**
-```bash
-cd frontend
-npm run dev
-```
-
-Acessos:
-- Frontend (dev): `http://localhost:3000`
-- API: `http://localhost:8000`
-- Swagger: `http://localhost:8000/docs`
-
----
-
-## 🧪 Testes
+- `VITE_API_URL=/api`: mantém frontend e API no mesmo host.
+- `VITE_BACKEND_URL=http://127.0.0.1:8000`: alvo local do proxy do Vite.
 
 ### Backend
-```bash
-cd backend
-pytest -q
+
+- `EDI_STORAGE_DIR`: define onde ficam banco, senha e uploads.
+- `EDI_DEFAULT_PASSWORD`: define senha inicial manualmente.
+- `EDI_AUTH_DISABLED=1`: desativa autenticação em cenários controlados.
+- `EDI_CORS_ALLOW_ORIGINS`: lista de origins liberadas.
+- `EDI_CORS_ALLOW_ORIGIN_REGEX`: regex para acesso externo, incluindo Cloudflare.
+- `PUBLIC_UPLOADS_BASE_URL`: sobrescreve a base pública dos uploads.
+- `EDI_NOTIFICATIONS_INTERVAL_SECONDS`: intervalo do scheduler de notificações.
+- `EDI_NOTIFICATIONS_DAYS_AHEAD`: antecedência analisada pelo scheduler.
+
+### Cloudflare
+
+- `CLOUDFLARED_BIN`
+- `CLOUDFLARE_TARGET_URL`
+- `CLOUDFLARE_TUNNEL_TOKEN`
+
+## Estrutura do Projeto
+
+```text
+backend/      API FastAPI, engines, banco e autenticação
+frontend/     SPA React + Vite
+scripts/      scripts auxiliares de execução
+cloudflare/   exemplo de configuração de túnel nomeado
+docs/         documentação complementar
+main.js       empacotamento desktop via Electron
+icon.ico      ícone usado no app e no atalho do Windows
 ```
 
-### Frontend (teste unitário atual)
-```bash
-cd frontend
-npm test
-```
+## Documentação Complementar
 
----
+- [QUICKSTART.md](/D:/Studio/Projects/EdiWEB--Developing/docs/QUICKSTART.md): setup rápido e validação inicial.
+- [FEATURE_INVENTORY.md](/D:/Studio/Projects/EdiWEB--Developing/docs/FEATURE_INVENTORY.md): inventário de features, páginas e backends por domínio.
+- [CLOUDFLARE.md](/D:/Studio/Projects/EdiWEB--Developing/docs/CLOUDFLARE.md): publicação externa via Cloudflare Tunnel.
+- [TROUBLESHOOTING.md](/D:/Studio/Projects/EdiWEB--Developing/docs/TROUBLESHOOTING.md): problemas comuns e soluções.
+- [CODEBASE_ANALYSIS.md](/D:/Studio/Projects/EdiWEB--Developing/docs/CODEBASE_ANALYSIS.md): análise técnica da base.
+- [MIGRATION.md](/D:/Studio/Projects/EdiWEB--Developing/docs/MIGRATION.md): contexto de migração e legado.
 
-## 📚 Documentação Complementar
+## Status Atual
 
-- `docs/QUICKSTART.md`: setup rápido e fluxos iniciais de validação.
-- `docs/FEATURE_INVENTORY.md`: matriz de domínios (legado ➜ web) e mapeamento de rotas/telas.
-- `docs/CODEBASE_ANALYSIS.md`: análise técnica da base atual (arquitetura, módulos e riscos).
-- `docs/MIGRATION.md`: notas de migração e compatibilidade da versão Kivy.
-- `docs/TROUBLESHOOTING.md`: problemas comuns e soluções.
-- `frontend/docs/color-token-mapping.md`: guia de tokens de cor/temas.
-
----
-
-## 📝 Status
-
-Versão em evolução contínua com foco em:
-- robustez do fluxo Daily;
-- estabilidade das regras de negócio no backend;
-- melhoria de UX em metas, notificações e hobbies;
-- expansão de cobertura de testes para rotas/domínios recentes.
+O projeto já cobre os principais fluxos operacionais do EDI Web, incluindo uso local, autenticação, notificações, exportação, hobbies, finanças e acesso externo por Cloudflare. Os próximos ganhos tendem a ser expansão de testes automatizados, refinamento de UX e aprofundamento de domínios que ainda estão mais leves no frontend, como Games e Notas.

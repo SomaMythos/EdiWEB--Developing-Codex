@@ -37,13 +37,33 @@ from core.day_engine import generate_day_schedule
 from core.daily_config_engine import DailyConfigEngine
 from core.time_overlap import add_minutes, intervals_overlap
 from core.auth_engine import verify_password, update_password, password_config_exists, password_config_location
+from core.system_integration_engine import SystemIntegrationEngine
+from core.note_engine import NoteEngine
 from data.database import Database, initialize_database
 
 
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
-PUBLIC_UPLOADS_BASE_URL = os.getenv("PUBLIC_UPLOADS_BASE_URL", "http://localhost:8000").rstrip("/")
+DEFAULT_PUBLIC_UPLOADS_BASE_URL = "http://127.0.0.1:8000"
+PUBLIC_UPLOADS_BASE_URL = os.getenv("PUBLIC_UPLOADS_BASE_URL", "").rstrip("/")
+
+
+def _parse_csv_env(name: str, default_values: List[str]) -> List[str]:
+    raw_value = os.getenv(name, "").strip()
+    if not raw_value:
+        return default_values
+    return [item.strip().rstrip("/") for item in raw_value.split(",") if item.strip()]
+
+
+CORS_ALLOW_ORIGINS = _parse_csv_env(
+    "EDI_CORS_ALLOW_ORIGINS",
+    ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+)
+CORS_ALLOW_ORIGIN_REGEX = os.getenv(
+    "EDI_CORS_ALLOW_ORIGIN_REGEX",
+    r"https://.*\.trycloudflare\.com$",
+)
 
 
 def _get_edi_storage_dir() -> Path:
@@ -69,11 +89,27 @@ def _normalize_relative_path(path_value: Optional[str]) -> Optional[str]:
     return path_value[1:] if path_value.startswith("/") else path_value
 
 
-def _to_public_upload_url(path_value: Optional[str]) -> Optional[str]:
+def _resolve_public_uploads_base_url(request: Optional[Request] = None) -> str:
+    if PUBLIC_UPLOADS_BASE_URL:
+        return PUBLIC_UPLOADS_BASE_URL
+
+    if request is not None:
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        forwarded_host = request.headers.get("x-forwarded-host")
+        host = forwarded_host or request.headers.get("host")
+        scheme = forwarded_proto or request.url.scheme
+        if host:
+            return f"{scheme}://{host}".rstrip("/")
+        return str(request.base_url).rstrip("/")
+
+    return DEFAULT_PUBLIC_UPLOADS_BASE_URL
+
+
+def _to_public_upload_url(path_value: Optional[str], request: Optional[Request] = None) -> Optional[str]:
     normalized = _normalize_relative_path(path_value)
     if not normalized:
         return None
-    return f"{PUBLIC_UPLOADS_BASE_URL}/{normalized}"
+    return f"{_resolve_public_uploads_base_url(request)}/{normalized}"
 
 
 def _save_upload_file(upload_file: UploadFile, destination_dir: Path) -> str:
@@ -161,7 +197,8 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_origin_regex=CORS_ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -228,6 +265,14 @@ class DailyActivityLog(BaseModel):
     timestamp: Optional[str] = None
 
 
+class GoalMilestonePayload(BaseModel):
+    id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    is_completed: bool = False
+    sort_order: Optional[int] = None
+
+
 class GoalCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -235,6 +280,16 @@ class GoalCreate(BaseModel):
     difficulty: int = 1
     category_id: Optional[int] = None
     image_path: Optional[str] = None
+    goal_mode: str = "simple"
+    milestones: list[GoalMilestonePayload] = []
+
+    @field_validator("goal_mode")
+    @classmethod
+    def validate_goal_mode(cls, value: str):
+        normalized = (value or "simple").strip().lower()
+        if normalized not in {"simple", "milestones"}:
+            raise ValueError("goal_mode invalido")
+        return normalized
 
 
 class GoalActivityLink(BaseModel):
@@ -249,6 +304,20 @@ class GoalUpdate(BaseModel):
     difficulty: int = 1
     category_id: Optional[int] = None
     image_path: Optional[str] = None
+    goal_mode: str = "simple"
+    milestones: list[GoalMilestonePayload] = []
+
+    @field_validator("goal_mode")
+    @classmethod
+    def validate_goal_mode(cls, value: str):
+        normalized = (value or "simple").strip().lower()
+        if normalized not in {"simple", "milestones"}:
+            raise ValueError("goal_mode invalido")
+        return normalized
+
+
+class GoalMilestoneStatusPayload(BaseModel):
+    is_completed: bool
 
 
 class RoutineCreate(BaseModel):
@@ -288,6 +357,39 @@ class PasswordUpdateRequest(BaseModel):
         if len(value or "") < 4:
             raise ValueError("Nova senha deve ter pelo menos 4 caracteres")
         return value
+
+
+class WindowsStartupPreferencePayload(BaseModel):
+    enabled: bool
+
+
+class NoteContextPayload(BaseModel):
+    name: str
+    color: Optional[str] = None
+
+
+class NotePayload(BaseModel):
+    title: str
+    content: Optional[str] = None
+    context_id: Optional[int] = None
+    title_color: Optional[str] = None
+
+
+class WeeklyJournalSettingsPayload(BaseModel):
+    enabled: bool = True
+    reminder_time: str = "18:00"
+
+    @field_validator("reminder_time")
+    @classmethod
+    def validate_reminder_time(cls, value: str):
+        datetime.strptime(value, "%H:%M")
+        return value
+
+
+class WeeklyJournalEntryPayload(BaseModel):
+    title: Optional[str] = None
+    content: str
+    reference_date: Optional[str] = None
 
 
 # ============================================================================
@@ -333,6 +435,30 @@ async def auth_change_password(payload: PasswordUpdateRequest):
 
     ACTIVE_AUTH_TOKENS.clear()
     return {"success": True}
+
+
+@app.get("/api/system/integration")
+async def get_system_integration_status():
+    try:
+        return {"success": True, "data": SystemIntegrationEngine.get_status()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/desktop-shortcut")
+async def create_system_desktop_shortcut():
+    try:
+        return {"success": True, "data": SystemIntegrationEngine.create_desktop_shortcut()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/system/windows-startup")
+async def set_system_windows_startup(payload: WindowsStartupPreferencePayload):
+    try:
+        return {"success": True, "data": SystemIntegrationEngine.set_windows_startup(payload.enabled)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 
@@ -411,7 +537,7 @@ async def create_activity(activity: ActivityCreate):
                 INNER JOIN daily_routines dr ON dr.id = drb.routine_id
                 WHERE dr.day_type IN ({})
                 ORDER BY dr.day_type, drb.start_time
-                """.format(",".join(["?"] * len(day_types))),
+                """.format(",".join([""] * len(day_types))),
                 tuple(day_types),
             )
 
@@ -574,6 +700,7 @@ async def create_goal(
     deadline: Optional[str] = Form(None),
     difficulty: int = Form(1),
     category_id: Optional[int] = Form(None),
+    goal_mode: str = Form("simple"),
     image: Optional[UploadFile] = File(None),
 ):
     try:
@@ -582,19 +709,20 @@ async def create_goal(
         if image:
             image_path = _save_upload_file(image, UPLOADS_DIR / "goals")
 
-        GoalEngine.create_goal(
+        goal_id = GoalEngine.create_goal(
             title=title,
             description=description,
             deadline=deadline,
             difficulty=difficulty,
             category_id=category_id,
             image_path=image_path,
+            goal_mode=goal_mode,
         )
 
         return {
             "success": True,
             "message": "Goal created",
-            "data": {"image_path": image_path}
+            "data": {"id": goal_id, "image_path": image_path}
         }
 
     except Exception as e:
@@ -613,6 +741,8 @@ async def update_goal(goal_id: int, goal: GoalUpdate):
             difficulty=goal.difficulty,
             category_id=goal.category_id,
             image_path=goal.image_path,
+            goal_mode=goal.goal_mode,
+            milestones=[item.model_dump() for item in goal.milestones],
         )
         if not updated:
             raise HTTPException(status_code=400, detail="Meta concluÃ­da nÃ£o pode ser editada")
@@ -631,6 +761,7 @@ async def update_goal_multipart(
     deadline: Optional[str] = Form(None),
     difficulty: int = Form(1),
     category_id: Optional[int] = Form(None),
+    goal_mode: str = Form("simple"),
     image: Optional[UploadFile] = File(None),
 ):
     """Update a goal using multipart/form-data, optionally replacing image."""
@@ -647,6 +778,7 @@ async def update_goal_multipart(
             difficulty=difficulty,
             category_id=category_id,
             image_path=image_path,
+            goal_mode=goal_mode,
         )
         if not updated:
             raise HTTPException(status_code=400, detail="Meta concluÃ­da nÃ£o pode ser editada")
@@ -724,6 +856,36 @@ async def get_goal_progress(goal_id: int):
     try:
         progress = GoalEngine.calculate_progress(goal_id)
         return {"success": True, "data": progress}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/goals/{goal_id}/milestones")
+async def list_goal_milestones(goal_id: int):
+    try:
+        return {"success": True, "data": GoalEngine.list_milestones(goal_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/goals/{goal_id}/milestones")
+async def sync_goal_milestones(goal_id: int, payload: list[GoalMilestonePayload]):
+    try:
+        GoalEngine.sync_milestones(goal_id, [item.model_dump() for item in payload])
+        return {"success": True, "data": GoalEngine.list_milestones(goal_id)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/goals/milestones/{milestone_id}/status")
+async def update_goal_milestone_status(milestone_id: int, payload: GoalMilestoneStatusPayload):
+    try:
+        goal_id = GoalEngine.update_milestone_status(milestone_id, payload.is_completed)
+        return {"success": True, "data": {"goal_id": goal_id}}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -848,6 +1010,151 @@ async def list_goals_from_category(category_id: int):
     try:
         goals = GoalEngine.list_goals_by_category(category_id)
         return {"success": True, "data": goals}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# NOTES AND WEEKLY JOURNAL ENDPOINTS
+# ============================================================================
+
+@app.get("/api/notes/contexts")
+async def list_note_contexts():
+    try:
+        return {"success": True, "data": NoteEngine.list_contexts()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/notes/contexts")
+async def create_note_context(payload: NoteContextPayload):
+    try:
+        context_id = NoteEngine.create_context(payload.name, payload.color)
+        return {"success": True, "data": {"id": context_id}}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/notes/contexts/{context_id}")
+async def update_note_context(context_id: int, payload: NoteContextPayload):
+    try:
+        updated = NoteEngine.update_context(context_id, payload.name, payload.color)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Contexto nao encontrado")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/notes/contexts/{context_id}")
+async def delete_note_context(context_id: int):
+    try:
+        deleted = NoteEngine.delete_context(context_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Contexto nao encontrado")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/notes/search")
+async def search_notes(query: str):
+    try:
+        return {"success": True, "data": NoteEngine.search(query)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/notes")
+async def list_notes(context_id: Optional[int] = None, query: Optional[str] = None):
+    try:
+        return {"success": True, "data": NoteEngine.list_notes(context_id=context_id, query=query)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/notes")
+async def create_note(payload: NotePayload):
+    try:
+        note_id = NoteEngine.create_note(payload.title, payload.content, payload.context_id, payload.title_color)
+        return {"success": True, "data": {"id": note_id}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/notes/{note_id}")
+async def update_note(note_id: int, payload: NotePayload):
+    try:
+        updated = NoteEngine.update_note(note_id, payload.title, payload.content, payload.context_id, payload.title_color)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Anotacao nao encontrada")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/notes/{note_id}")
+async def delete_note(note_id: int):
+    try:
+        deleted = NoteEngine.delete_note(note_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Anotacao nao encontrada")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/journal/settings")
+async def get_journal_settings():
+    try:
+        return {"success": True, "data": NoteEngine.get_journal_settings()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/journal/settings")
+async def update_journal_settings(payload: WeeklyJournalSettingsPayload):
+    try:
+        return {"success": True, "data": NoteEngine.update_journal_settings(payload.enabled, payload.reminder_time)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/journal/current")
+async def get_current_journal_entry(reference_date: Optional[str] = None):
+    try:
+        return {"success": True, "data": NoteEngine.get_journal_entry(reference_date)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/journal/entries")
+async def list_journal_entries(limit: int = 12):
+    try:
+        return {"success": True, "data": NoteEngine.list_journal_entries(limit=limit)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/journal/entries")
+async def upsert_journal_entry(payload: WeeklyJournalEntryPayload):
+    try:
+        data = NoteEngine.upsert_journal_entry(payload.content, payload.title, payload.reference_date)
+        return {"success": True, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1436,6 +1743,17 @@ class NotificationStatusPayload(BaseModel):
     status: str
 
 
+class NotificationSnoozePayload(BaseModel):
+    minutes: int = 30
+
+    @field_validator("minutes")
+    def validate_minutes(cls, value):
+        minutes = int(value or 0)
+        if minutes <= 0 or minutes > 10080:
+            raise ValueError("minutes deve estar entre 1 e 10080")
+        return minutes
+
+
 class NotificationFeaturePreferencePayload(BaseModel):
     feature_key: str
     enabled: bool = True
@@ -1559,6 +1877,7 @@ async def notifications_list(
     severity: Optional[Literal["info", "success", "warning", "critical", "neutral"]] = None,
     include_read: bool = False,
     include_generated: bool = True,
+    due_only: bool = False,
 ):
     try:
         from core.notification_center_engine import NotificationCenterEngine
@@ -1572,6 +1891,7 @@ async def notifications_list(
             source_feature=source_feature,
             severity=severity,
             include_read=include_read,
+            due_only=due_only,
         )
         return {"success": True, "data": notifications}
     except Exception as e:
@@ -1613,6 +1933,19 @@ async def notifications_update_status(notification_id: int, payload: Notificatio
 
         NotificationCenterEngine.update_notification_status(notification_id, payload.status)
         return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/notifications/{notification_id}/snooze")
+async def notifications_snooze(notification_id: int, payload: NotificationSnoozePayload):
+    try:
+        from core.notification_center_engine import NotificationCenterEngine
+
+        data = NotificationCenterEngine.snooze_notification(notification_id, payload.minutes)
+        return {"success": True, "data": data}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -1791,7 +2124,7 @@ async def get_activity_history(days: int = 30):
                 FROM daily_activity_logs dal
                 JOIN daily_logs dl ON dl.id = dal.daily_log_id
                 JOIN activities a ON a.id = dal.activity_id
-                WHERE dl.date >= ?
+                WHERE dl.date >= 
                 ORDER BY dl.date DESC, dal.timestamp DESC
             """, (start_date,))
         
@@ -1989,6 +2322,16 @@ async def dashboard_weekly():
     return {"success": True, "data": DashboardEngine.get_weekly_summary()}
 
 
+@app.get("/api/dashboard/frontpage")
+async def dashboard_frontpage():
+    return {"success": True, "data": DashboardEngine.get_frontpage()}
+
+
+@app.get("/api/dashboard/search")
+async def dashboard_search(query: str, limit_per_section: int = 5):
+    return {"success": True, "data": DashboardEngine.search_everything(query, limit_per_section=limit_per_section)}
+
+
 @app.get("/api/profile")
 async def profile_get():
     profile = UserProfileEngine.get_profile()
@@ -2078,7 +2421,7 @@ async def books_delete(book_id: int):
 
 
 @app.get("/api/visual-arts/artworks")
-async def artworks_list(status: Optional[str] = None, visual_category: Optional[str] = None):
+async def artworks_list(request: Request, status: Optional[str] = None, visual_category: Optional[str] = None):
     artworks = [dict(artwork) for artwork in PaintingEngine.list_artworks(status, visual_category)]
     for artwork in artworks:
         progress_photo_paths = artwork.get("progress_photo_paths")
@@ -2091,15 +2434,16 @@ async def artworks_list(status: Optional[str] = None, visual_category: Optional[
             artwork["progress_photo_paths"] = []
 
         artwork["progress_photo_urls"] = [
-            _to_public_upload_url(path) for path in artwork["progress_photo_paths"] if path
+            _to_public_upload_url(path, request) for path in artwork["progress_photo_paths"] if path
         ]
-        artwork["reference_image_url"] = _to_public_upload_url(artwork.get("reference_image_path"))
-        artwork["latest_photo_url"] = _to_public_upload_url(artwork.get("latest_photo_path"))
+        artwork["reference_image_url"] = _to_public_upload_url(artwork.get("reference_image_path"), request)
+        artwork["latest_photo_url"] = _to_public_upload_url(artwork.get("latest_photo_path"), request)
     return {"success": True, "data": artworks}
 
 
 @app.post("/api/visual-arts/artworks")
 async def artworks_create(
+    request: Request,
     title: str = Form(...),
     visual_category: str = Form("pintura"),
     size: Optional[str] = Form(None),
@@ -2132,7 +2476,7 @@ async def artworks_create(
         "data": {
             "id": artwork_id,
             "reference_image_path": reference_image_path,
-            "reference_image_url": _to_public_upload_url(reference_image_path),
+            "reference_image_url": _to_public_upload_url(reference_image_path, request),
         },
     }
 
@@ -2147,6 +2491,7 @@ async def artworks_delete(painting_id: int):
 
 @app.post("/api/visual-arts/artworks/{painting_id}/updates")
 async def artworks_add_update(
+    request: Request,
     painting_id: int,
     update_title: str = Form(...),
     mark_completed: bool = Form(False),
@@ -2164,7 +2509,7 @@ async def artworks_add_update(
         "data": {
             "id": update_id,
             "photo_path": photo_path,
-            "photo_url": _to_public_upload_url(photo_path),
+            "photo_url": _to_public_upload_url(photo_path, request),
         },
     }
 
@@ -2176,10 +2521,10 @@ async def artworks_set_completion_date(painting_id: int, payload: ArtworkComplet
 
 
 @app.get("/api/visual-arts/artworks/{painting_id}/gallery")
-async def artworks_gallery(painting_id: int):
+async def artworks_gallery(painting_id: int, request: Request):
     gallery = [dict(item) for item in PaintingEngine.get_artwork_gallery(painting_id)]
     for item in gallery:
-        item["photo_url"] = _to_public_upload_url(item.get("photo_path"))
+        item["photo_url"] = _to_public_upload_url(item.get("photo_path"), request)
     return {"success": True, "data": gallery}
 
 
@@ -2207,15 +2552,16 @@ async def media_folders_delete(folder_id: int):
 
 
 @app.get("/api/visual-arts/media-folders/{folder_id}/items")
-async def media_items_list(folder_id: int):
+async def media_items_list(folder_id: int, request: Request):
     items = [dict(item) for item in PaintingEngine.list_media_items(folder_id)]
     for item in items:
-        item["file_url"] = _to_public_upload_url(item.get("file_path"))
+        item["file_url"] = _to_public_upload_url(item.get("file_path"), request)
     return {"success": True, "data": items}
 
 
 @app.post("/api/visual-arts/media-items")
 async def media_items_create(
+    request: Request,
     folder_id: int = Form(...),
     title: str = Form(...),
     date: str = Form(None),
@@ -2229,7 +2575,7 @@ async def media_items_create(
     section_type = folder.get("section_type") or "outros"
     file_path = _save_upload_file(photo, VISUAL_ARTS_UPLOADS_DIR / "folders" / section_type)
     item_id = PaintingEngine.create_media_item(folder_id, title, file_path, date)
-    return {"success": True, "data": {"id": item_id, "file_path": file_path, "file_url": _to_public_upload_url(file_path)}}
+    return {"success": True, "data": {"id": item_id, "file_path": file_path, "file_url": _to_public_upload_url(file_path, request)}}
 
 
 @app.delete("/api/visual-arts/media-items/{item_id}")
@@ -2886,6 +3232,10 @@ async def get_daily(date: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
+
+
 
 
 

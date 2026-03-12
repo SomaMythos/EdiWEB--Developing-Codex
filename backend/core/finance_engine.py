@@ -26,7 +26,7 @@ class FinanceEngine:
         return month_start.strftime("%Y-%m"), prev_month_start.strftime("%Y-%m")
 
     # =========================================================
-    # CONFIGURAÃ‡ÃƒO
+    # CONFIGURAÇÃO
     # =========================================================
 
     @staticmethod
@@ -60,7 +60,7 @@ class FinanceEngine:
         """
         Salva / atualiza a configuraÃ§Ã£o financeira.
         Inclui reserve_fgts (saldo atual FGTS) e fgts (depÃ³sito mensal FGTS).
-        Faz UPDATE com WHERE id=? quando jÃ¡ existe registro.
+        Faz UPDATE com WHERE id= quando jÃ¡ existe registro.
         """
         db = Database()
 
@@ -86,7 +86,7 @@ class FinanceEngine:
         )
 
         if existing_id:
-            # UPDATE precisa do id no final dos params para WHERE id=?.
+            # UPDATE precisa do id no final dos params para WHERE id=.
             db.execute("""
                 UPDATE finance_config
                 SET salary_monthly=?,
@@ -236,7 +236,7 @@ class FinanceEngine:
         db.execute(
             """
             UPDATE finance_transactions
-            SET description=?, amount=?, category=?, occurred_at=?, kind=?, updated_at=CURRENT_TIMESTAMP
+            SET description=, amount=, category=, occurred_at=, kind=, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
             """,
             (description, amount, category, occurred_at, kind, transaction_id),
@@ -360,7 +360,7 @@ class FinanceEngine:
         db = Database()
         db.execute("""
             UPDATE finance_fixed_expenses
-            SET name=?, monthly_value=?, updated_at=CURRENT_TIMESTAMP
+            SET name=, monthly_value=, updated_at=CURRENT_TIMESTAMP
             WHERE id=?
         """, (name, monthly_value, expense_id))
         updated = db.execute("SELECT changes()").fetchone()[0]
@@ -422,7 +422,7 @@ class FinanceEngine:
         else:
             health = "ruim"
 
-        # TambÃ©m exportar saldos individuais para o frontend mostrar â€œatualâ€
+        # Também exportar saldos individuais para o frontend mostrar "atual"
         return {
             "patrimonio_total": round(patrimonio_total, 2),
             "saldo_disponivel": round(saldo_disponivel, 2),
@@ -436,7 +436,7 @@ class FinanceEngine:
         }
 
     # =========================================================
-    # PROJEÃ‡ÃƒO JUROS COMPOSTOS
+    # PROJEÇÃO JUROS COMPOSTOS
     # =========================================================
 
     @staticmethod
@@ -466,7 +466,7 @@ class FinanceEngine:
         fgts_balance = cfg("reserve_fgts")  # saldo atual FGTS
 
         # ============================
-        # CONFIGURAÃ‡Ã•ES
+        # CONFIGURAÇÕES
         # ============================
         salary = cfg("salary_monthly")
         contribution = cfg("monthly_contribution")
@@ -474,7 +474,7 @@ class FinanceEngine:
         fgts_monthly_deposit = cfg("fgts")  # fgts no config = depÃ³sito mensal
 
         # ============================
-        # CDI - CAPITALIZAÃ‡ÃƒO EXPONENCIAL
+        # CDI - CAPITALIZAÇÃO EXPONENCIAL
         # ============================
         cdi_annual = cfg("cdi_rate_annual") / 100.0
         cdi_monthly = (1 + cdi_annual) ** (1.0 / 12.0) - 1.0
