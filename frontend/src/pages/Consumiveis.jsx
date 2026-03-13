@@ -255,7 +255,6 @@ const Consumiveis = () => {
       <header className="page-header">
         <div>
           <h1>Consumíveis</h1>
-          <p className="subtitle">Módulo separado para controle de estoque recorrente por ciclo.</p>
         </div>
       </header>
 

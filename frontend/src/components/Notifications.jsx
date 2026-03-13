@@ -249,14 +249,24 @@ const Notifications = () => {
     <div className="notifications-container">
       <button
         ref={buttonRef}
-        className="notifications-button"
+        className={`notifications-button ${show ? 'is-open' : ''} ${unreadCount > 0 ? 'has-unread' : ''}`}
+        type="button"
+        aria-label="Abrir notificações"
+        aria-expanded={show}
         onClick={() => {
           if (!show) updateDropdownPosition();
           setShow((prev) => !prev);
         }}
       >
-        <Bell size={20} />
-        {unreadCount > 0 && <span className="notifications-badge">{unreadCount}</span>}
+        <span className="notifications-button-icon">
+          <Bell size={18} />
+        </span>
+        <span className="notifications-button-label">Notificações</span>
+        {unreadCount > 0 ? (
+          <span className="notifications-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+        ) : (
+          <span className="notifications-button-meta">Inbox</span>
+        )}
       </button>
 
       {show && typeof document !== 'undefined' && createPortal(
@@ -278,7 +288,7 @@ const Notifications = () => {
             </button>
           </div>
 
-          <div className="notifications-content">
+          <div className="notifications-content glass-scrollbar">
             {loading ? (
               <div className="notifications-loading">
                 <div className="spin">...</div>

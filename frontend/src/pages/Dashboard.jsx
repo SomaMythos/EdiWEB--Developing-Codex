@@ -99,7 +99,7 @@ const Dashboard = () => {
 
   return (
     <div className="page-container fade-in home-page">
-      <section className="home-block home-block--daily glass-strong">
+      <section className="home-block home-block--daily page-shell">
         <div className="home-block__header">
           <div>
             <span className="home-block__eyebrow">Daily</span>
@@ -235,7 +235,7 @@ const Dashboard = () => {
         </article>
       </section>
 
-      <section className="home-block home-block--log glass-strong">
+      <section className="home-block home-block--log page-shell">
         <div className="home-block__header">
           <div>
             <span className="home-block__eyebrow">Log</span>
@@ -244,7 +244,7 @@ const Dashboard = () => {
           <Link to="/calendario" className="home-block__link">Timeline</Link>
         </div>
 
-        <div className="home-log-list">
+        <div className="home-log-list glass-scrollbar">
           {activityLog.length === 0 ? <p className="home-strip-card__empty">Ainda não há registros recentes.</p> : null}
           {activityLog.map((entry) => (
             <Link key={entry.id} to={entry.path} className={`home-log-entry home-log-entry--${entry.category}`}>

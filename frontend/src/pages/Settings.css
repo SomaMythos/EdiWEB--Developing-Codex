@@ -256,6 +256,27 @@
 }
 
 /* ======================================================
+   DANGER SECTION
+====================================================== */
+
+.danger-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(120, 24, 24, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.18);
+  border-radius: var(--radius-lg);
+}
+
+.danger-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* ======================================================
    RESPONSIVE
 ====================================================== */
 
@@ -268,6 +289,11 @@
   .export-button {
     flex-direction: column;
     text-align: center;
+  }
+
+  .danger-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .settings-page {

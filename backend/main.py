@@ -39,7 +39,7 @@ from core.time_overlap import add_minutes, intervals_overlap
 from core.auth_engine import verify_password, update_password, password_config_exists, password_config_location
 from core.system_integration_engine import SystemIntegrationEngine
 from core.note_engine import NoteEngine
-from data.database import Database, initialize_database
+from data.database import Database, initialize_database, reset_database
 
 
 logger = logging.getLogger(__name__)
@@ -363,6 +363,10 @@ class WindowsStartupPreferencePayload(BaseModel):
     enabled: bool
 
 
+class DatabaseResetPayload(BaseModel):
+    confirmation_text: str
+
+
 class NoteContextPayload(BaseModel):
     name: str
     color: Optional[str] = None
@@ -390,6 +394,13 @@ class WeeklyJournalEntryPayload(BaseModel):
     title: Optional[str] = None
     content: str
     reference_date: Optional[str] = None
+
+
+class WatchLogPayload(BaseModel):
+    action: Literal["progress", "completed", "paused", "dropped", "rewatch"] = "progress"
+    season_number: Optional[int] = None
+    episode_number: Optional[int] = None
+    note: Optional[str] = None
 
 
 # ============================================================================
@@ -457,6 +468,26 @@ async def create_system_desktop_shortcut():
 async def set_system_windows_startup(payload: WindowsStartupPreferencePayload):
     try:
         return {"success": True, "data": SystemIntegrationEngine.set_windows_startup(payload.enabled)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/reset-database")
+async def reset_system_database(payload: DatabaseResetPayload):
+    try:
+        if (payload.confirmation_text or "").strip().upper() != "ZERAR":
+            raise HTTPException(status_code=400, detail="Confirmação inválida. Digite ZERAR para continuar.")
+
+        database_path = reset_database()
+        return {
+            "success": True,
+            "data": {
+                "database_path": database_path,
+                "message": "Banco de dados recriado com sucesso.",
+            },
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1279,8 +1310,7 @@ async def list_albums(status: str = None):
 
 @app.post("/api/watch/categories")
 async def create_watch_category(name: str = Form(...)):
-    WatchEngine.create_category(name)
-    return {"success": True}
+    return {"success": True, "data": {"id": WatchEngine.create_category(name)}}
 
 
 @app.get("/api/watch/categories")
@@ -1291,23 +1321,126 @@ async def list_watch_categories():
     }
 
 
+@app.get("/api/watch/overview")
+async def get_watch_overview(limit_logs: int = Query(18, ge=1, le=60)):
+    return {
+        "success": True,
+        "data": WatchEngine.get_overview(limit_logs=limit_logs)
+    }
+
+
+@app.get("/api/watch/items")
+async def list_watch_items(
+    status: Optional[str] = None,
+    media_type: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: Optional[int] = Query(None, ge=1, le=200),
+):
+    return {
+        "success": True,
+        "data": WatchEngine.list_items(
+            status=status,
+            media_type=media_type,
+            search=search,
+            limit=limit,
+        )
+    }
+
+
 @app.post("/api/watch/items")
 async def create_watch_item(
-    category_id: int = Form(...),
+    category_id: Optional[int] = Form(None),
     name: str = Form(...),
-    image: UploadFile = File(None)
+    media_type: str = Form("movie"),
+    status: str = Form("backlog"),
+    description: Optional[str] = Form(None),
+    watch_with: Optional[str] = Form(None),
+    total_seasons: Optional[int] = Form(None),
+    total_episodes: Optional[int] = Form(None),
+    current_season: Optional[int] = Form(None),
+    current_episode: Optional[int] = Form(None),
+    image: UploadFile = File(None),
 ):
     image_path = None
-
     if image:
-        image_path = _save_upload_file(
-            image,
-            UPLOADS_DIR / "watch"
+        image_path = _save_upload_file(image, UPLOADS_DIR / "watch")
+
+    item = WatchEngine.create_item(
+        category_id=category_id,
+        name=name,
+        image_path=image_path,
+        media_type=media_type,
+        status=status,
+        description=description,
+        watch_with=watch_with,
+        total_seasons=total_seasons,
+        total_episodes=total_episodes,
+        current_season=current_season,
+        current_episode=current_episode,
+    )
+    return {"success": True, "data": item}
+
+
+@app.put("/api/watch/items/{item_id}")
+async def update_watch_item(
+    item_id: int,
+    category_id: Optional[int] = Form(None),
+    name: Optional[str] = Form(None),
+    media_type: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    watch_with: Optional[str] = Form(None),
+    total_seasons: Optional[int] = Form(None),
+    total_episodes: Optional[int] = Form(None),
+    current_season: Optional[int] = Form(None),
+    current_episode: Optional[int] = Form(None),
+    image: UploadFile = File(None),
+):
+    image_path = None
+    if image:
+        image_path = _save_upload_file(image, UPLOADS_DIR / "watch")
+
+    try:
+        item = WatchEngine.update_item(
+            item_id,
+            category_id=category_id,
+            name=name,
+            image_path=image_path,
+            media_type=media_type,
+            status=status,
+            description=description,
+            watch_with=watch_with,
+            total_seasons=total_seasons,
+            total_episodes=total_episodes,
+            current_season=current_season,
+            current_episode=current_episode,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
-    WatchEngine.create_item(category_id, name, image_path)
+    return {"success": True, "data": item}
 
+
+@app.delete("/api/watch/items/{item_id}")
+async def delete_watch_item(item_id: int):
+    WatchEngine.delete_item(item_id)
     return {"success": True}
+
+
+@app.post("/api/watch/items/{item_id}/logs")
+async def create_watch_log(item_id: int, payload: WatchLogPayload):
+    try:
+        result = WatchEngine.add_log(
+            item_id,
+            action=payload.action,
+            season_number=payload.season_number,
+            episode_number=payload.episode_number,
+            note=payload.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return {"success": True, "data": result}
 
 
 @app.patch("/api/watch/items/{item_id}/watched")
@@ -1317,10 +1450,10 @@ async def mark_watched(item_id: int):
 
 
 @app.get("/api/watch/items/{category_id}")
-async def list_watch_items(category_id: int):
+async def list_watch_items_by_category(category_id: int):
     return {
         "success": True,
-        "data": WatchEngine.list_items(category_id)
+        "data": WatchEngine.list_items(category_id=category_id)
     }
 
 # ============================================================================
@@ -3232,6 +3365,8 @@ async def get_daily(date: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
 
 
 

@@ -173,11 +173,39 @@ export const journalApi = {
   saveEntry: (data) => api.post('/journal/entries', data),
 };
 
+const toWatchFormData = (data) => {
+  if (data instanceof FormData) return data;
+  const formData = new FormData();
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (value !== null && typeof value !== 'undefined' && value !== '') {
+      formData.append(key, value);
+    }
+  });
+  return formData;
+};
+
+export const watchApi = {
+  getOverview: (limitLogs = 18) => api.get('/watch/overview', { params: { limit_logs: limitLogs } }),
+  listCategories: () => api.get('/watch/categories'),
+  createCategory: (name) => api.post('/watch/categories', new URLSearchParams({ name })),
+  listItems: (params = {}) => api.get('/watch/items', { params }),
+  createItem: (data) => api.post('/watch/items', toWatchFormData(data), {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  updateItem: (id, data) => api.put(`/watch/items/${id}`, toWatchFormData(data), {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  deleteItem: (id) => api.delete(`/watch/items/${id}`),
+  addLog: (id, data) => api.post(`/watch/items/${id}/logs`, data),
+  markWatched: (id) => api.patch(`/watch/items/${id}/watched`),
+};
+
 // System Integration
 export const systemIntegrationApi = {
   getStatus: () => api.get('/system/integration'),
   createDesktopShortcut: () => api.post('/system/desktop-shortcut'),
   setWindowsStartup: (enabled) => api.put('/system/windows-startup', { enabled }),
+  resetDatabase: (confirmationText) => api.post('/system/reset-database', { confirmation_text: confirmationText }),
 };
 
 // Export
@@ -359,5 +387,6 @@ export const dayConfigApi = {
   get: () => api.get('/day-config'),
   save: (data) => api.post('/day-config', data),
 };
+
 
 

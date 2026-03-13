@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   Database,
   Download,
@@ -50,6 +51,7 @@ const Settings = () => {
   const [exporting, setExporting] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [savingSystemIntegration, setSavingSystemIntegration] = useState(false);
+  const [resettingDatabase, setResettingDatabase] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState([]);
   const [soundPrefs, setSoundPrefs] = useState(DEFAULT_SOUND_PREFERENCES);
   const [systemIntegration, setSystemIntegration] = useState(null);
@@ -262,6 +264,28 @@ const Settings = () => {
     }
   };
 
+  const handleResetDatabase = async () => {
+    const confirmationText = window.prompt('Digite ZERAR para limpar todos os dados do app e recriar o banco vazio.');
+    if (confirmationText === null) return;
+
+    if (confirmationText.trim().toUpperCase() !== 'ZERAR') {
+      alert('Confirmação inválida. Nenhum dado foi apagado.');
+      return;
+    }
+
+    setResettingDatabase(true);
+    try {
+      await systemIntegrationApi.resetDatabase(confirmationText.trim());
+      alert('Banco de dados zerado com sucesso.');
+      await loadData();
+    } catch (error) {
+      console.error('Error resetting database:', error);
+      alert(error?.response?.data?.detail || 'Erro ao zerar o banco de dados.');
+    } finally {
+      setResettingDatabase(false);
+    }
+  };
+
   const calculateAge = () => {
     if (!profile?.birth_date) return null;
     const birthDate = new Date(profile.birth_date);
@@ -299,7 +323,6 @@ const Settings = () => {
       <header className="page-header">
         <div>
           <h1>Configurações</h1>
-          <p className="subtitle">Gerencie seu perfil, notificações e a inicialização do app.</p>
         </div>
       </header>
 
@@ -715,6 +738,32 @@ const Settings = () => {
               <p>Exportando...</p>
             </div>
           )}
+        </div>
+
+        <div className="danger-section card">
+          <div className="section-header">
+            <AlertTriangle size={24} />
+            <h2>Banco de Dados</h2>
+          </div>
+
+          <div className="danger-card">
+            <div className="danger-copy">
+              <p className="notification-feature-title">Limpar metadados</p>
+              <p className="notification-feature-desc">
+                Apaga todos os dados do app e recria a base vazia.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={handleResetDatabase}
+              disabled={resettingDatabase}
+            >
+              <Database size={18} />
+              {resettingDatabase ? 'Limpando...' : 'Limpar metadados'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -178,7 +178,6 @@ const Shopping = () => {
       <header className="page-header">
         <div>
           <h1>Wishlist</h1>
-          <p className="subtitle">Lista de desejos e necessidades pontuais (separada do módulo de consumíveis)</p>
         </div>
       </header>
 

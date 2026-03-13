@@ -735,25 +735,27 @@ body::before {
   box-shadow: var(--elevation-0-shadow);
 }
 
+.page-shell {
+  position: relative;
+  border-radius: var(--radius-2xl);
+  background: var(--elevation-0-surface);
+  border: 1px solid var(--elevation-0-border);
+  backdrop-filter: var(--elevation-0-blur);
+  -webkit-backdrop-filter: var(--elevation-0-blur);
+  box-shadow: var(--elevation-0-shadow);
+}
+
 /* =========================================================
    MUSIC
    ======================================================= */
 
 .music-page {
-  padding: var(--spacing-2xl);
-  animation: fadeInPage 400ms ease;
-}
-
-.music-container {
   width: 100%;
   max-width: 1800px;
-  margin: 0 auto;
-  padding: var(--spacing-xl) 6vw;
-  border-radius: var(--radius-2xl);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  transition: all var(--motion-smooth);
+  animation: fadeInPage 400ms ease;
 }
 
 /* ================= HEADER ================= */

@@ -26,14 +26,8 @@
   letter-spacing: 0.04em;
 }
 
-.notifications-hero h1,
-.notifications-hero p {
+.notifications-hero h1 {
   margin: 0;
-}
-
-.notifications-hero p {
-  margin-top: 0.35rem;
-  color: var(--text-secondary);
 }
 
 .notifications-summary-grid {

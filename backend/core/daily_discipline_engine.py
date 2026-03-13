@@ -1,10 +1,72 @@
 from datetime import datetime, timedelta
 from typing import List, Dict
+import random
 from data.database import Database
 from core.daily_override_engine import DailyOverrideEngine
 
 
 class DailyDisciplineEngine:
+
+    @staticmethod
+    def _build_recent_schedule_map(db: Database, target_date: str, activity_ids: List[int]) -> Dict[int, Dict]:
+        if not activity_ids:
+            return {}
+
+        target_dt = datetime.strptime(target_date, "%Y-%m-%d").date()
+        lower_bound = (target_dt - timedelta(days=14)).isoformat()
+        placeholders = ",".join(["?"] * len(activity_ids))
+
+        rows = db.fetchall(
+            f"""
+            SELECT activity_id, date, COUNT(*) AS scheduled_count
+            FROM daily_plan_blocks
+            WHERE activity_id IN ({placeholders})
+              AND date BETWEEN ? AND ?
+            GROUP BY activity_id, date
+            ORDER BY date DESC
+            """,
+            (*activity_ids, lower_bound, target_date)
+        )
+
+        recent_map: Dict[int, Dict] = {}
+
+        for row in rows:
+            activity_id = row["activity_id"]
+            scheduled_date = datetime.strptime(row["date"], "%Y-%m-%d").date()
+            days_ago = (target_dt - scheduled_date).days
+            info = recent_map.setdefault(
+                activity_id,
+                {
+                    "recent_count": 0,
+                    "distinct_days": 0,
+                    "scheduled_today_count": 0,
+                    "days_since_last": None,
+                },
+            )
+
+            info["recent_count"] += row["scheduled_count"] or 0
+            info["distinct_days"] += 1
+
+            if row["date"] == target_date:
+                info["scheduled_today_count"] += row["scheduled_count"] or 0
+
+            if info["days_since_last"] is None or days_ago < info["days_since_last"]:
+                info["days_since_last"] = days_ago
+
+        return recent_map
+
+    @staticmethod
+    def _weighted_pick(rng: random.Random, pool: List[Dict]) -> Dict:
+        total_weight = sum(max(float(item.get("selection_weight", 0.0)), 0.01) for item in pool)
+        roll = rng.uniform(0, total_weight)
+        cursor = 0.0
+
+        for item in pool:
+            cursor += max(float(item.get("selection_weight", 0.0)), 0.01)
+            if roll <= cursor:
+                return item
+
+        return pool[-1]
 
     @staticmethod
     def _get_week_start(target_date: str) -> str:
@@ -16,6 +78,7 @@ class DailyDisciplineEngine:
     def build_today_activity_list(target_date: str, free_minutes: int) -> List[Dict]:
 
         with Database() as db:
+            rng = random.Random()
 
             # ==============================
             # 1️⃣ BUSCAR TODAS ATIVIDADES
@@ -143,6 +206,12 @@ class DailyDisciplineEngine:
                     for row in weekly_stats_rows
                 }
 
+            recent_schedule_map = DailyDisciplineEngine._build_recent_schedule_map(
+                db,
+                target_date,
+                activity_ids,
+            )
+
             DISC_WEIGHT = config["discipline_weight"] or 1
             FUN_WEIGHT = config["fun_weight"] or 1
 
@@ -154,9 +223,30 @@ class DailyDisciplineEngine:
                 times_scheduled = stats.get("times_scheduled", 0)
                 times_completed = stats.get("times_completed", 0)
                 execution_deficit = max(times_scheduled - times_completed, 0)
+                recent_stats = recent_schedule_map.get(act["id"], {})
+                recent_count = recent_stats.get("recent_count", 0)
+                distinct_days = recent_stats.get("distinct_days", 0)
+                scheduled_today_count = recent_stats.get("scheduled_today_count", 0)
+                days_since_last = recent_stats.get("days_since_last")
 
                 activity_adjustment = 1 + (execution_deficit * 0.3)
                 act["final_weight"] = max(category_weight, 0.1) * activity_adjustment
+                recency_penalty = 1 / (1 + (recent_count * 0.18) + (distinct_days * 0.14))
+                same_day_penalty = 1 / (1 + (scheduled_today_count * 2.25))
+
+                if days_since_last is None:
+                    freshness_bonus = 1.25
+                elif days_since_last >= 7:
+                    freshness_bonus = 1.18
+                elif days_since_last >= 3:
+                    freshness_bonus = 1.08
+                else:
+                    freshness_bonus = 1.0
+
+                act["selection_weight"] = max(
+                    act["final_weight"] * recency_penalty * same_day_penalty * freshness_bonus,
+                    0.05,
+                )
 
             total_weight = DISC_WEIGHT + FUN_WEIGHT
 
@@ -171,45 +261,50 @@ class DailyDisciplineEngine:
 
             disc_used = 0
             fun_used = 0
-
-            disc_index = 0
-            fun_index = 0
+            selected_ids = {act["id"] for act in fixed_time_activities}
 
             turn_disc = True
+            stalled_turns = 0
 
-            while True:
+            while stalled_turns < 2:
+                progressed = False
 
                 if turn_disc:
-                    if disc_index < len(disc_pool) and disc_used < disc_target_minutes:
-                        act = disc_pool[disc_index]
-                        duration = act["min_duration"]
+                    remaining = disc_target_minutes - disc_used
+                    disc_candidates = [
+                        act
+                        for act in disc_pool
+                        if act["id"] not in selected_ids
+                        and act["min_duration"] <= remaining
+                    ]
 
-                        if disc_used + duration <= disc_target_minutes:
-                            final_list.append(act)
-                            disc_used += duration
-
-                        disc_index += 1
+                    if disc_candidates:
+                        act = DailyDisciplineEngine._weighted_pick(rng, disc_candidates)
+                        final_list.append(act)
+                        selected_ids.add(act["id"])
+                        disc_used += act["min_duration"]
+                        progressed = True
 
                     turn_disc = False
 
                 else:
-                    if fun_index < len(fun_pool) and fun_used < fun_target_minutes:
-                        act = fun_pool[fun_index]
-                        duration = act["min_duration"]
+                    remaining = fun_target_minutes - fun_used
+                    fun_candidates = [
+                        act
+                        for act in fun_pool
+                        if act["id"] not in selected_ids
+                        and act["min_duration"] <= remaining
+                    ]
 
-                        if fun_used + duration <= fun_target_minutes:
-                            final_list.append(act)
-                            fun_used += duration
-
-                        fun_index += 1
+                    if fun_candidates:
+                        act = DailyDisciplineEngine._weighted_pick(rng, fun_candidates)
+                        final_list.append(act)
+                        selected_ids.add(act["id"])
+                        fun_used += act["min_duration"]
+                        progressed = True
 
                     turn_disc = True
 
-                if (
-                    (disc_index >= len(disc_pool) or disc_used >= disc_target_minutes)
-                    and
-                    (fun_index >= len(fun_pool) or fun_used >= fun_target_minutes)
-                ):
-                    break
+                stalled_turns = 0 if progressed else (stalled_turns + 1)
 
             return final_list

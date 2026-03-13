@@ -223,7 +223,6 @@ const NotificationsPage = () => {
         <div>
           <span className="notifications-hero-kicker"><Sparkles size={16} /> {'Inbox operacional'}</span>
           <h1>{'Notificações'}</h1>
-          <p>{'Pressão concentrada onde faz diferença, com ações rápidas e snooze sem sair da tela.'}</p>
         </div>
         <button type="button" className="btn btn-secondary" onClick={loadData} disabled={pageState.loading || pushActionState.loading}>
           {pageState.loading ? 'Atualizando...' : 'Atualizar painel'}

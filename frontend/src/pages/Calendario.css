@@ -23,7 +23,6 @@
   padding: clamp(1rem, 1.4vw, 1.35rem);
 }
 
-.calendar-header p,
 .calendar-legend p,
 .calendar-day-panel p,
 .calendar-form-card label,

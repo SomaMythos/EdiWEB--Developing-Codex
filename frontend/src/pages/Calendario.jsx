@@ -155,7 +155,6 @@ const Calendario = () => {
       <header className="calendar-header">
         <div>
           <h1>Calendário</h1>
-          <p>Agenda manual, registros livres e timeline automática do que você concluiu no EDI.</p>
         </div>
         <div className="calendar-month-switcher">
           <button

@@ -843,6 +843,31 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260312_expand_watch",
+        lambda: (
+            column_exists(db, "watch_items", "media_type")
+            and column_exists(db, "watch_items", "status")
+            and column_exists(db, "watch_items", "description")
+            and column_exists(db, "watch_items", "watch_with")
+            and column_exists(db, "watch_items", "total_seasons")
+            and column_exists(db, "watch_items", "total_episodes")
+            and column_exists(db, "watch_items", "current_season")
+            and column_exists(db, "watch_items", "current_episode")
+            and column_exists(db, "watch_items", "started_at")
+            and column_exists(db, "watch_items", "completed_at")
+            and column_exists(db, "watch_items", "last_logged_at")
+            and column_exists(db, "watch_items", "last_log_summary")
+            and column_exists(db, "watch_items", "updated_at")
+            and table_exists(db, "watch_logs")
+            and index_exists(db, "idx_watch_items_status")
+            and index_exists(db, "idx_watch_items_media_type")
+            and index_exists(db, "idx_watch_logs_item_logged_at")
+            and index_exists(db, "idx_watch_logs_logged_at")
+        ),
+        read_migration_sql("20260312_expand_watch.sql"),
+    )
+
+    run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
         "ALTER TABLE user_profile ADD COLUMN gender TEXT",
@@ -994,6 +1019,36 @@ def initialize_database():
 
     db.commit()
     db.close()
+
+
+def reset_database():
+    db_path = _get_edi_storage_dir() / "lifemanager.db"
+    sidecar_paths = [
+        db_path,
+        db_path.with_name(f"{db_path.name}-wal"),
+        db_path.with_name(f"{db_path.name}-shm"),
+        db_path.with_name(f"{db_path.name}-journal"),
+    ]
+
+    gc.collect()
+
+    for target_path in sidecar_paths:
+        if not target_path.exists():
+            continue
+
+        for attempt in range(20):
+            try:
+                target_path.unlink()
+                break
+            except PermissionError:
+                gc.collect()
+                if attempt == 19:
+                    raise
+                time.sleep(0.1 * (attempt + 1))
+
+    initialize_database()
+    return str(db_path)
+
 
 
 

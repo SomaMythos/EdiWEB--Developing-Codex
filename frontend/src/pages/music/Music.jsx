@@ -184,8 +184,7 @@ export default function Music() {
 
   return (
     <>
-      <div className="music-page">
-        <div className="glass-strong music-container">
+      <div className="page-container fade-in music-page">
           <h1 className="music-title">Musica</h1>
 
           <div className="music-tabs">
@@ -205,7 +204,7 @@ export default function Music() {
           </div>
 
           {activeTab === "training" && (
-            <>
+            <div className="music-mode-shell page-shell">
               <div className="music-toolbar">
                 <h2>Treinos</h2>
                 <div className="music-toolbar-actions">
@@ -221,11 +220,11 @@ export default function Music() {
 
               {renderSection("guitar", "🎸 Guitarra")}
               {renderSection("keyboard", "🎹 Teclado")}
-            </>
+            </div>
           )}
 
           {activeTab === "listening" && (
-            <div className="music-library">
+            <div className="music-library music-mode-shell page-shell">
               <div className="library-header">
                 <h2>Biblioteca</h2>
                 <button
@@ -294,7 +293,6 @@ export default function Music() {
               </div>
             </div>
           )}
-        </div>
       </div>
 
       {showArtistModal && (

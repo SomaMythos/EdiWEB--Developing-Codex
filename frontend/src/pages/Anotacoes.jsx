@@ -262,11 +262,6 @@ const Anotacoes = () => {
         <div>
           <span className="notes-header-kicker">{activeTab === 'journal' ? 'Diário' : 'Anotações'}</span>
           <h1>{activeTab === 'journal' ? 'Diário semanal' : 'Anotações'}</h1>
-          <p>
-            {activeTab === 'journal'
-              ? 'Um registro mais calmo e legível da semana atual.'
-              : 'Contextos personalizados, busca e notas organizadas em um só lugar.'}
-          </p>
         </div>
       </header>
 
@@ -275,7 +270,7 @@ const Anotacoes = () => {
       {activeTab === 'notes' ? (
         <div className="notes-shell">
           <aside className="notes-sidebar card">
-            <div className="notes-sidebar-block">
+            <div className="notes-sidebar-block notes-context-shell page-shell">
               <h2>Contextos</h2>
               <button
                 type="button"
@@ -538,61 +533,75 @@ const Anotacoes = () => {
       ) : (
         <div className="journal-shell">
           <aside className="journal-side">
-            <div className="card journal-settings-card">
-              <span className="journal-card-kicker">Lembrete</span>
-              <h2>Configuração</h2>
-              <label className="toggle-row">
-                <span className="journal-setting-label">Notificar semanalmente</span>
-                <input
-                  type="checkbox"
-                  checked={!!journalSettings.enabled}
-                  onChange={(event) =>
-                    setJournalSettings({ ...journalSettings, enabled: event.target.checked })
-                  }
-                />
-              </label>
-              <label className="journal-setting-group">
-                <span className="journal-setting-label">Horário de domingo</span>
-                <div className="time-row">
-                  <Clock3 size={16} />
+            <section className="journal-panel journal-settings-card page-shell">
+              <div className="journal-panel-head">
+                <span className="journal-card-kicker">Lembrete</span>
+                <h2>Lembrete semanal</h2>
+              </div>
+
+              <div className="journal-setting-stack">
+                <label className="journal-setting-row">
+                  <div className="journal-setting-copy">
+                    <span className="journal-setting-label">Notificar semanalmente</span>
+                  </div>
                   <input
-                    type="time"
-                    value={journalSettings.reminder_time}
+                    type="checkbox"
+                    checked={!!journalSettings.enabled}
                     onChange={(event) =>
-                      setJournalSettings({ ...journalSettings, reminder_time: event.target.value })
+                      setJournalSettings({ ...journalSettings, enabled: event.target.checked })
                     }
                   />
-                </div>
-              </label>
+                </label>
+
+                <label className="journal-setting-row journal-setting-row--time">
+                  <div className="journal-setting-copy">
+                    <span className="journal-setting-label">Horário de domingo</span>
+                  </div>
+                  <div className="time-row">
+                    <Clock3 size={16} />
+                    <input
+                      type="time"
+                      value={journalSettings.reminder_time}
+                      onChange={(event) =>
+                        setJournalSettings({ ...journalSettings, reminder_time: event.target.value })
+                      }
+                    />
+                  </div>
+                </label>
+              </div>
+
               <button type="button" className="btn btn-secondary" onClick={handleSaveJournalSettings}>
                 <Save size={16} /> Salvar horário
               </button>
-            </div>
+            </section>
 
-            <div className="card journal-history-card">
-              <span className="journal-card-kicker">Arquivo</span>
-              <h2>Semanas anteriores</h2>
-              <p className="journal-card-copy">Registros salvos para referência rápida.</p>
+            <section className="journal-panel journal-history-card page-shell">
+              <div className="journal-panel-head">
+                <span className="journal-card-kicker">Arquivo</span>
+                <h2>Semanas anteriores</h2>
+              </div>
               {journalHistory.length === 0 ? (
-                <p>Nenhum diário salvo ainda.</p>
+                <p className="journal-empty-copy">Nenhum diário salvo ainda.</p>
               ) : (
-                journalHistory.map((entry) => (
-                  <div key={entry.id} className="journal-history-row">
-                    <div>
-                      <strong>{entry.title}</strong>
-                      <p>
-                        {entry.week_start} até {entry.week_end}
-                      </p>
+                <div className="journal-history-list">
+                  {journalHistory.map((entry) => (
+                    <div key={entry.id} className="journal-history-row">
+                      <div>
+                        <strong>{entry.title}</strong>
+                        <p>
+                          {entry.week_start} até {entry.week_end}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
-            </div>
+            </section>
           </aside>
 
-          <form className="card journal-editor" onSubmit={handleSaveJournal}>
+          <form className="journal-editor page-shell" onSubmit={handleSaveJournal}>
             <div className="journal-editor-head">
-              <div>
+              <div className="journal-editor-meta">
                 <span className="journal-editor-kicker">Semana em foco</span>
                 <h2>{currentJournal.week.label || 'Semana atual'}</h2>
                 <p>
@@ -602,19 +611,21 @@ const Anotacoes = () => {
               {currentJournal.pending ? <span className="journal-pending-badge">Pendente</span> : null}
             </div>
 
-            <input
-              type="text"
-              value={journalForm.title}
-              onChange={(event) => setJournalForm({ ...journalForm, title: event.target.value })}
-              placeholder={`Ex: Semana ${currentJournal.week.label}`}
-            />
+            <div className="journal-editor-fields">
+              <input
+                type="text"
+                value={journalForm.title}
+                onChange={(event) => setJournalForm({ ...journalForm, title: event.target.value })}
+                placeholder={`Ex: Semana ${currentJournal.week.label}`}
+              />
 
-            <textarea
-              rows={16}
-              value={journalForm.content}
-              onChange={(event) => setJournalForm({ ...journalForm, content: event.target.value })}
-              placeholder="Como foi a semana? O que avançou, o que travou, o que ficou marcado?"
-            />
+              <textarea
+                rows={16}
+                value={journalForm.content}
+                onChange={(event) => setJournalForm({ ...journalForm, content: event.target.value })}
+                placeholder="Como foi a semana? O que avançou, o que travou, o que ficou marcado?"
+              />
+            </div>
 
             <div className="journal-editor-footer">
               <span>Escreva com calma. Você pode revisar e atualizar depois.</span>
