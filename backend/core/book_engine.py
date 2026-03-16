@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from data.database import Database
 
 
@@ -74,12 +75,11 @@ class BookEngine:
                     total_pages,
                     genre,
                     cover_image,
-                    datetime.now().isoformat(timespec="seconds"),
+                    None,
                 ),
             )
             return db.lastrowid
 
-    # 🔥 MÉTODO NOVO – DELETE DEFINITIVO
     @staticmethod
     def delete_book(book_id):
         with Database() as db:
@@ -87,7 +87,6 @@ class BookEngine:
             if not book:
                 return False
 
-            # Remove sessões primeiro (integridade)
             db.execute("DELETE FROM reading_sessions WHERE book_id = ?", (book_id,))
             db.execute("DELETE FROM books WHERE id = ?", (book_id,))
             return True
@@ -116,10 +115,12 @@ class BookEngine:
 
             new_current = min(end_page, total_pages or end_page)
             status = "concluido" if (total_pages and new_current >= total_pages) else (book["status"] or "lendo")
-            finished_at = now if status == "concluido" else None
+            started_at = book["started_at"] or (now if pages_read > 0 else None)
+            finished_at = now if status == "concluido" else book["finished_at"]
+
             db.execute(
-                "UPDATE books SET current_page = ?, status = ?, finished_at = COALESCE(?, finished_at) WHERE id = ?",
-                (new_current, status, finished_at, book_id),
+                "UPDATE books SET current_page = ?, status = ?, started_at = ?, finished_at = ? WHERE id = ?",
+                (new_current, status, started_at, finished_at, book_id),
             )
         return True
 
@@ -138,7 +139,9 @@ class BookEngine:
                     rs.end_page,
                     rs.duration,
                     COALESCE(rs.read_at, rs.date || 'T00:00:00') AS read_at,
-                    rs.notes
+                    rs.notes,
+                    b.started_at AS book_started_at,
+                    b.finished_at AS book_finished_at
                 FROM reading_sessions rs
                 JOIN books b ON b.id = rs.book_id
                 LEFT JOIN book_types bt ON bt.id = b.book_type_id
@@ -225,7 +228,24 @@ class BookEngine:
             books = db.fetchall("SELECT id, status, current_page FROM books")
             pages_this_month = db.fetchone(
                 """
-                SELECT COALESCE(SUM(pages_read), 0) as total_pages
+                SELECT COALESCE(SUM(pages_read), 0) AS total_pages
+                FROM reading_sessions
+                WHERE date(COALESCE(read_at, date)) >= date('now', 'start of month')
+                """
+            )
+            sessions_summary = db.fetchone(
+                """
+                SELECT
+                    COUNT(*) AS total_sessions,
+                    ROUND(COALESCE(AVG(NULLIF(pages_read, 0)), 0), 2) AS avg_pages_per_session
+                FROM reading_sessions
+                """
+            )
+            month_summary = db.fetchone(
+                """
+                SELECT
+                    COUNT(*) AS sessions_this_month,
+                    ROUND(COALESCE(AVG(NULLIF(pages_read, 0)), 0), 2) AS avg_pages_per_session_month
                 FROM reading_sessions
                 WHERE date(COALESCE(read_at, date)) >= date('now', 'start of month')
                 """
@@ -244,4 +264,8 @@ class BookEngine:
             "total_books": len(books),
             "status_counts": status_counts,
             "pages_this_month": pages_this_month["total_pages"] if pages_this_month else 0,
+            "total_sessions": sessions_summary["total_sessions"] if sessions_summary else 0,
+            "avg_pages_per_session": sessions_summary["avg_pages_per_session"] if sessions_summary else 0,
+            "sessions_this_month": month_summary["sessions_this_month"] if month_summary else 0,
+            "avg_pages_per_session_month": month_summary["avg_pages_per_session_month"] if month_summary else 0,
         }

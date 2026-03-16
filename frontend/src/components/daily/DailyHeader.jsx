@@ -1,4 +1,5 @@
 import React from "react";
+import { Settings } from "lucide-react";
 import "./DailyHeader.css";
 import { formatDuration } from "../../hooks/daily/utils";
 
@@ -14,8 +15,8 @@ export default function DailyHeader({
   onGenerate,
   onToggleDay,
   onOpenConfig,
-  onOpenRoutines,
   onOpenActivities,
+  onOpenCounters,
   actionState
 }) {
   return (
@@ -23,9 +24,14 @@ export default function DailyHeader({
       <div className="daily-header__left">
         <h2 className="daily-header__title">Visão do dia</h2>
 
-        <div className={`daily-header__badge ${dayType === "work" ? "work" : "off"}`}>
+        <button
+          type="button"
+          className={`daily-header__badge ${dayType === "work" ? "work" : "off"}`}
+          onClick={onToggleDay}
+          title={dayType === "work" ? "Trocar para off day" : "Trocar para work day"}
+        >
           {dayType === "work" ? "WORK DAY" : "OFF DAY"}
-        </div>
+        </button>
 
         <div className="daily-header__progress-container">
           <div
@@ -41,7 +47,7 @@ export default function DailyHeader({
         {blocks.length > 0 && (
           <div className="daily-header__summary-card">
             <div>
-              <div className="daily-header__summary-label">Total Planejado</div>
+              <div className="daily-header__summary-label">Total planejado</div>
               <div className="daily-header__summary-value">
                 {formatDuration(totalDuration)}
               </div>
@@ -68,45 +74,31 @@ export default function DailyHeader({
         <input
           type="date"
           value={selectedDate}
-          onChange={e => onDateChange(e.target.value)}
+          onChange={(e) => onDateChange(e.target.value)}
           className="daily-input"
         />
 
         <div className="daily-header__actions">
-          <button
-            onClick={onGenerate}
-            className="btn btn-primary"
-            disabled={generating}
-          >
+          <button onClick={onGenerate} className="btn btn-primary" disabled={generating}>
             {generating ? "Gerando..." : "Gerar dia"}
           </button>
 
-          <button
-            onClick={onToggleDay}
-            className="btn btn-secondary"
-          >
-            Alternar tipo de dia
+          <button onClick={onOpenActivities} className="btn btn-secondary daily-header__activities-button">
+            Atividades
+          </button>
+
+          <button onClick={onOpenCounters} className="btn btn-secondary daily-header__activities-button">
+            Contadores
           </button>
 
           <button
             onClick={onOpenConfig}
-            className="btn btn-ghost"
+            className="daily-header__settings-button"
+            title="Configurações do dia"
+            aria-label="Configurações do dia"
+            type="button"
           >
-            Configuração
-          </button>
-
-          <button
-            onClick={onOpenRoutines}
-            className="btn btn-ghost"
-          >
-            Rotinas
-          </button>
-
-          <button
-            onClick={onOpenActivities}
-            className="btn btn-ghost"
-          >
-            Atividades
+            <Settings size={22} strokeWidth={2.1} />
           </button>
         </div>
       </div>

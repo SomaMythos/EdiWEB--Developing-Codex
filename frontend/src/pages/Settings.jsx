@@ -8,6 +8,7 @@ import {
   FileText,
   Image,
   Monitor,
+  Palette,
   Power,
   Save,
   TrendingDown,
@@ -19,6 +20,7 @@ import {
   loadSoundPreferences,
   saveSoundPreferences,
 } from '../services/notificationSound';
+import { useThemeSkin } from '../theme/ThemeSkinProvider';
 import './Settings.css';
 
 const notificationFeatures = [
@@ -31,6 +33,7 @@ const notificationFeatures = [
 ];
 
 const Settings = () => {
+  const { skin, setSkin } = useThemeSkin();
   const [profile, setProfile] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [profileForm, setProfileForm] = useState({
@@ -327,6 +330,33 @@ const Settings = () => {
       </header>
 
       <div className="settings-grid">
+        <div className="appearance-section card">
+          <div className="section-header">
+            <Palette size={24} />
+            <h2>Aparência</h2>
+          </div>
+
+          <div className="skin-switcher">
+            <button
+              type="button"
+              className={`skin-option ${skin === 'legacy' ? 'active' : ''}`}
+              onClick={() => setSkin('legacy')}
+            >
+              <strong>Legacy</strong>
+              <span>Snapshot travado do visual atual</span>
+            </button>
+
+            <button
+              type="button"
+              className={`skin-option ${skin === 'custom' ? 'active' : ''}`}
+              onClick={() => setSkin('custom')}
+            >
+              <strong>Custom</strong>
+              <span>Camada separada para evoluir a nova skin</span>
+            </button>
+          </div>
+        </div>
+
         <div className="profile-section card">
           <div className="section-header">
             <User size={24} />
@@ -643,7 +673,7 @@ const Settings = () => {
               <div>
                 <p className="notification-feature-title">Executar ao iniciar o Windows</p>
                 <p className="notification-feature-desc">
-                  Inicia backend e frontend em segundo plano e abre automaticamente o app no navegador padrão.
+                  Inicia backend e frontend em segundo plano, abre automaticamente o app no navegador padrão e mantém acesso pela bandeja do sistema.
                 </p>
               </div>
               <label className="switch">
@@ -661,7 +691,7 @@ const Settings = () => {
               <div>
                 <p className="notification-feature-title">Atalho silencioso na área de Trabalho</p>
                 <p className="notification-feature-desc">
-                  O atalho usa o ícone do projeto e abre {systemIntegration?.launch_url || 'http://localhost:3000'} sem mostrar janelas de prompt.
+                  O atalho usa o ícone do projeto, abre {systemIntegration?.launch_url || 'http://localhost:3000'} sem mostrar janelas de prompt e mantém o app acessível pela bandeja do sistema.
                 </p>
                 {systemIntegration?.desktop_shortcut_path && (
                   <p className="integration-meta">{systemIntegration.desktop_shortcut_path}</p>
@@ -686,7 +716,7 @@ const Settings = () => {
                 <a href={systemIntegration?.launch_url || 'http://localhost:3000'} target="_blank" rel="noreferrer">
                   {systemIntegration?.launch_url || 'http://localhost:3000'}
                 </a>
-                .
+                {' '}e o controle do app ficará disponível pela bandeja do sistema.
               </span>
             </div>
           </div>

@@ -6,7 +6,7 @@ import Goals from './pages/Goals';
 import Financeiro from './pages/Financeiro';
 import Calendario from './pages/Calendario';
 import Settings from './pages/Settings';
-import Dashboard from './pages/Dashboard';
+import HomePage from './pages/Home';
 import Books from './pages/Books';
 import HobbyVisualArts from './pages/HobbyVisualArts';
 import NotificationsPage from './pages/Notifications';
@@ -55,7 +55,7 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/daily" element={<Daily />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/financeiro" element={<Financeiro />} />

@@ -14,6 +14,22 @@ class GoalEngine:
     GOAL_MODES = {"simple", "milestones"}
 
     @staticmethod
+    def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _is_older_than_threshold(value: Optional[str]) -> bool:
+        reference = GoalEngine._parse_datetime(value)
+        if reference is None:
+            return False
+        return datetime.now() - reference > timedelta(days=GoalEngine.STALE_DAYS_THRESHOLD)
+
+    @staticmethod
     def _normalize_goal_mode(value: Optional[str]) -> str:
         normalized = (value or "simple").strip().lower()
         return normalized if normalized in GoalEngine.GOAL_MODES else "simple"
@@ -133,6 +149,7 @@ class GoalEngine:
     def _serialize_goal(row: Any, db: Database, include_milestones: bool = False) -> Dict[str, Any]:
         item = dict(row)
         item["goal_mode"] = GoalEngine._normalize_goal_mode(item.get("goal_mode"))
+        item["notifications_enabled"] = bool(item.get("notifications_enabled", 1))
         progress = GoalEngine.get_progress_snapshot(item["id"], db=db, goal=item)
         item["progress_snapshot"] = progress
         item["progress"] = f"{progress['percentage']}%"
@@ -165,6 +182,7 @@ class GoalEngine:
                     g.difficulty,
                     g.category_id,
                     g.image_path,
+                    g.notifications_enabled,
                     g.completed_at,
                     g.created_at,
                     g.goal_mode
@@ -182,7 +200,7 @@ class GoalEngine:
         try:
             row = db.fetchone(
                 """
-                SELECT id, title, description, status, deadline, difficulty, category_id, image_path, completed_at, created_at, goal_mode
+                SELECT id, title, description, status, deadline, difficulty, category_id, image_path, notifications_enabled, completed_at, created_at, goal_mode
                 FROM goals
                 WHERE id = ?
                 """,
@@ -196,31 +214,31 @@ class GoalEngine:
                 db.close()
 
     @staticmethod
-    def create_goal(title: str, description: Optional[str] = None, deadline: Optional[str] = None, difficulty: int = 1, category_id: Optional[int] = None, image_path: Optional[str] = None, goal_mode: str = "simple", milestones: Optional[List[Dict[str, Any]]] = None) -> int:
+    def create_goal(title: str, description: Optional[str] = None, deadline: Optional[str] = None, difficulty: int = 1, category_id: Optional[int] = None, image_path: Optional[str] = None, goal_mode: str = "simple", milestones: Optional[List[Dict[str, Any]]] = None, notifications_enabled: bool = True) -> int:
         normalized_mode = GoalEngine._normalize_goal_mode(goal_mode)
         with Database() as db:
             db.execute(
                 """
-                INSERT INTO goals (title, description, deadline, difficulty, category_id, image_path, goal_mode)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO goals (title, description, deadline, difficulty, category_id, image_path, goal_mode, notifications_enabled)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (title, description, deadline if deadline else None, difficulty, category_id, image_path, normalized_mode),
+                (title, description, deadline if deadline else None, difficulty, category_id, image_path, normalized_mode, 1 if notifications_enabled else 0),
             )
             goal_id = db.lastrowid
             GoalEngine.sync_milestones(goal_id, milestones or [], db=db)
             return goal_id
 
     @staticmethod
-    def update_goal(goal_id: int, title: str, description: Optional[str] = None, deadline: Optional[str] = None, difficulty: int = 1, category_id: Optional[int] = None, image_path: Optional[str] = None, goal_mode: str = "simple", milestones: Optional[List[Dict[str, Any]]] = None) -> bool:
+    def update_goal(goal_id: int, title: str, description: Optional[str] = None, deadline: Optional[str] = None, difficulty: int = 1, category_id: Optional[int] = None, image_path: Optional[str] = None, goal_mode: str = "simple", milestones: Optional[List[Dict[str, Any]]] = None, notifications_enabled: bool = True) -> bool:
         normalized_mode = GoalEngine._normalize_goal_mode(goal_mode)
         with Database() as db:
             db.execute(
                 """
                 UPDATE goals
-                SET title = ?, description = ?, deadline = ?, difficulty = ?, category_id = ?, image_path = COALESCE(?, image_path), goal_mode = ?
+                SET title = ?, description = ?, deadline = ?, difficulty = ?, category_id = ?, image_path = COALESCE(?, image_path), goal_mode = ?, notifications_enabled = ?
                 WHERE id = ? AND status != 'concluida'
                 """,
-                (title, description, deadline if deadline else None, difficulty, category_id, image_path, normalized_mode, goal_id),
+                (title, description, deadline if deadline else None, difficulty, category_id, image_path, normalized_mode, 1 if notifications_enabled else 0, goal_id),
             )
             updated = db.execute("SELECT changes() AS c").fetchone()[0] > 0
             if not updated:
@@ -364,26 +382,39 @@ class GoalEngine:
         goal = GoalEngine.get_goal(goal_id, include_milestones=False)
         if not goal or goal.get("status") != "ativa":
             return False
+        if not goal.get("notifications_enabled", True):
+            return False
+
+        created_at = goal.get("created_at")
+        created_is_old_enough = GoalEngine._is_older_than_threshold(created_at)
+
         if goal.get("goal_mode") == "milestones":
             milestones = GoalEngine.list_milestones(goal_id)
             if not milestones:
-                return True
-            completed_dates = [datetime.fromisoformat(item["completed_at"]) for item in milestones if item.get("is_completed") and item.get("completed_at")]
+                return created_is_old_enough
+            completed_dates = [
+                GoalEngine._parse_datetime(item.get("completed_at"))
+                for item in milestones
+                if item.get("is_completed") and item.get("completed_at")
+            ]
+            completed_dates = [item for item in completed_dates if item is not None]
             if not completed_dates:
-                return True
+                return created_is_old_enough
             return datetime.now() - max(completed_dates) > timedelta(days=GoalEngine.STALE_DAYS_THRESHOLD)
 
         activities = GoalEngine.list_linked_activities(goal_id)
         if not activities:
-            return True
+            return created_is_old_enough
         with Database() as db:
             row = db.fetchone(
                 f"SELECT MAX(d.timestamp) AS last_action FROM daily_activity_logs d WHERE d.completed = 1 AND d.activity_id IN ({','.join('?' * len(activities))})",
                 tuple(activities),
             )
         if not row or not row["last_action"]:
-            return True
-        last_action = datetime.fromisoformat(row["last_action"])
+            return created_is_old_enough
+        last_action = GoalEngine._parse_datetime(row["last_action"])
+        if last_action is None:
+            return created_is_old_enough
         return datetime.now() - last_action > timedelta(days=GoalEngine.STALE_DAYS_THRESHOLD)
 
     @staticmethod
@@ -414,7 +445,7 @@ class GoalEngine:
     def list_goals_by_category(category_id: int):
         with Database() as db:
             rows = db.fetchall(
-                "SELECT id, title, description, status, deadline, difficulty, created_at, completed_at, image_path, goal_mode, category_id FROM goals WHERE category_id = ? ORDER BY created_at DESC",
+                "SELECT id, title, description, status, deadline, difficulty, created_at, completed_at, image_path, goal_mode, category_id, notifications_enabled FROM goals WHERE category_id = ? ORDER BY created_at DESC",
                 (category_id,),
             )
             return [GoalEngine._serialize_goal(row, db, include_milestones=True) for row in rows]

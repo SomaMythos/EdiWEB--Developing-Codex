@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellRing, Clock3, Plus, Send, Sparkles } from 'lucide-react';
 import { notificationsApi } from '../services/api';
@@ -24,6 +24,7 @@ const INITIAL_FORM = {
 };
 const PUSH_FILTERS = ['all', 'sent', 'failed', 'receipt_ok', 'receipt_error', 'dry_run'];
 const INBOX_FILTERS = ['all', 'critical', 'warning', 'info', 'success', 'neutral'];
+const VIEW_MODES = ['inbox', 'compose', 'push'];
 
 const sortInbox = (items) => {
   const severityRank = { critical: 0, warning: 1, info: 2, success: 3, neutral: 4 };
@@ -38,8 +39,14 @@ const sortInbox = (items) => {
   });
 };
 
-const NotificationsPage = () => {
+const isCustomNotification = (notification) => (
+  (notification.notification_type || notification.type) === 'custom_notification'
+  && notification.source_feature === 'custom'
+);
+
+export default function NotificationsPage() {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState('inbox');
   const [notifications, setNotifications] = useState([]);
   const [devices, setDevices] = useState([]);
   const [pushDeliveries, setPushDeliveries] = useState([]);
@@ -72,7 +79,7 @@ const NotificationsPage = () => {
     } catch (error) {
       setPageState({
         loading: false,
-        error: error?.response?.data?.detail || 'Falha ao carregar o painel de notificações.',
+        error: error?.response?.data?.detail || 'Falha ao carregar notificações.',
       });
     }
   };
@@ -119,11 +126,13 @@ const NotificationsPage = () => {
     }
 
     setForm(INITIAL_FORM);
+    setViewMode('inbox');
     await loadData();
   };
 
   const startEditing = (notification) => {
     setEditingId(notification.id);
+    setViewMode('compose');
     setForm({
       title: notification.title || '',
       message: notification.message || '',
@@ -212,219 +221,303 @@ const NotificationsPage = () => {
     devices: devices.length,
   }), [devices.length, notifications]);
 
-  const isCustomNotification = (notification) => (
-    (notification.notification_type || notification.type) === 'custom_notification'
-    && notification.source_feature === 'custom'
-  );
-
   return (
-    <div className="page-container fade-in reminders-page notifications-upgrade-page">
-      <section className="notifications-hero glass-strong">
+    <div className="page-container fade-in notifications-page-shell">
+      <section className="notifications-page-head page-shell">
         <div>
-          <span className="notifications-hero-kicker"><Sparkles size={16} /> {'Inbox operacional'}</span>
-          <h1>{'Notificações'}</h1>
+          <span className="notifications-head-kicker">Notificações</span>
+          <h1>Inbox do sistema</h1>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={loadData} disabled={pageState.loading || pushActionState.loading}>
-          {pageState.loading ? 'Atualizando...' : 'Atualizar painel'}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={loadData}
+          disabled={pageState.loading || pushActionState.loading}
+        >
+          {pageState.loading ? 'Atualizando...' : 'Atualizar'}
         </button>
       </section>
 
-      <section className="notifications-summary-grid">
-        <article className="notification-summary-card glass-strong">
+      <section className="notifications-mini-stats">
+        <article className="notifications-mini-pill page-shell">
           <span>Unread</span>
           <strong>{summary.unread}</strong>
-          <p>{'Itens ainda pedindo resposta.'}</p>
         </article>
-        <article className="notification-summary-card glass-strong is-critical">
-          <span>{'Críticas'}</span>
+        <article className="notifications-mini-pill page-shell is-critical">
+          <span>Críticas</span>
           <strong>{summary.critical}</strong>
-          <p>{'Pressão real do sistema agora.'}</p>
         </article>
-        <article className="notification-summary-card glass-strong">
-          <span>{'Agendadas'}</span>
+        <article className="notifications-mini-pill page-shell">
+          <span>Agendadas</span>
           <strong>{summary.scheduled}</strong>
-          <p>{'Notificações com horário definido.'}</p>
         </article>
-        <article className="notification-summary-card glass-strong">
+        <article className="notifications-mini-pill page-shell">
           <span>Devices</span>
           <strong>{summary.devices}</strong>
-          <p>{'Dispositivos móveis ativos.'}</p>
         </article>
       </section>
 
-      {pageState.error ? <p className="form-error">{pageState.error}</p> : null}
-
-      <section className="notifications-main-grid">
-        <div className="notifications-inbox-column glass-strong">
-          <div className="section-toolbar">
-            <div>
-              <h2><BellRing size={18} /> {'Inbox acionável'}</h2>
-              <p>{filteredNotifications.length} {'item(ns) visível(is) no filtro atual.'}</p>
-            </div>
-            <div className="notifications-toolbar-actions">
-              <select className="input" value={inboxFilter} onChange={(event) => setInboxFilter(event.target.value)}>
-                {INBOX_FILTERS.map((filter) => <option key={filter} value={filter}>{filter === 'all' ? 'Todas severidades' : filter}</option>)}
-              </select>
-              <label className="checkbox-row">
-                <input type="checkbox" checked={showOnlyUnread} onChange={(event) => setShowOnlyUnread(event.target.checked)} />
-                <span>{'Apenas não lidas'}</span>
-              </label>
-              <label className="checkbox-row">
-                <input type="checkbox" checked={showFuture} onChange={(event) => setShowFuture(event.target.checked)} />
-                <span>{'Mostrar futuras'}</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="notifications-bulk-bar">
-            <span>{'Use o inbox como triagem rápida quando quiser limpar volume.'}</span>
-            <div className="notifications-form-actions">
-              <button type="button" className="btn btn-secondary btn-sm" disabled={bulkLoading || filteredNotifications.length === 0} onClick={() => handleBulkAction('read')}>
-                {'Marcar visíveis como lidas'}
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={bulkLoading || filteredNotifications.length === 0} onClick={() => handleBulkAction('completed')}>
-                {'Concluir visíveis'}
-              </button>
-            </div>
-          </div>
-
-          <div className="notifications-inbox-list">
-            {filteredNotifications.length === 0 ? <p className="review-empty">{'Nenhuma notificação nesse filtro.'}</p> : null}
-            {filteredNotifications.map((notification) => {
-              const details = buildNotificationMeta(notification);
-              return (
-                <article key={notification.id} className={`notification-upgrade-card severity-${notification.severity}`}>
-                  <div className="notification-upgrade-topline">
-                    <div>
-                      <strong>{notification.title || 'Notificação'}</strong>
-                      <p>{notification.message}</p>
-                    </div>
-                    <span className={`notification-status-pill status-${notification.severity}`}>{notification.severity}</span>
-                  </div>
-
-                  <div className="notification-upgrade-meta">
-                    <span>{formatNotificationTimestamp(notification.scheduled_for || notification.created_at)}</span>
-                    <span>{notification.status}</span>
-                    {notification.is_due === false ? <span>{'agendada'}</span> : <span>{'ativa agora'}</span>}
-                    {details.map((detail) => <span key={detail}>{detail}</span>)}
-                  </div>
-
-                  <div className="notifications-form-actions">
-                    <button type="button" className="btn btn-primary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'open')}>
-                      {getNotificationOpenLabel(notification)}
-                    </button>
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'snooze')}>
-                      <Clock3 size={14} /> {'Adiar '}{getNotificationSnoozeMinutes(notification)}m
-                    </button>
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'read')}>
-                      {'Marcar lida'}
-                    </button>
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={actionLoadingId === notification.id} onClick={() => handleInboxAction(notification, 'complete')}>
-                      {'Concluir'}
-                    </button>
-                    {isCustomNotification(notification) ? (
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEditing(notification)}>
-                        {'Editar'}
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+      <section className="notifications-mode-shell page-shell">
+        <div className="notifications-mode-toggle">
+          {VIEW_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={viewMode === mode ? 'active' : ''}
+              onClick={() => setViewMode(mode)}
+            >
+              {mode === 'inbox' ? 'Inbox' : mode === 'compose' ? 'Criar' : 'Push'}
+            </button>
+          ))}
         </div>
 
-        <div className="notifications-side-column">
-          <form onSubmit={handleSubmit} className="glass-strong notifications-compose-card notifications-form-grid">
-            <div className="section-toolbar">
-              <div>
-                <h2><Plus size={18} /> {'Notificação personalizada'}</h2>
-                <p>{'Crie lembretes manuais com severidade e horário.'}</p>
-              </div>
-            </div>
-            <input className="input" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} placeholder={'Título da notificação'} required />
-            <textarea className="input" value={form.message} onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))} placeholder={'Descrição / mensagem'} maxLength={MAX_MESSAGE_LENGTH} />
-            <input type="datetime-local" className="input" value={form.scheduled_for} onChange={(e) => setForm((current) => ({ ...current, scheduled_for: e.target.value }))} />
-            <select className="input" value={form.severity} onChange={(e) => setForm((current) => ({ ...current, severity: e.target.value }))}>
-              <option value="info">{'Informativa'}</option>
-              <option value="success">{'Sucesso'}</option>
-              <option value="warning">{'Aviso'}</option>
-              <option value="critical">{'Crítica'}</option>
-              <option value="neutral">{'Neutra'}</option>
-            </select>
-            <select className="input" value={form.color_token} onChange={(e) => setForm((current) => ({ ...current, color_token: e.target.value }))}>
-              <option value="">{'Cor padrão'}</option>
-              <option value="primary">{'Primária'}</option>
-              <option value="accent">{'Destaque'}</option>
-              <option value="success">{'Sucesso'}</option>
-              <option value="warning">{'Aviso'}</option>
-              <option value="danger">{'Perigo'}</option>
-            </select>
-            <select className="input" value={form.sound_key} onChange={(e) => setForm((current) => ({ ...current, sound_key: e.target.value }))}>
-              <option value="">{'Sem som'}</option>
-              <option value="default">{'Padrão'}</option>
-              <option value="soft_chime">{'Toque suave'}</option>
-              <option value="urgent_ping">{'Toque urgente'}</option>
-            </select>
-            {formError ? <p className="form-error">{formError}</p> : null}
-            <div className="notifications-form-actions">
-              <button className="btn btn-primary">{editingId ? 'Salvar edição' : 'Criar notificação'}</button>
-              {editingId ? <button type="button" className="btn btn-secondary" onClick={cancelEditing}>{'Cancelar'}</button> : null}
-            </div>
-          </form>
+        {pageState.error ? <p className="form-error">{pageState.error}</p> : null}
 
-          <div className="glass-strong push-ops-card">
-            <div className="section-toolbar">
-              <div>
-                <h2><Send size={18} /> {'Operação de push'}</h2>
-                <p>{devices.length} {'device(s) ativos conectados ao backend.'}</p>
-              </div>
-              <select className="input push-status-filter" value={pushStatusFilter} onChange={(e) => setPushStatusFilter(e.target.value)}>
-                {PUSH_FILTERS.map((status) => <option key={status} value={status}>{status === 'all' ? 'Todos os receipts' : status}</option>)}
-              </select>
-            </div>
-
-            <div className="push-ops-actions">
-              <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: true }), 'Dry run executado')}>Dry run</button>
-              <button type="button" className="btn btn-primary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: false }), 'Dispatch executado')}>{'Disparar push'}</button>
-              <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.refreshPushReceipts({}), 'Receipts atualizados')}>{'Atualizar receipts'}</button>
-            </div>
-
-            {pushActionState.message ? <p className="push-ops-message">{pushActionState.message}</p> : null}
-            {pushActionState.error ? <p className="form-error">{pushActionState.error}</p> : null}
-
-            <div className="push-device-list">
-              {devices.length === 0 ? <p>{'Nenhum device ativo registrado.'}</p> : null}
-              {devices.map((device) => (
-                <div key={device.id} className="push-device-row">
-                  <div>
-                    <strong>{device.device_name || 'Device sem nome'}</strong>
-                    <div className="notification-meta">{device.platform} - {device.device_token}</div>
-                    <div className="notification-meta">{'Atualizado em '}{device.updated_at || device.created_at || 'n/d'}</div>
-                  </div>
-                  <button type="button" className="btn btn-danger" disabled={pushActionState.loading} onClick={() => handleDeviceRemoval(device.device_token)}>
-                    {'Remover'}
+        {viewMode === 'inbox' ? (
+          <div className="notifications-focus-shell">
+            <div className="notifications-inbox-toolbar">
+              <div className="notifications-filter-row">
+                {INBOX_FILTERS.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={`notifications-filter-chip ${inboxFilter === filter ? 'active' : ''}`}
+                    onClick={() => setInboxFilter(filter)}
+                  >
+                    {filter === 'all' ? 'Todas' : filter}
                   </button>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="notifications-inbox-actions">
+                <label className="checkbox-row">
+                  <input type="checkbox" checked={showOnlyUnread} onChange={(event) => setShowOnlyUnread(event.target.checked)} />
+                  <span>Não lidas</span>
+                </label>
+                <label className="checkbox-row">
+                  <input type="checkbox" checked={showFuture} onChange={(event) => setShowFuture(event.target.checked)} />
+                  <span>Futuras</span>
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={bulkLoading || filteredNotifications.length === 0}
+                  onClick={() => handleBulkAction('read')}
+                >
+                  Ler visíveis
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={bulkLoading || filteredNotifications.length === 0}
+                  onClick={() => handleBulkAction('completed')}
+                >
+                  Concluir visíveis
+                </button>
+              </div>
             </div>
 
-            <div className="push-device-list">
-              {pushDeliveries.map((delivery) => (
-                <div key={delivery.id} className="push-delivery-row">
-                  <div>
-                    <strong>{delivery.notification_title || 'Push'}</strong>
-                    <div className="notification-meta">{delivery.status} - {delivery.platform} - {delivery.device_name || delivery.device_token}</div>
-                    {delivery.error_message ? <div className="push-error-text">{delivery.error_message}</div> : null}
-                  </div>
-                </div>
-              ))}
+            <div className="notifications-inbox-stack">
+              {filteredNotifications.length === 0 ? <p className="notifications-empty">Nada nesse filtro.</p> : null}
+              {filteredNotifications.map((notification) => {
+                const severity = getNotificationSeverity(notification);
+                const details = buildNotificationMeta(notification);
+                return (
+                  <article key={notification.id} className={`notification-inbox-row severity-${severity}`}>
+                    <div className="notification-inbox-copy">
+                      <div className="notification-inbox-headline">
+                        <strong>{notification.title || 'Notificação'}</strong>
+                        <span>{formatNotificationTimestamp(notification.scheduled_for || notification.created_at)}</span>
+                      </div>
+                      {notification.message ? <p>{notification.message}</p> : null}
+                      <div className="notification-inbox-meta">
+                        <span>{notification.status}</span>
+                        <span>{notification.is_due === false ? 'Agendada' : 'Agora'}</span>
+                        {details.map((detail) => <span key={detail}>{detail}</span>)}
+                      </div>
+                    </div>
+
+                    <div className="notification-inbox-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={actionLoadingId === notification.id}
+                        onClick={() => handleInboxAction(notification, 'open')}
+                      >
+                        {getNotificationOpenLabel(notification)}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={actionLoadingId === notification.id}
+                        onClick={() => handleInboxAction(notification, 'snooze')}
+                      >
+                        <Clock3 size={14} /> {getNotificationSnoozeMinutes(notification)}m
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={actionLoadingId === notification.id}
+                        onClick={() => handleInboxAction(notification, 'read')}
+                      >
+                        Lida
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={actionLoadingId === notification.id}
+                        onClick={() => handleInboxAction(notification, 'complete')}
+                      >
+                        Concluir
+                      </button>
+                      {isCustomNotification(notification) ? (
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEditing(notification)}>
+                          Editar
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
-        </div>
+        ) : null}
+
+        {viewMode === 'compose' ? (
+          <div className="notifications-compose-shell">
+            <form onSubmit={handleSubmit} className="notifications-compose-card page-shell">
+              <div className="notifications-section-head">
+                <h2><Plus size={18} /> {editingId ? 'Editar notificação' : 'Nova notificação'}</h2>
+              </div>
+
+              <div className="notifications-form-grid">
+                <input
+                  className="input"
+                  value={form.title}
+                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                  placeholder="Título"
+                  required
+                />
+                <textarea
+                  className="input"
+                  value={form.message}
+                  onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+                  placeholder="Mensagem"
+                  maxLength={MAX_MESSAGE_LENGTH}
+                />
+                <input
+                  type="datetime-local"
+                  className="input"
+                  value={form.scheduled_for}
+                  onChange={(event) => setForm((current) => ({ ...current, scheduled_for: event.target.value }))}
+                />
+                <div className="notifications-compose-grid">
+                  <select className="input" value={form.severity} onChange={(event) => setForm((current) => ({ ...current, severity: event.target.value }))}>
+                    <option value="info">Informativa</option>
+                    <option value="success">Sucesso</option>
+                    <option value="warning">Aviso</option>
+                    <option value="critical">Crítica</option>
+                    <option value="neutral">Neutra</option>
+                  </select>
+                  <select className="input" value={form.color_token} onChange={(event) => setForm((current) => ({ ...current, color_token: event.target.value }))}>
+                    <option value="">Cor padrão</option>
+                    <option value="primary">Primária</option>
+                    <option value="accent">Destaque</option>
+                    <option value="success">Sucesso</option>
+                    <option value="warning">Aviso</option>
+                    <option value="danger">Perigo</option>
+                  </select>
+                  <select className="input" value={form.sound_key} onChange={(event) => setForm((current) => ({ ...current, sound_key: event.target.value }))}>
+                    <option value="">Sem som</option>
+                    <option value="default">Padrão</option>
+                    <option value="soft_chime">Toque suave</option>
+                    <option value="urgent_ping">Toque urgente</option>
+                  </select>
+                </div>
+                {formError ? <p className="form-error">{formError}</p> : null}
+                <div className="notifications-compose-actions">
+                  {editingId ? (
+                    <button type="button" className="btn btn-secondary" onClick={cancelEditing}>
+                      Cancelar
+                    </button>
+                  ) : null}
+                  <button className="btn btn-primary">{editingId ? 'Salvar edição' : 'Criar notificação'}</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        ) : null}
+
+        {viewMode === 'push' ? (
+          <div className="notifications-push-shell">
+            <section className="page-shell notifications-push-card">
+              <div className="notifications-section-head">
+                <h2><Send size={18} /> Operação de push</h2>
+                <select className="input notifications-push-filter" value={pushStatusFilter} onChange={(event) => setPushStatusFilter(event.target.value)}>
+                  {PUSH_FILTERS.map((status) => (
+                    <option key={status} value={status}>
+                      {status === 'all' ? 'Todos os receipts' : status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="notifications-push-actions">
+                <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: true }), 'Dry run executado')}>
+                  Dry run
+                </button>
+                <button type="button" className="btn btn-primary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.dispatchPush({ dry_run: false }), 'Dispatch executado')}>
+                  Disparar push
+                </button>
+                <button type="button" className="btn btn-secondary" disabled={pushActionState.loading} onClick={() => runPushAction(() => notificationsApi.refreshPushReceipts({}), 'Receipts atualizados')}>
+                  Atualizar receipts
+                </button>
+              </div>
+
+              {pushActionState.message ? <p className="push-ops-message">{pushActionState.message}</p> : null}
+              {pushActionState.error ? <p className="form-error">{pushActionState.error}</p> : null}
+            </section>
+
+            <section className="page-shell notifications-push-card">
+              <div className="notifications-section-head">
+                <h2><Sparkles size={18} /> Devices</h2>
+              </div>
+              <div className="notifications-push-stack">
+                {devices.length === 0 ? <p className="notifications-empty">Nenhum device ativo.</p> : null}
+                {devices.map((device) => (
+                  <article key={device.id} className="notifications-push-row">
+                    <div>
+                      <strong>{device.device_name || 'Device sem nome'}</strong>
+                      <p>{device.platform} · {device.device_token}</p>
+                    </div>
+                    <button type="button" className="btn btn-danger btn-sm" disabled={pushActionState.loading} onClick={() => handleDeviceRemoval(device.device_token)}>
+                      Remover
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="page-shell notifications-push-card">
+              <div className="notifications-section-head">
+                <h2><BellRing size={18} /> Entregas</h2>
+              </div>
+              <div className="notifications-push-stack">
+                {pushDeliveries.length === 0 ? <p className="notifications-empty">Nenhuma entrega recente.</p> : null}
+                {pushDeliveries.map((delivery) => (
+                  <article key={delivery.id} className="notifications-push-row">
+                    <div>
+                      <strong>{delivery.notification_title || 'Push'}</strong>
+                      <p>{delivery.status} · {delivery.platform} · {delivery.device_name || delivery.device_token}</p>
+                      {delivery.error_message ? <span className="push-error-text">{delivery.error_message}</span> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
+        ) : null}
       </section>
     </div>
   );
-};
-
-export default NotificationsPage;
+}

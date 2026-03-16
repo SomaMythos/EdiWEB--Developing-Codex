@@ -18,13 +18,23 @@
 }
 
 .daily-header__badge {
+  border: 0;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .06em;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
+  cursor: pointer;
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, filter var(--motion-fast) ease;
+}
+
+.daily-header__badge:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
 }
 
 /* BADGES */
@@ -129,6 +139,57 @@
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.daily-header__settings-button {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--glass-border-default);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-surface-soft);
+  color: var(--glass-text-secondary);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow-soft);
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+  background var(--motion-fast);
+}
+
+.daily-header__activities-button {
+  border-color: var(--glass-border-default);
+  background: var(--glass-surface-soft);
+  color: var(--glass-text-primary);
+  box-shadow: var(--glass-shadow-soft);
+}
+
+.daily-header__activities-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  opacity: 1;
+  border-color: var(--glass-border-strong);
+  background: var(--glass-surface-medium);
+  box-shadow: var(--glass-shadow-medium);
+}
+
+.daily-header__settings-button:hover {
+  transform: translateY(-1px);
+  color: var(--glass-accent-primary);
+  border-color: var(--glass-border-strong);
+  background: var(--glass-surface-medium);
+  box-shadow: var(--glass-shadow-medium);
+}
+
+.daily-header__settings-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* INPUT */

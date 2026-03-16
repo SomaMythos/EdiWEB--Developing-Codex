@@ -27,7 +27,8 @@ export function getFrequencyLabel(frequencyType) {
     flex: "Flexível",
     everyday: "Todo Dia",
     workday: "Work Day",
-    offday: "Off Day"
+    offday: "Off Day",
+    intercalate: "Intercalar"
   };
 
   return labels[frequencyType] || "Flexível";

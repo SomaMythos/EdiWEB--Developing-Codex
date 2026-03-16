@@ -40,16 +40,16 @@ export const getNotificationRoute = (notification) => {
     consumable_overdue: '/shopping/consumiveis',
     custom_reminder: '/notifications',
     custom_notification: '/notifications',
-    weekly_journal_prompt: '/anotacoestab=journal',
+    weekly_journal_prompt: '/anotacoes/diario',
   };
   return routeMap[type] || '/notifications';
 };
 
 export const getNotificationOpenLabel = (notification) => {
   const type = getNotificationType(notification);
-  if (type === 'weekly_journal_prompt') return 'Abrir dirio';
+  if (type === 'weekly_journal_prompt') return 'Abrir diário';
   if (type === 'stalled_goal' || type === 'upcoming_deadline') return 'Abrir metas';
-  if (type.startsWith('consumable_')) return 'Abrir consumveis';
+  if (type.startsWith('consumable_')) return 'Abrir consumíveis';
   if (type === 'daily_activity_start' || type === 'daily_summary') return 'Abrir daily';
   return 'Abrir';
 };
@@ -63,7 +63,7 @@ export const getNotificationSnoozeMinutes = (notification) => {
 };
 
 export const formatNotificationTimestamp = (value) => {
-  if (!value) return 'Sem horrio';
+  if (!value) return 'Sem horário';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString('pt-BR', {
@@ -81,7 +81,7 @@ export const buildNotificationMeta = (notification) => {
     details.push(`${meta.days_remaining} dias restantes`);
   }
   if (typeof meta.completion_rate !== 'undefined') {
-    details.push(`Taxa de concluso: ${Math.round(meta.completion_rate)}%`);
+    details.push(`Taxa de conclusão: ${Math.round(meta.completion_rate)}%`);
   }
   if (typeof meta.snooze_count !== 'undefined' && meta.snooze_count > 0) {
     details.push(`Adiada ${meta.snooze_count}x`);

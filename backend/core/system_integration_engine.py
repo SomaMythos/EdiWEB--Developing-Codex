@@ -130,7 +130,7 @@ $shortcut.Save()
         shortcut_path = cls.desktop_shortcut_path()
         created_path = cls._create_shortcut(
             shortcut_path,
-            description="Abrir o EDI Web em segundo plano no navegador padrão",
+            description="Abrir o EDI Web em segundo plano com acesso pela bandeja do sistema",
         )
         return {
             **cls.get_status(),
@@ -143,7 +143,7 @@ $shortcut.Save()
         if enabled:
             cls._create_shortcut(
                 shortcut_path,
-                description="Iniciar o EDI Web automaticamente ao entrar no Windows",
+                description="Iniciar o EDI Web automaticamente ao entrar no Windows com acesso pela bandeja do sistema",
             )
         elif shortcut_path.exists():
             shortcut_path.unlink()

@@ -105,6 +105,30 @@
   padding: 10px 12px;
 }
 
+.watch-select-row select,
+.watch-modal select {
+  appearance: none;
+  color-scheme: dark;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    var(--glass-surface-soft);
+}
+
+.watch-select-row select option,
+.watch-modal select option {
+  background: #11161f;
+  color: var(--glass-text-primary);
+}
+
+.watch-select-row select:focus,
+.watch-modal select:focus {
+  outline: none;
+  border-color: rgba(248, 242, 220, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(248, 242, 220, 0.16),
+    0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
 .watch-search input {
   border: none;
   background: transparent;

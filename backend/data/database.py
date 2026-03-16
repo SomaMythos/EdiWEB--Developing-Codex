@@ -702,6 +702,12 @@ def apply_migrations(db):
     "ALTER TABLE activities ADD COLUMN fixed_duration INTEGER",
     )
 
+    run_migration(
+    "add_activities_intercalate_days",
+    lambda: column_exists(db, "activities", "intercalate_days"),
+    "ALTER TABLE activities ADD COLUMN intercalate_days INTEGER",
+    )
+
 
     run_migration(
         "create_book_types_table",
@@ -868,6 +874,12 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260314_add_goal_notifications",
+        lambda: column_exists(db, "goals", "notifications_enabled"),
+        read_migration_sql("20260314_add_goal_notifications.sql"),
+    )
+
+    run_migration(
         "add_user_profile_gender",
         lambda: column_exists(db, "user_profile", "gender"),
         "ALTER TABLE user_profile ADD COLUMN gender TEXT",
@@ -896,6 +908,27 @@ def apply_migrations(db):
         "add_user_metrics_notes",
         lambda: column_exists(db, "user_metrics", "notes"),
         "ALTER TABLE user_metrics ADD COLUMN notes TEXT",
+    )
+
+    run_migration(
+        "create_activity_counters_table",
+        lambda: table_exists(db, "activity_counters"),
+        """
+        CREATE TABLE IF NOT EXISTS activity_counters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            completed_at TEXT,
+            elapsed_days INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_activity_counters_started_at
+            ON activity_counters(started_at);
+
+        CREATE INDEX IF NOT EXISTS idx_activity_counters_completed_at
+            ON activity_counters(completed_at);
+        """,
     )
 
 

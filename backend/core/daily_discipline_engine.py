@@ -8,6 +8,32 @@ from core.daily_override_engine import DailyOverrideEngine
 class DailyDisciplineEngine:
 
     @staticmethod
+    def _build_last_registration_map(db: Database, target_date: str, activity_ids: List[int]) -> Dict[int, str]:
+        if not activity_ids:
+            return {}
+
+        placeholders = ",".join(["?"] * len(activity_ids))
+        rows = db.fetchall(
+            f"""
+            SELECT
+                dal.activity_id,
+                MAX(dl.date) AS last_registered_date
+            FROM daily_activity_logs dal
+            INNER JOIN daily_logs dl ON dl.id = dal.daily_log_id
+            WHERE dal.activity_id IN ({placeholders})
+              AND dl.date <= ?
+            GROUP BY dal.activity_id
+            """,
+            (*activity_ids, target_date),
+        )
+
+        return {
+            row["activity_id"]: row["last_registered_date"]
+            for row in rows
+            if row["last_registered_date"]
+        }
+
+    @staticmethod
     def _build_recent_schedule_map(db: Database, target_date: str, activity_ids: List[int]) -> Dict[int, Dict]:
         if not activity_ids:
             return {}
@@ -91,6 +117,7 @@ class DailyDisciplineEngine:
                     min_duration,
                     max_duration,
                     frequency_type,
+                    intercalate_days,
                     fixed_time,
                     fixed_duration,
                     is_disc,
@@ -107,6 +134,17 @@ class DailyDisciplineEngine:
             # ==============================
 
             day_type = DailyOverrideEngine.get_day_type(target_date)
+            target_dt = datetime.strptime(target_date, "%Y-%m-%d").date()
+            intercalated_ids = [
+                act["id"]
+                for act in activities
+                if (act["frequency_type"] or "flex") == "intercalate"
+            ]
+            last_registration_map = DailyDisciplineEngine._build_last_registration_map(
+                db,
+                target_date,
+                intercalated_ids,
+            )
 
             # ==============================
             # 3️⃣ FILTRAR POR FREQUENCY_TYPE
@@ -129,6 +167,22 @@ class DailyDisciplineEngine:
 
                 elif freq == "offday" and day_type == "off":
                     filtered_activities.append(dict(act))
+
+                elif freq == "intercalate":
+                    minimum_days = act["intercalate_days"] or 0
+                    if minimum_days <= 0:
+                        continue
+
+                    last_registered_date = last_registration_map.get(act["id"])
+                    if not last_registered_date:
+                        filtered_activities.append(dict(act))
+                        continue
+
+                    last_registered_dt = datetime.strptime(last_registered_date, "%Y-%m-%d").date()
+                    days_since_last = (target_dt - last_registered_dt).days
+
+                    if days_since_last >= minimum_days:
+                        filtered_activities.append(dict(act))
 
             if not filtered_activities:
                 return []

@@ -1,0 +1,147 @@
+/*
+  Custom skin tokens
+  ------------------
+  Apenas variaveis da skin custom.
+
+  Mapa:
+  1. Surface compatibility  -> tokens herdados de componentes antigos
+  2. Elevation              -> planos e bordas reutilizaveis
+  3. Buttons / controls     -> botoes, radius e focus ring
+  4. Typography             -> fontes base da skin
+  5. App material           -> fundo geral, overlay e noise
+*/
+:root[data-skin="custom"] {
+  /* 1. Surface compatibility */
+  --glass-surface-soft: rgba(244, 239, 231, 0.96);
+  --glass-surface-medium: rgba(237, 231, 220, 0.98);
+  --glass-surface-strong: rgba(224, 218, 207, 0.98);
+  --glass-surface-overlay: rgba(10, 10, 10, 0.68);
+  --glass-interactive-hover: rgba(11, 11, 11, 0.06);
+  --glass-interactive-active: rgba(11, 11, 11, 0.12);
+  --glass-interactive-pressed: rgba(11, 11, 11, 0.18);
+  --glass-accent-neutral: rgba(18, 18, 18, 0.08);
+  --glass-accent-success: rgba(176, 34, 34, 0.08);
+  --glass-accent-warning: rgba(142, 38, 32, 0.1);
+  --glass-accent-danger: rgba(176, 34, 34, 0.14);
+  --glass-text-primary: #111111;
+  --glass-text-secondary: rgba(43, 43, 43, 0.76);
+  --glass-text-muted: rgba(110, 105, 95, 0.74);
+  --glass-text-accent: #b3342b;
+  --glass-border-subtle: rgba(16, 15, 14, 0.14);
+  --glass-border-default: rgba(16, 15, 14, 0.3);
+  --glass-border-strong: rgba(16, 15, 14, 0.52);
+  --glass-border-accent: rgba(179, 52, 43, 0.55);
+  --glass-shadow-soft: none;
+  --glass-shadow-medium: none;
+  --glass-shadow-strong: none;
+  --glass-premium-bg-base: linear-gradient(180deg, rgba(247, 242, 233, 0.98), rgba(232, 225, 214, 0.98));
+  --glass-premium-bg-raised: linear-gradient(180deg, rgba(244, 239, 230, 0.98), rgba(228, 220, 208, 0.98));
+  --glass-premium-bg-active: linear-gradient(180deg, rgba(248, 243, 235, 0.98), rgba(225, 215, 201, 0.98));
+  --glass-premium-border: rgba(16, 15, 14, 0.28);
+  --glass-premium-border-strong: rgba(16, 15, 14, 0.5);
+  --glass-premium-highlight: none;
+  --glass-premium-highlight-strong: none;
+  --glass-premium-shadow-base: none;
+  --glass-premium-shadow-raised: none;
+  --glass-premium-shadow-active: none;
+  --glass-premium-blur-base: none;
+  --glass-premium-blur-raised: none;
+  --glass-premium-blur-active: none;
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-shine-overlay: none;
+
+  /* 2. Elevation */
+  --elevation-0-surface: rgba(242, 236, 226, 0.98);
+  --elevation-0-border: rgba(16, 15, 14, 0.32);
+  --elevation-0-blur: none;
+  --elevation-0-shadow: none;
+  --elevation-1-surface: rgba(236, 230, 219, 0.98);
+  --elevation-1-border: rgba(16, 15, 14, 0.38);
+  --elevation-1-blur: none;
+  --elevation-1-shadow: none;
+  --elevation-2-surface: rgba(228, 222, 211, 0.98);
+  --elevation-2-border: rgba(16, 15, 14, 0.5);
+  --elevation-2-blur: none;
+  --elevation-2-shadow: none;
+  --elevation-3-surface: rgba(220, 214, 203, 0.98);
+  --elevation-3-border: rgba(16, 15, 14, 0.58);
+  --elevation-3-blur: none;
+  --elevation-3-shadow: none;
+  --glass-scrollbar-track: rgba(23, 21, 20, 0.08);
+  --glass-scrollbar-thumb: linear-gradient(180deg, rgba(17, 17, 17, 0.4), rgba(17, 17, 17, 0.28));
+  --glass-scrollbar-thumb-hover: linear-gradient(180deg, rgba(179, 52, 43, 0.82), rgba(17, 17, 17, 0.42));
+
+  /* 3. Buttons / controls */
+  --btn-radius: 2px;
+  --btn-font-weight: 800;
+  --btn-padding-sm: 7px 12px;
+  --btn-padding-md: 10px 16px;
+  --btn-padding-lg: 12px 20px;
+  --btn-transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+  --btn-primary-bg: linear-gradient(180deg, #c5332b, #8f1f1a);
+  --btn-primary-border: #140d0d;
+  --btn-primary-shadow: none;
+  --btn-primary-shadow-hover: none;
+  --btn-secondary-bg: #f2ecdf;
+  --btn-secondary-border: #111111;
+  --btn-danger-bg: linear-gradient(180deg, #c5332b, #8f1f1a);
+  --btn-danger-border: #111111;
+  --btn-danger-shadow: none;
+  --btn-ghost-bg: transparent;
+  --btn-ghost-border: #111111;
+
+  /* Shared shape / focus */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
+  --focus-ring: 0 0 0 2px rgba(179, 52, 43, 0.32);
+
+  /* 4. Typography */
+  --font-display: "Bebas Neue", sans-serif;
+  --font-ui: "Inter", sans-serif;
+  --font-label: "Oswald", sans-serif;
+  --app-font-family: "Inter", sans-serif;
+  --app-display-font: "Bebas Neue", sans-serif;
+  --app-mono-font: "Oswald", sans-serif;
+
+  /* 5. App material */
+  --app-bg-color: #e7e2d8;
+  --app-text-color: #111111;
+  --app-bg-image:
+    radial-gradient(circle at 25% 18%, rgba(255, 255, 255, 0.42) 0%, transparent 24%),
+    radial-gradient(circle at 80% 12%, rgba(0, 0, 0, 0.1) 0%, transparent 24%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.025)),
+    linear-gradient(180deg, #f1ede4 0%, #d8d1c4 100%);
+  --app-bg-blend-mode: screen, multiply, normal, normal;
+  --app-bg-attachment: fixed;
+  --app-bg-size: cover;
+  --app-overlay-opacity: 0.22;
+  --app-overlay-image:
+    radial-gradient(rgba(0, 0, 0, 0.18) 0.6px, transparent 0.6px),
+    radial-gradient(rgba(255, 255, 255, 0.22) 0.7px, transparent 0.7px),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.04) 100%);
+  --app-overlay-position: 0 0, 8px 10px, 0 0;
+  --app-overlay-size: 14px 14px, 16px 16px, auto;
+  --app-overlay-blend: multiply;
+}
+
+/* Small global refinements tied only to the custom skin */
+:root[data-skin="custom"] body {
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+:root[data-skin="custom"] ::selection {
+  background: rgba(179, 52, 43, 0.24);
+  color: #111;
+}

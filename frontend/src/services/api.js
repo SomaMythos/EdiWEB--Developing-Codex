@@ -47,8 +47,15 @@ export const authApi = {
 export const activitiesApi = {
   list: () => api.get('/activities'),
   create: (data) => api.post('/activities', data),
+  update: (id, data) => api.put(`/activities/${id}`, data),
   toggle: (id) => api.patch(`/activities/${id}/toggle`),
   remove: (id) => api.delete(`/activities/${id}`),
+};
+
+export const activityCountersApi = {
+  list: () => api.get('/activity-counters'),
+  create: (data) => api.post('/activity-counters', data),
+  complete: (id) => api.post(`/activity-counters/${id}/complete`),
 };
 
 export const dailyApi = {
@@ -279,6 +286,8 @@ export const booksApi = {
 // Paintings & Progress Photos
 export const paintingsApi = {
   list: (status, category) => api.get('/visual-arts/artworks', { params: { status, visual_category: category } }),
+  getInsights: (category) => api.get('/visual-arts/insights', { params: { visual_category: category } }),
+  getLog: (category, limit = 40) => api.get('/visual-arts/log', { params: { visual_category: category, limit } }),
   create: (data) => {
     const formData = new FormData();
     formData.append('title', data.title);
@@ -376,6 +385,7 @@ export const dayPlanApi = {
 export const calendarApi = {
   getMonth: (month) => api.get('/calendar/month', { params: { month } }),
   getDay: (date) => api.get('/calendar/day', { params: { date } }),
+  getWeek: (referenceDate) => api.get('/calendar/week', { params: { reference_date: referenceDate } }),
   createEvent: (data) => api.post('/calendar/events', data),
   deleteEvent: (id) => api.delete(`/calendar/events/${id}`),
   createManualLog: (data) => api.post('/calendar/logs', data),

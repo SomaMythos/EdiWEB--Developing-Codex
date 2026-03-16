@@ -1,16 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { CalendarRange, Check, CheckCheck, PencilLine, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
-const STATUS_LABELS = {
-  em_andamento: 'Em andamento',
-  em_progresso: 'Em Progresso',
-  concluido: 'Concluído',
-  concluído: 'Concluído',
-  paused: 'Pausado',
-};
-
 const formatDate = (value) => {
-  if (!value) return '—';
+  if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('pt-BR');
@@ -18,172 +11,110 @@ const formatDate = (value) => {
 
 const ArtworkCard = ({
   artwork,
+  uiMode = 'view',
   onOpenGallery,
   onOpenUpdate,
   onSaveCompletionDate,
   onDelete,
   isSavingCompletion,
 }) => {
-const [completionDate, setCompletionDate] = useState(
-  artwork.finished_at ? artwork.finished_at.slice(0, 10) : ''
-);
+  const [completionDate, setCompletionDate] = useState(artwork.finished_at ? artwork.finished_at.slice(0, 10) : '');
 
-// Slideshow state
-const [hovering, setHovering] = useState(false);
-const [slideIndex, setSlideIndex] = useState(0);
+  const previewUrl = useMemo(() => {
+    const latestProgress =
+      artwork.latest_photo_url ||
+      artwork.progress_photo_urls?.[artwork.progress_photo_urls.length - 1] ||
+      artwork.progress_photo_paths?.[artwork.progress_photo_paths.length - 1];
 
-useEffect(() => {
-  setCompletionDate(
-    artwork.finished_at ? artwork.finished_at.slice(0, 10) : ''
-  );
-}, [artwork.finished_at]);
+    return resolveMediaUrl(latestProgress, latestProgress, artwork.reference_image_url, artwork.reference_image_path);
+  }, [artwork]);
 
-// Todas as imagens possíveis para slideshow
-const imageList = useMemo(() => {
-  if (artwork.progress_photo_urls?.length) {
-    return artwork.progress_photo_urls;
-  }
-
-  if (artwork.progress_photo_paths?.length) {
-    return artwork.progress_photo_paths.map((path) =>
-      resolveMediaUrl(path)
-    );
-  }
-
-  if (artwork.reference_image_url || artwork.reference_image_path) {
-    return [
-      resolveMediaUrl(
-        artwork.reference_image_url,
-        artwork.reference_image_path
-      ),
-    ];
-  }
-
-  return [];
-}, [artwork]);
-
-useEffect(() => {
-  if (!hovering) return;
-  if (!imageList || imageList.length <= 1) return;
-
-  const interval = setInterval(() => {
-    setSlideIndex((prev) =>
-      prev + 1 >= imageList.length ? 0 : prev + 1
-    );
-  }, 1200);
-
-  return () => clearInterval(interval);
-}, [hovering, imageList]);
-
-// Thumb principal (agora usa slideIndex)
-const thumbnailUrl = imageList.length
-  ? imageList[slideIndex] || imageList[0]
-  : '';
-  
-
-const handleDelete = () => {
-  if (onDelete) {
-    onDelete(artwork);
-  }
-};
+  const startLabel = formatDate(artwork.started_at || artwork.created_at);
+  const finishLabel = formatDate(artwork.finished_at);
+  const isCompleted = ['concluido', 'concluído'].includes((artwork.status || '').toLowerCase());
 
   return (
     <article
-      className="artwork-card"
+      className={`artwork-card ${uiMode === 'edit' ? 'is-edit' : 'is-view'}`}
       onClick={() => onOpenGallery(artwork)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onOpenGallery(artwork)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpenGallery(artwork);
+        }
+      }}
     >
-     <div
-        className="artwork-thumb-wrap"
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => {
-          setHovering(false);
-          setSlideIndex(0);
-        }}
-      >
-{imageList.length ? (
-  <div className="artwork-thumb-slider">
-    {imageList.map((img, index) => (
-      <img
-        key={index}
-        src={img}
-        alt={artwork.title}
-        className={`artwork-thumb ${
-          index === slideIndex ? 'active' : ''
-        }`}
-      />
-    ))}
-  </div>
-) : (
-  <div className="artwork-thumb artwork-thumb-empty">
-    Sem imagem
-  </div>
-)}
+      <div className="artwork-card-cover-shell">
+        {previewUrl ? (
+          <img src={previewUrl} alt={artwork.title} className="artwork-card-cover" />
+        ) : (
+          <div className="artwork-card-fallback">
+            <span>{artwork.title}</span>
+          </div>
+        )}
+
+        <div className="artwork-card-overlay">
+          <div className="artwork-card-overlay-copy">
+            <strong>{artwork.title}</strong>
+            <small>
+              {finishLabel ? `Fim ${finishLabel}` : startLabel ? `Início ${startLabel}` : ''}
+            </small>
+          </div>
+        </div>
       </div>
 
-      <div className="artwork-card-content">
-        <h3>{artwork.title}</h3>
-        <p>Início: {formatDate(artwork.started_at || artwork.start_date)}</p>
-<p>
-  Status:{' '}
-  {STATUS_LABELS[artwork.status] ||
-    artwork.status ||
-    'Em andamento'}
-</p>
+      {uiMode === 'edit' ? (
+        <div className="artwork-card-meta" onClick={(event) => event.stopPropagation()}>
+          <div className="artwork-card-meta-copy">
+            <strong>{artwork.title}</strong>
+            <span>{artwork.size || 'Sem tamanho definido'}</span>
+            <div className="artwork-card-date-row">
+              {startLabel ? (
+                <span>
+                  <CalendarRange size={13} /> {startLabel}
+                </span>
+              ) : null}
+              {finishLabel ? (
+                <span>
+                  <CheckCheck size={13} /> {finishLabel}
+                </span>
+              ) : null}
+            </div>
+          </div>
 
-{artwork.finished_at && (
-  <p style={{ fontSize: 13, opacity: 0.8 }}>
-    Concluído em: {formatDate(artwork.finished_at)}
-  </p>
-)}
+          <div className="artwork-card-controls">
+            <div className="artwork-card-actions artwork-icon-actions">
+              <button type="button" className="artwork-icon-btn" title="Atualizar" onClick={() => onOpenUpdate(artwork)}>
+                <PencilLine size={16} />
+              </button>
+              <button type="button" className="artwork-icon-btn is-danger" title="Excluir" onClick={() => onDelete(artwork)}>
+                <Trash2 size={16} />
+              </button>
+            </div>
 
-<div
-  className="artwork-card-actions"
-  onClick={(e) => e.stopPropagation()}
->
-  {artwork.status !== 'concluído' && (
-    <>
-      <button
-        type="button"
-        className="btn btn-secondary btn-sm"
-        onClick={() => onOpenUpdate(artwork)}
-      >
-        Atualizar
-      </button>
-
-      <div className="artwork-completion-edit">
-        <input
-          type="date"
-          className="input"
-          value={completionDate}
-          onChange={(e) => setCompletionDate(e.target.value)}
-          aria-label="Data de conclusão"
-        />
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          disabled={isSavingCompletion}
-          onClick={() =>
-            onSaveCompletionDate(artwork, completionDate)
-          }
-        >
-          {isSavingCompletion ? 'Salvando...' : 'Salvar conclusão'}
-        </button>
-      </div>
-    </>
-  )}
-
-  <button
-    type="button"
-    className="btn btn-danger btn-sm"
-    onClick={handleDelete}
-  >
-    Excluir
-  </button>
-</div>
-      </div>
+            <div className="artwork-card-completion elevation-0">
+              <input
+                type="date"
+                className="input"
+                value={completionDate}
+                onChange={(event) => setCompletionDate(event.target.value)}
+                aria-label="Data de conclusão"
+              />
+              <button
+                type="button"
+                className="artwork-icon-btn is-primary"
+                disabled={isSavingCompletion}
+                title="Salvar conclusão"
+                onClick={() => onSaveCompletionDate(artwork, completionDate)}
+              >
+                {isSavingCompletion ? '...' : <Check size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 };

@@ -9,6 +9,7 @@ export const DEFAULT_ACTIVITY = {
   min_duration: 30,
   max_duration: 60,
   frequency_type: "flex",
+  intercalate_days: "",
   fixed_time: "",
   fixed_duration: "",
   is_disc: true,

@@ -1,0 +1,572 @@
+/*
+  Custom skin - Home only
+  -----------------------
+  Este arquivo cuida exclusivamente da Home.
+
+  Mapa:
+  1. Fundo geral + pacote de texturas
+  2. Topo "Proxima atividade"
+  3. Casca estrutural da Home
+  4. Sidebar quando a Home esta ativa
+  5. Grid inferior da Home (cards, strips e log)
+
+  Dica:
+  Se quiser mexer no visual de todas as paginas, altere primeiro
+  theme-custom-core.css. Use este arquivo apenas para comportamento
+  exclusivo da Home.
+*/
+
+/* -------------------------------------------------------------------------- */
+/* 1. Fundo geral + pacote de texturas                                         */
+/* -------------------------------------------------------------------------- */
+:root[data-skin="custom"] body {
+  background-image:
+    url("../resources/Background.jpg"),
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, #f1ede4 0%, #ddd4c6 100%) !important;
+  background-repeat: no-repeat, repeat, no-repeat !important;
+  background-position: center center, 0 0, 0 0 !important;
+  background-size: cover, 540px 540px, cover !important;
+  background-blend-mode: multiply, soft-light, normal !important;
+}
+
+:root[data-skin="custom"] body::before {
+  background-image:
+    url("../resources/dust.png"),
+    radial-gradient(circle at 20% 20%, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px),
+    radial-gradient(circle at 40% 80%, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px),
+    radial-gradient(circle at 10% 68%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.024) 0px,
+      rgba(0, 0, 0, 0.024) 1px,
+      transparent 1px,
+      transparent 3px
+    ) !important;
+  background-size: cover, auto, auto, auto, auto, auto !important;
+  background-repeat: repeat, repeat, repeat, repeat, repeat, repeat !important;
+  opacity: 0.16 !important;
+}
+
+:root[data-skin="custom"] .sidebar,
+:root[data-skin="custom"] .page-container,
+:root[data-skin="custom"] .page-shell,
+:root[data-skin="custom"] .card,
+:root[data-skin="custom"] .glass-soft,
+:root[data-skin="custom"] .glass-medium,
+:root[data-skin="custom"] .glass-strong,
+:root[data-skin="custom"] .elevation-0,
+:root[data-skin="custom"] .elevation-1,
+:root[data-skin="custom"] .elevation-2,
+:root[data-skin="custom"] .elevation-3,
+:root[data-skin="custom"] .brutal-card,
+:root[data-skin="custom"] .home-strip-card,
+:root[data-skin="custom"] .home-strip-line,
+:root[data-skin="custom"] .home-event-card,
+:root[data-skin="custom"] .home-log-entry {
+  background-image:
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 8%),
+    linear-gradient(180deg, #f0e9dd 0%, #ddd4c6 100%) !important;
+  background-repeat: repeat, no-repeat, no-repeat !important;
+  background-size: 420px 420px, auto, auto !important;
+  background-blend-mode: soft-light, normal, normal !important;
+}
+
+:root[data-skin="custom"] .home-daily-block,
+:root[data-skin="custom"] .next-activity-strip,
+:root[data-skin="custom"] .home-suggestion-card--reading,
+:root[data-skin="custom"] .home-suggestion-card--music,
+:root[data-skin="custom"] .brutal-card.dark {
+  background-image:
+    url("../resources/black-paper.png"),
+    url("../resources/asfalt-dark.png"),
+    radial-gradient(rgba(255, 255, 255, 0.05) 0.7px, transparent 0.9px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #191919 0%, #191919 100%) !important;
+  background-repeat: repeat, repeat, repeat, repeat, no-repeat !important;
+  background-size: 420px 420px, 360px 360px, 11px 11px, auto, auto !important;
+  background-blend-mode: soft-light, soft-light, normal, normal, normal !important;
+}
+
+:root[data-skin="custom"] .home-suggestion-card--watch,
+:root[data-skin="custom"] .brutal-card.brown {
+  background-image:
+    url("../resources/black-paper.png"),
+    url("../resources/asfalt-dark.png"),
+    linear-gradient(180deg, #4b4032 0%, #4b4032 100%) !important;
+  background-repeat: repeat, repeat, no-repeat !important;
+  background-size: 420px 420px, 360px 360px, auto !important;
+  background-blend-mode: soft-light, soft-light, normal !important;
+}
+
+:root[data-skin="custom"] .home-suggestion-card--goal,
+:root[data-skin="custom"] .brutal-card.paper {
+  background-image:
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, #ebe4d7 0%, #ebe4d7 100%) !important;
+  background-repeat: repeat, no-repeat !important;
+  background-size: 420px 420px, auto !important;
+  background-blend-mode: soft-light, normal !important;
+}
+
+:root[data-skin="custom"] .card-media::after,
+:root[data-skin="custom"] .home-suggestion-card__overlay {
+  background-image:
+    url("../resources/dust.png"),
+    linear-gradient(to top, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.15) 45%, rgba(0, 0, 0, 0.18)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 4px) !important;
+  background-size: cover, auto, auto !important;
+  background-repeat: repeat, no-repeat, no-repeat !important;
+  opacity: 0.4;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2. Topo "Proxima atividade"                                                 */
+/* -------------------------------------------------------------------------- */
+:root[data-skin="custom"] .home-page .home-block--daily .next-activity-kicker {
+  display: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-block--daily .home-block__link {
+  display: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-block--daily .home-block__header {
+  min-height: 64px !important;
+  padding: 0 18px !important;
+  align-items: center !important;
+  margin-bottom: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-block--daily .home-block__header > div {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 100% !important;
+}
+
+:root[data-skin="custom"] .home-page .home-block--daily .home-block__header h1,
+:root[data-skin="custom"] .home-page .home-block--daily .next-activity-title {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  font-size: 72px !important;
+  line-height: 0.78 !important;
+  letter-spacing: 0.06em !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-link {
+  padding: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-link::before,
+:root[data-skin="custom"] .home-page .home-daily-link::after {
+  height: 7px !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-link::before {
+  top: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-link::after {
+  bottom: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block {
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  column-gap: 1.4rem !important;
+  min-height: 132px !important;
+  background-image:
+    url("../resources/black-paper.png"),
+    url("../resources/asfalt-dark.png"),
+    url("../resources/dust.png"),
+    radial-gradient(rgba(255, 255, 255, 0.05) 0.7px, transparent 0.9px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
+    #191919 !important;
+  background-size: 420px 420px, 360px 360px, cover, 11px 11px, auto, auto !important;
+  background-repeat: repeat, repeat, repeat, repeat, repeat, no-repeat !important;
+  background-blend-mode: soft-light, soft-light, soft-light, normal, normal, normal !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block::after {
+  display: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block .daily-block__left {
+  display: flex !important;
+  align-items: center !important;
+  align-self: center !important;
+  height: 100% !important;
+  justify-self: start !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block .daily-block__meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.7rem !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block .daily-block__time {
+  letter-spacing: 0.06em !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block .daily-block__duration {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: clamp(2.15rem, 2.9vw, 2.7rem) !important;
+  line-height: 0.8 !important;
+  letter-spacing: 0.06em !important;
+  transform: translateY(0) !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block .daily-block__name {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  justify-self: center !important;
+  align-self: center !important;
+  width: auto !important;
+  text-align: center !important;
+  letter-spacing: 0.06em !important;
+  padding-inline: 0.5rem !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block__pill,
+:root[data-skin="custom"] .home-page .now-badge {
+  justify-self: end !important;
+  align-self: center !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  letter-spacing: 0.18em !important;
+  position: relative !important;
+  min-width: 132px !important;
+  min-height: 64px !important;
+  padding: 0.5rem 1.15rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-image:
+    url("../resources/dust.png"),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01) 45%),
+    linear-gradient(180deg, #cf3a30 0%, #b32620 100%) !important;
+  background-size: cover, auto, auto !important;
+  background-repeat: repeat, no-repeat, no-repeat !important;
+  background-blend-mode: soft-light, normal, normal !important;
+  box-shadow: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-daily-block__pill::after,
+:root[data-skin="custom"] .home-page .now-badge::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 2px !important;
+  border: 1px solid rgba(255, 247, 239, 0.88) !important;
+  pointer-events: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 3. Casca estrutural da Home                                                 */
+/* -------------------------------------------------------------------------- */
+:root[data-skin="custom"] .home-page {
+  padding: 12px !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 6px solid #111111 !important;
+  border-radius: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 2px solid rgba(17, 17, 17, 0.9);
+  background: none !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+:root[data-skin="custom"] .home-page::after {
+  background: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin-top: 0.75rem !important;
+}
+
+:root[data-skin="custom"] .home-page .home-block--log {
+  display: block !important;
+  margin-top: 0.75rem !important;
+}
+
+:root[data-skin="custom"] .home-page .home-loading {
+  display: inline-flex !important;
+  margin-top: 0.5rem !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 4. Sidebar enquanto a Home esta em tela                                     */
+/* -------------------------------------------------------------------------- */
+:root[data-skin="custom"] .layout.app-shell {
+  grid-template-columns: 272px minmax(0, 1fr) !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .sidebar {
+  min-height: 100vh !important;
+  border-right: 6px solid #111111 !important;
+  border-radius: 0 !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .sidebar::after {
+  inset: 10px !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .sidebar-header {
+  padding: 18px 14px 14px !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .logo-img {
+  width: 110px !important;
+  margin-inline: auto !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .brand-name {
+  font-size: 0.88rem !important;
+  letter-spacing: -0.02em !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .sidebar-nav {
+  gap: 0 !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .nav-item,
+:root[data-skin="custom"] .layout.app-shell .nav-parent {
+  min-height: 64px !important;
+  padding: 0 16px !important;
+  border-bottom: 3px solid #111111 !important;
+  font-size: 1rem !important;
+  letter-spacing: -0.03em !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .nav-subitems {
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  border-left: 0 !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .nav-subitem {
+  min-height: 46px !important;
+  padding: 0 14px 0 18px !important;
+  border-bottom: 2px solid rgba(17, 17, 17, 0.75) !important;
+  font-size: 0.9rem !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .nav-subitem::before {
+  content: "â–¸";
+  margin-right: 0.35rem;
+}
+
+:root[data-skin="custom"] .layout.app-shell .sidebar-footer {
+  border-top: 6px solid #111111 !important;
+  padding: 10px !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .notifications-button {
+  display: none !important;
+}
+
+:root[data-skin="custom"] .layout.app-shell .version {
+  min-height: 72px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1rem !important;
+  letter-spacing: 0 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5. Grid inferior da Home: cards, strips e log                              */
+/* -------------------------------------------------------------------------- */
+:root[data-skin="custom"] .home-page .home-suggestion-grid {
+  margin-top: 0.35rem !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-card,
+:root[data-skin="custom"] .home-page .home-block--log {
+  border-width: 5px !important;
+  border-radius: 6px !important;
+  background-image:
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 8%),
+    linear-gradient(180deg, rgba(240, 233, 221, 0.6) 0%, rgba(221, 212, 198, 0.6) 100%) !important;
+  background-repeat: repeat, no-repeat, no-repeat !important;
+  background-size: 420px 420px, auto, auto !important;
+  background-blend-mode: soft-light, normal, normal !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-card__header,
+:root[data-skin="custom"] .home-page .home-block--log .home-block__header {
+  border-bottom: 4px solid #111111 !important;
+  padding-bottom: 0.55rem !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-card__title,
+:root[data-skin="custom"] .home-page .home-block--log h2 {
+  font-family: var(--font-display) !important;
+  font-size: 1.8rem !important;
+  line-height: 0.9 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-card__link,
+:root[data-skin="custom"] .home-page .home-block__link,
+:root[data-skin="custom"] .home-page .home-block__eyebrow {
+  font-family: var(--font-label) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-line,
+:root[data-skin="custom"] .home-page .home-event-card,
+:root[data-skin="custom"] .home-page .home-log-entry {
+  border-width: 3px !important;
+  border-radius: 2px !important;
+  background-image:
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 10%),
+    linear-gradient(180deg, rgba(239, 232, 220, 0.6) 0%, rgba(221, 212, 198, 0.6) 100%) !important;
+  background-repeat: repeat, no-repeat, no-repeat !important;
+  background-size: 280px 280px, auto, auto !important;
+  background-blend-mode: soft-light, normal, normal !important;
+}
+
+:root[data-skin="custom"] .home-page .home-strip-line strong,
+:root[data-skin="custom"] .home-page .home-event-card strong,
+:root[data-skin="custom"] .home-page .home-log-entry__text {
+  font-family: var(--font-ui) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card {
+  min-height: 452px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card::after {
+  inset: 6px !important;
+  border-color: rgba(245, 239, 226, 0.18) !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__surface {
+  position: relative !important;
+  display: block !important;
+  height: 100% !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__media {
+  inset: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__placeholder {
+  position: absolute !important;
+  inset: 50% auto auto 50% !important;
+  transform: translate(-50%, -52%) !important;
+  width: 104px !important;
+  height: 104px !important;
+  border: 2px solid rgba(17, 17, 17, 0.28) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(17, 17, 17, 0.9) !important;
+  font-size: 4.6rem !important;
+  line-height: 1 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card--reading .home-suggestion-card__placeholder,
+:root[data-skin="custom"] .home-page .home-suggestion-card--music .home-suggestion-card__placeholder,
+:root[data-skin="custom"] .home-page .home-suggestion-card--watch .home-suggestion-card__placeholder {
+  border-color: rgba(248, 246, 241, 0.32) !important;
+  color: #f8f6f1 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__overlay {
+  background-image:
+    url("../resources/dust.png"),
+    linear-gradient(to top, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.03) 38%, rgba(0, 0, 0, 0.08)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 4px) !important;
+  opacity: 0.52 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__content {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__content strong,
+:root[data-skin="custom"] .home-page .home-suggestion-card__content p,
+:root[data-skin="custom"] .home-page .home-suggestion-card__content small {
+  display: none !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__label {
+  position: static !important;
+  display: block !important;
+  width: 100% !important;
+  padding: 0.65rem 0.5rem 0.45rem !important;
+  border-top: 2px solid rgba(244, 237, 226, 0.18) !important;
+  text-align: center !important;
+  font-size: 1.65rem !important;
+  line-height: 0.9 !important;
+  letter-spacing: 0.035em !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card__dice {
+  top: 10px !important;
+  right: 10px !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card--goal {
+  background-image:
+    url("../resources/paper-fibers.png"),
+    linear-gradient(180deg, rgba(239, 232, 219, 0.6) 0%, rgba(221, 212, 197, 0.6) 100%) !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card--reading,
+:root[data-skin="custom"] .home-page .home-suggestion-card--music {
+  background-image:
+    url("../resources/black-paper.png"),
+    url("../resources/asfalt-dark.png"),
+    linear-gradient(180deg, rgba(42, 42, 42, 0.6) 0%, rgba(23, 23, 23, 0.6) 100%) !important;
+}
+
+:root[data-skin="custom"] .home-page .home-suggestion-card--watch {
+  background-image:
+    url("../resources/black-paper.png"),
+    url("../resources/asfalt-dark.png"),
+    linear-gradient(180deg, rgba(105, 87, 71, 0.6) 0%, rgba(61, 50, 41, 0.6) 100%) !important;
+}

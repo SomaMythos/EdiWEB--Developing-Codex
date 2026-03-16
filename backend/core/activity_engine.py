@@ -15,6 +15,7 @@ class ActivityEngine:
                     min_duration,
                     max_duration,
                     frequency_type,
+                    intercalate_days,
                     fixed_time,
                     fixed_duration,
                     is_disc,
@@ -31,6 +32,7 @@ class ActivityEngine:
         min_duration,
         max_duration,
         frequency_type="flex",
+        intercalate_days=None,
         fixed_time=None,
         fixed_duration=None,
         is_disc=1,
@@ -43,18 +45,20 @@ class ActivityEngine:
                     min_duration,
                     max_duration,
                     frequency_type,
+                    intercalate_days,
                     fixed_time,
                     fixed_duration,
                     is_disc,
                     is_fun,
                     active
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             """, (
                 title,
                 min_duration,
                 max_duration,
                 frequency_type,
+                intercalate_days,
                 fixed_time,
                 fixed_duration,
                 is_disc,
@@ -69,6 +73,47 @@ class ActivityEngine:
                 SET active = CASE WHEN active = 1 THEN 0 ELSE 1 END
                 WHERE id = ?
             """, (activity_id,))
+
+    @staticmethod
+    def update_activity(
+        activity_id,
+        title,
+        min_duration,
+        max_duration,
+        frequency_type="flex",
+        intercalate_days=None,
+        fixed_time=None,
+        fixed_duration=None,
+        is_disc=1,
+        is_fun=0
+    ):
+        with Database() as db:
+            cursor = db.execute("""
+                UPDATE activities
+                SET
+                    title = ?,
+                    min_duration = ?,
+                    max_duration = ?,
+                    frequency_type = ?,
+                    intercalate_days = ?,
+                    fixed_time = ?,
+                    fixed_duration = ?,
+                    is_disc = ?,
+                    is_fun = ?
+                WHERE id = ?
+            """, (
+                title,
+                min_duration,
+                max_duration,
+                frequency_type,
+                intercalate_days,
+                fixed_time,
+                fixed_duration,
+                is_disc,
+                is_fun,
+                activity_id
+            ))
+            return cursor.rowcount > 0
 
     @staticmethod
     def delete_activity(activity_id):

@@ -23,6 +23,7 @@ from typing import Literal, Optional, List
 from datetime import datetime
 
 from core.activity_engine import ActivityEngine
+from core.activity_counter_engine import ActivityCounterEngine
 from core.daily_log_engine import DailyLogEngine
 from core.goal_engine import GoalEngine, GoalActivityValidationError
 from core.finance_engine import FinanceEngine
@@ -248,10 +249,15 @@ class ActivityCreate(BaseModel):
     min_duration: int
     max_duration: int
     frequency_type: str = "flex"
+    intercalate_days: Optional[int] = None
     fixed_time: Optional[str] = None
     fixed_duration: Optional[int] = None
     is_disc: int = 1
     is_fun: int = 0
+
+
+class ActivityCounterCreate(BaseModel):
+    title: str
 
 
 class BpmRequest(BaseModel):
@@ -280,6 +286,7 @@ class GoalCreate(BaseModel):
     difficulty: int = 1
     category_id: Optional[int] = None
     image_path: Optional[str] = None
+    notifications_enabled: bool = True
     goal_mode: str = "simple"
     milestones: list[GoalMilestonePayload] = []
 
@@ -304,6 +311,7 @@ class GoalUpdate(BaseModel):
     difficulty: int = 1
     category_id: Optional[int] = None
     image_path: Optional[str] = None
+    notifications_enabled: bool = True
     goal_mode: str = "simple"
     milestones: list[GoalMilestonePayload] = []
 
@@ -543,7 +551,7 @@ async def create_activity(activity: ActivityCreate):
                     ),
                 )
 
-            if config and frequency in {"workday", "everyday", "flex"} and intervals_overlap(
+            if config and frequency in {"workday", "everyday", "flex", "intercalate"} and intervals_overlap(
                 payload.fixed_time,
                 fixed_end,
                 config["work_start"],
@@ -568,7 +576,7 @@ async def create_activity(activity: ActivityCreate):
                 INNER JOIN daily_routines dr ON dr.id = drb.routine_id
                 WHERE dr.day_type IN ({})
                 ORDER BY dr.day_type, drb.start_time
-                """.format(",".join([""] * len(day_types))),
+                """.format(",".join(["?"] * len(day_types))),
                 tuple(day_types),
             )
 
@@ -586,7 +594,8 @@ async def create_activity(activity: ActivityCreate):
     try:
         title = (activity.title or "").strip()
         frequency = (activity.frequency_type or "flex").strip().lower()
-        allowed_frequencies = {"flex", "everyday", "workday", "offday"}
+        allowed_frequencies = {"flex", "everyday", "workday", "offday", "intercalate"}
+        intercalate_days = activity.intercalate_days
 
         if not title:
             raise HTTPException(status_code=400, detail="title Ã© obrigatÃ³rio")
@@ -602,6 +611,14 @@ async def create_activity(activity: ActivityCreate):
 
         if frequency not in allowed_frequencies:
             raise HTTPException(status_code=400, detail="frequency_type invÃ¡lido")
+
+        if frequency == "intercalate":
+            if intercalate_days is None:
+                raise HTTPException(status_code=400, detail="intercalate_days Ã© obrigatÃ³rio para frequÃªncia intercalada")
+            if intercalate_days <= 0:
+                raise HTTPException(status_code=400, detail="intercalate_days deve ser maior que zero")
+        else:
+            intercalate_days = None
 
         has_fixed_time = bool(activity.fixed_time)
         has_fixed_duration = activity.fixed_duration is not None
@@ -628,6 +645,7 @@ async def create_activity(activity: ActivityCreate):
             min_duration=activity.min_duration,
             max_duration=activity.max_duration,
             frequency_type=frequency,
+            intercalate_days=intercalate_days,
             fixed_time=activity.fixed_time,
             fixed_duration=activity.fixed_duration,
             is_disc=activity.is_disc,
@@ -635,6 +653,154 @@ async def create_activity(activity: ActivityCreate):
         )
 
         return {"success": True, "message": "Activity created"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/activities/{activity_id}")
+async def update_activity(activity_id: int, activity: ActivityCreate):
+    def _validate_fixed_activity_conflicts(payload: ActivityCreate):
+        if not payload.fixed_time or payload.fixed_duration is None:
+            return
+
+        frequency = (payload.frequency_type or "flex").strip().lower()
+        fixed_end = add_minutes(payload.fixed_time, payload.fixed_duration)
+
+        day_types = []
+        if frequency == "workday":
+            day_types = ["work"]
+        elif frequency == "offday":
+            day_types = ["off"]
+        else:
+            day_types = ["work", "off"]
+
+        with Database() as db:
+            config = db.fetchone(
+                """
+                SELECT sleep_start, sleep_end, work_start, work_end
+                FROM daily_config
+                WHERE id = 1
+                """
+            )
+
+            if config and intervals_overlap(payload.fixed_time, fixed_end, config["sleep_start"], config["sleep_end"]):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta a janela de sono ({config['sleep_start']}-{config['sleep_end']})."
+                    ),
+                )
+
+            if config and frequency in {"workday", "everyday", "flex", "intercalate"} and intervals_overlap(
+                payload.fixed_time,
+                fixed_end,
+                config["work_start"],
+                config["work_end"],
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta o horÃ¡rio de trabalho ({config['work_start']}-{config['work_end']})."
+                    ),
+                )
+
+            routine_rows = db.fetchall(
+                """
+                SELECT
+                    dr.day_type,
+                    drb.name,
+                    drb.start_time,
+                    drb.end_time
+                FROM daily_routine_blocks drb
+                INNER JOIN daily_routines dr ON dr.id = drb.routine_id
+                WHERE dr.day_type IN ({})
+                ORDER BY dr.day_type, drb.start_time
+                """.format(",".join(["?"] * len(day_types))),
+                tuple(day_types),
+            )
+
+            for row in routine_rows:
+                if intervals_overlap(payload.fixed_time, fixed_end, row["start_time"], row["end_time"]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                            f"intersecta bloco de rotina '{row['name']}' "
+                            f"({row['day_type']}: {row['start_time']}-{row['end_time']})."
+                        ),
+                    )
+
+    try:
+        title = (activity.title or "").strip()
+        frequency = (activity.frequency_type or "flex").strip().lower()
+        allowed_frequencies = {"flex", "everyday", "workday", "offday", "intercalate"}
+        intercalate_days = activity.intercalate_days
+
+        if not title:
+            raise HTTPException(status_code=400, detail="title Ã© obrigatÃ³rio")
+
+        if activity.min_duration <= 0:
+            raise HTTPException(status_code=400, detail="min_duration deve ser maior que zero")
+
+        if activity.max_duration <= 0:
+            raise HTTPException(status_code=400, detail="max_duration deve ser maior que zero")
+
+        if activity.max_duration < activity.min_duration:
+            raise HTTPException(status_code=400, detail="max_duration deve ser maior ou igual a min_duration")
+
+        if frequency not in allowed_frequencies:
+            raise HTTPException(status_code=400, detail="frequency_type invÃ¡lido")
+
+        if frequency == "intercalate":
+            if intercalate_days is None:
+                raise HTTPException(status_code=400, detail="intercalate_days Ã© obrigatÃ³rio para frequÃªncia intercalada")
+            if intercalate_days <= 0:
+                raise HTTPException(status_code=400, detail="intercalate_days deve ser maior que zero")
+        else:
+            intercalate_days = None
+
+        has_fixed_time = bool(activity.fixed_time)
+        has_fixed_duration = activity.fixed_duration is not None
+
+        if has_fixed_time != has_fixed_duration:
+            raise HTTPException(status_code=400, detail="fixed_time e fixed_duration devem ser informados juntos")
+
+        if has_fixed_duration and activity.fixed_duration <= 0:
+            raise HTTPException(status_code=400, detail="fixed_duration deve ser maior que zero")
+
+        if activity.fixed_time:
+            try:
+                datetime.strptime(activity.fixed_time, "%H:%M")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
+
+        if not activity.is_disc and not activity.is_fun:
+            raise HTTPException(status_code=400, detail="Selecione ao menos uma categoria: is_disc ou is_fun")
+
+        _validate_fixed_activity_conflicts(activity)
+
+        updated = ActivityEngine.update_activity(
+            activity_id=activity_id,
+            title=title,
+            min_duration=activity.min_duration,
+            max_duration=activity.max_duration,
+            frequency_type=frequency,
+            intercalate_days=intercalate_days,
+            fixed_time=activity.fixed_time,
+            fixed_duration=activity.fixed_duration,
+            is_disc=activity.is_disc,
+            is_fun=activity.is_fun,
+        )
+
+        if not updated:
+            raise HTTPException(status_code=404, detail="Atividade nÃ£o encontrada")
+
+        return {"success": True, "message": "Activity updated"}
 
     except HTTPException:
         raise
@@ -667,6 +833,50 @@ async def get_activity_progress(activity_id: int):
     try:
         progress = ActivityEngine.get_progress(activity_id)
         return {"success": True, "data": {"progress": progress}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# ACTIVITY COUNTERS ENDPOINTS
+# ============================================================================
+
+@app.get("/api/activity-counters")
+async def list_activity_counters():
+    try:
+        counters = ActivityCounterEngine.list_counters()
+        return {"success": True, "data": counters}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/activity-counters")
+async def create_activity_counter(counter: ActivityCounterCreate):
+    try:
+        title = (counter.title or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="title e obrigatorio")
+
+        created_counter = ActivityCounterEngine.create_counter(title=title)
+        return {"success": True, "message": "Counter created", "data": created_counter}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/activity-counters/{counter_id}/complete")
+async def complete_activity_counter(counter_id: int):
+    try:
+        completed_counter = ActivityCounterEngine.complete_counter(counter_id)
+        if completed_counter is None:
+            raise HTTPException(status_code=404, detail="Contador nao encontrado")
+        if completed_counter == "already_completed":
+            raise HTTPException(status_code=400, detail="Este contador ja foi concluido")
+
+        return {"success": True, "message": "Counter completed", "data": completed_counter}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -731,6 +941,7 @@ async def create_goal(
     deadline: Optional[str] = Form(None),
     difficulty: int = Form(1),
     category_id: Optional[int] = Form(None),
+    notifications_enabled: bool = Form(True),
     goal_mode: str = Form("simple"),
     image: Optional[UploadFile] = File(None),
 ):
@@ -747,6 +958,7 @@ async def create_goal(
             difficulty=difficulty,
             category_id=category_id,
             image_path=image_path,
+            notifications_enabled=notifications_enabled,
             goal_mode=goal_mode,
         )
 
@@ -772,6 +984,7 @@ async def update_goal(goal_id: int, goal: GoalUpdate):
             difficulty=goal.difficulty,
             category_id=goal.category_id,
             image_path=goal.image_path,
+            notifications_enabled=goal.notifications_enabled,
             goal_mode=goal.goal_mode,
             milestones=[item.model_dump() for item in goal.milestones],
         )
@@ -792,6 +1005,7 @@ async def update_goal_multipart(
     deadline: Optional[str] = Form(None),
     difficulty: int = Form(1),
     category_id: Optional[int] = Form(None),
+    notifications_enabled: bool = Form(True),
     goal_mode: str = Form("simple"),
     image: Optional[UploadFile] = File(None),
 ):
@@ -809,6 +1023,7 @@ async def update_goal_multipart(
             difficulty=difficulty,
             category_id=category_id,
             image_path=image_path,
+            notifications_enabled=notifications_enabled,
             goal_mode=goal_mode,
         )
         if not updated:
@@ -2574,6 +2789,16 @@ async def artworks_list(request: Request, status: Optional[str] = None, visual_c
     return {"success": True, "data": artworks}
 
 
+@app.get("/api/visual-arts/insights")
+async def visual_arts_insights(visual_category: Optional[str] = None):
+    return {"success": True, "data": PaintingEngine.get_insights(visual_category)}
+
+
+@app.get("/api/visual-arts/log")
+async def visual_arts_log(visual_category: Optional[str] = None, limit: int = 40):
+    return {"success": True, "data": [dict(row) for row in PaintingEngine.get_log(limit=limit, visual_category=visual_category)]}
+
+
 @app.post("/api/visual-arts/artworks")
 async def artworks_create(
     request: Request,
@@ -2933,6 +3158,14 @@ async def calendar_month(month: str):
 async def calendar_day(date: str):
     try:
         return {"success": True, "data": CalendarEngine.get_day_view(date)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/calendar/week")
+async def calendar_week(reference_date: Optional[str] = None):
+    try:
+        return {"success": True, "data": CalendarEngine.get_week_view(reference_date)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

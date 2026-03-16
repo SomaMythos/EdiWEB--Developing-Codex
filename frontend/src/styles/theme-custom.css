@@ -1,0 +1,13 @@
+/*
+  Custom skin entrypoint
+  ----------------------
+  Ordem de importacao:
+  1. theme.css             -> base brutalista global compartilhada
+  2. theme-custom-vars.css -> tokens da skin custom
+  3. theme-custom-core.css -> overrides globais e dos modulos
+  4. theme-custom-home.css -> ajustes exclusivos da Home
+*/
+@import "./theme.css";
+@import "./theme-custom-vars.css";
+@import "./theme-custom-core.css";
+@import "./theme-custom-home.css";

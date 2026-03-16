@@ -146,7 +146,12 @@ class DashboardEngine:
         suggestions = []
         books = [dict(book) for book in BookEngine.list_books()]
         active_books = [book for book in books if str(book.get("status") or "").lower() != "concluido"]
-        for book in active_books[:limit]:
+        started_books = [
+            book for book in active_books
+            if (book.get("current_page") or 0) > 0 or book.get("started_at")
+        ]
+        candidate_books = started_books or active_books
+        for book in candidate_books[:limit]:
             current_page = int(book.get("current_page") or 0)
             total_pages = int(book.get("total_pages") or 0)
             if current_page and total_pages:
@@ -882,4 +887,3 @@ class DashboardEngine:
             "total_results": sum(section["count"] for section in sections),
             "sections": sections,
         }
-

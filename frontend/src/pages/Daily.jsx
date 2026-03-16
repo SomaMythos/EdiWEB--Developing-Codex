@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import DailyHeader from "../components/daily/DailyHeader";
 import DailyTimeline from "../components/daily/DailyTimeline";
 import DayConfigModal from "../components/daily/DayConfigModal";
-import RoutinesModal from "../components/daily/RoutinesModal";
 import ActivitiesModal from "../components/daily/ActivitiesModal";
+import CountersModal from "../components/daily/CountersModal";
 import EditBlockModal from "../components/daily/EditBlockModal";
 import { useDailyPlan } from "../hooks/daily/useDailyPlan";
 import { useDailyConfig } from "../hooks/daily/useDailyConfig";
-import { useDailyRoutines } from "../hooks/daily/useDailyRoutines";
 import { useActivities } from "../hooks/daily/useActivities";
+import { useActivityCounters } from "../hooks/daily/useActivityCounters";
 import { dailyApi, dayConfigApi } from "../services/api";
 import "./Daily.css";
 
@@ -52,8 +52,8 @@ export default function Daily() {
 
   const dailyPlan = useDailyPlan(selectedDate);
   const dailyConfig = useDailyConfig();
-  const dailyRoutines = useDailyRoutines(selectedDate, dailyPlan.dayType);
   const activities = useActivities();
+  const counters = useActivityCounters();
   const notScheduled = dailyPlan.generationResult?.notScheduled || [];
   const diagnostics = dailyPlan.generationResult?.diagnostics;
 
@@ -194,8 +194,8 @@ export default function Daily() {
           onGenerate={dailyPlan.generateDaily}
           onToggleDay={dailyPlan.toggleDayType}
           onOpenConfig={dailyConfig.fetchConfig}
-          onOpenRoutines={dailyRoutines.fetchActiveRoutine}
           onOpenActivities={activities.fetchActivities}
+          onOpenCounters={counters.fetchCounters}
           actionState={dailyPlan.actionState}
         />
       </section>
@@ -211,7 +211,6 @@ export default function Daily() {
         {!collapsedSections.quickActions && (
           <div className="daily-chip-grid">
             <button className="daily-chip" onClick={dailyPlan.generateDaily}>Gerar plano agora</button>
-            <button className="daily-chip" onClick={dailyRoutines.fetchActiveRoutine}>Revisar rotina ativa</button>
             <button className="daily-chip" onClick={activities.fetchActivities}>Ativar/desativar atividades</button>
             <button className="daily-chip" onClick={dailyConfig.fetchConfig}>Ajustar regras do dia</button>
           </div>
@@ -267,32 +266,37 @@ export default function Daily() {
         state={dailyConfig.state}
       />
 
-      <RoutinesModal
-        show={dailyRoutines.showRoutineModal}
-        dayType={dailyPlan.dayType}
-        activeRoutine={dailyRoutines.activeRoutine}
-        routineBlocks={dailyRoutines.routineBlocks}
-        newBlock={dailyRoutines.newBlock}
-        setNewBlock={dailyRoutines.setNewBlock}
-        state={dailyRoutines.state}
-        onCreateRoutine={dailyRoutines.createRoutine}
-        onAddBlock={dailyRoutines.addRoutineBlock}
-        onRemoveBlock={dailyRoutines.removeRoutineBlock}
-        onClose={() => dailyRoutines.setShowRoutineModal(false)}
-      />
-
       <ActivitiesModal
         show={activities.showActivitiesModal}
         activities={activities.activities}
         newActivity={activities.newActivity}
         setNewActivity={activities.setNewActivity}
+        editingActivityId={activities.editingActivityId}
         validationErrors={activities.validationErrors}
         state={activities.state}
         onFrequencyChange={activities.handleFrequencyChange}
+        onEditActivity={activities.startEditingActivity}
+        onCancelEditing={activities.cancelEditingActivity}
         onToggleActivity={activities.toggleActivity}
         onDeleteActivity={activities.deleteActivity}
         onCreateActivity={activities.createActivity}
-        onClose={() => activities.setShowActivitiesModal(false)}
+        onClose={() => {
+          activities.cancelEditingActivity();
+          activities.setShowActivitiesModal(false);
+        }}
+      />
+
+      <CountersModal
+        show={counters.showCountersModal}
+        counterName={counters.counterName}
+        setCounterName={counters.setCounterName}
+        counters={counters.counters}
+        summary={counters.summary}
+        validationError={counters.validationError}
+        state={counters.state}
+        onCreateCounter={counters.createCounter}
+        onCompleteCounter={counters.completeCounter}
+        onClose={counters.closeCountersModal}
       />
 
       <EditBlockModal

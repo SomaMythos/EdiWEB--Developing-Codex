@@ -775,6 +775,8 @@ class NotificationCenterEngine:
     def _check_stalled_goals():
         try:
             for goal in GoalEngine.list_goals():
+                if not goal.get("notifications_enabled", True):
+                    continue
                 if GoalEngine.is_stalled(goal["id"]):
                     payload = {
                         "notification_type": "stalled_goal",
@@ -798,6 +800,8 @@ class NotificationCenterEngine:
         try:
             today = date.today()
             for goal in GoalEngine.list_goals():
+                if not goal.get("notifications_enabled", True):
+                    continue
                 deadline_raw = goal.get("deadline")
                 if not deadline_raw:
                     continue
@@ -1086,7 +1090,6 @@ class NotificationCenterEngine:
             for reminder in NotificationCenterEngine.reminder_adapter_list(status="pendente")
             if reminder.get("due_date") and reminder["due_date"] <= limit_date
         ]
-
 
 
 

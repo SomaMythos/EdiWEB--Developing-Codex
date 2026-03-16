@@ -1,5 +1,15 @@
-﻿import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Circle, Flag, Plus, Star, Target, Trash2 } from 'lucide-react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import {
+  CheckCircle2,
+  Circle,
+  Flag,
+  PencilLine,
+  Plus,
+  Search,
+  Star,
+  Target,
+  Trash2,
+} from 'lucide-react';
 import { goalsApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import './Goals.css';
@@ -9,14 +19,35 @@ const initialGoalForm = {
   description: '',
   deadline: '',
   difficulty: 1,
+  notifications_enabled: true,
   goal_mode: 'simple',
   milestones: [],
 };
 
 const emptyMilestone = () => ({ title: '', description: '', is_completed: false });
 
-const Goals = () => {
-  const [mode, setMode] = useState('summary');
+const formatDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('pt-BR');
+};
+
+const getProgressSummary = (goal) => goal?.progress_snapshot?.summary || goal?.progress || 'Sem progresso ainda';
+
+const shouldShowProgressMeta = (goal) => goal?.status !== 'concluida' && Boolean(getProgressSummary(goal));
+
+const goalMatchesSearch = (goal, query) => {
+  const haystack = [goal.title, goal.description, goal?.progress_snapshot?.summary]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(query.toLowerCase());
+};
+
+export default function Goals() {
+  const [sectionMode, setSectionMode] = useState('summary');
+  const [uiMode, setUiMode] = useState('view');
   const [home, setHome] = useState({ total_stars: 0, recent_achievements: [], categories_overview: [] });
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -26,6 +57,7 @@ const Goals = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [editingGoalId, setEditingGoalId] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(true);
 
@@ -34,12 +66,59 @@ const Goals = () => {
   }, []);
 
   useEffect(() => {
-    if (mode === 'category' && selectedCategory) {
+    if (sectionMode === 'category' && selectedCategory) {
       loadGoalsByCategory(selectedCategory.id);
     }
-  }, [mode, selectedCategory]);
+  }, [sectionMode, selectedCategory]);
 
-  const loadSummary = async () => {
+  const categoryOverviewMap = useMemo(
+    () => new Map((home.categories_overview || []).map((item) => [item.id, item])),
+    [home.categories_overview]
+  );
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredCategories = useMemo(
+    () => categories.filter((category) => category.name.toLowerCase().includes(normalizedQuery)),
+    [categories, normalizedQuery]
+  );
+
+  const filteredRecentGoals = useMemo(
+    () => (home.recent_achievements || []).filter((goal) => goalMatchesSearch(goal, normalizedQuery || '')),
+    [home.recent_achievements, normalizedQuery]
+  );
+
+  const filteredGoals = useMemo(
+    () => goals.filter((goal) => goalMatchesSearch(goal, normalizedQuery || '')),
+    [goals, normalizedQuery]
+  );
+
+  const activeGoals = useMemo(
+    () => filteredGoals.filter((goal) => goal.status !== 'concluida'),
+    [filteredGoals]
+  );
+
+  const completedGoals = useMemo(
+    () => filteredGoals.filter((goal) => goal.status === 'concluida'),
+    [filteredGoals]
+  );
+
+  const orderedGoals = useMemo(() => [...activeGoals, ...completedGoals], [activeGoals, completedGoals]);
+
+  const overallProgress = useMemo(() => {
+    return filteredCategories.reduce((acc, category) => {
+      const overview = categoryOverviewMap.get(category.id) || {};
+      acc.total += overview.total || 0;
+      acc.completed += overview.completed || 0;
+      return acc;
+    }, { total: 0, completed: 0 });
+  }, [filteredCategories, categoryOverviewMap]);
+
+  const overallProgressPercentage = overallProgress.total
+    ? Math.round((overallProgress.completed / overallProgress.total) * 100)
+    : 0;
+
+  async function loadSummary() {
     setLoading(true);
     try {
       const [homeResponse, categoriesResponse] = await Promise.all([
@@ -49,31 +128,67 @@ const Goals = () => {
       setHome(homeResponse.data.data || { total_stars: 0, recent_achievements: [], categories_overview: [] });
       setCategories(categoriesResponse.data.data || []);
     } catch (error) {
-      console.error('Erro ao carregar resumo de metas:', error);
-      setFeedback({ type: 'error', message: 'Não foi possível carregar o resumo de metas.' });
+      console.error(error);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar metas.' });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const loadGoalsByCategory = async (categoryId) => {
+  async function loadGoalsByCategory(categoryId) {
     setLoading(true);
     try {
       const response = await goalsApi.listByCategory(categoryId);
       setGoals(response.data.data || []);
     } catch (error) {
-      console.error('Erro ao carregar metas da categoria:', error);
-      setFeedback({ type: 'error', message: 'Não foi possível carregar as metas da categoria.' });
+      console.error(error);
+      setFeedback({ type: 'error', message: 'Não foi possível carregar a categoria.' });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const resetGoalForm = () => {
     setFormData(initialGoalForm);
     setPhotoFile(null);
     setEditingGoalId(null);
     setShowGoalForm(false);
+  };
+
+  const openGoalForm = (goal = null) => {
+    if (!goal) {
+      setEditingGoalId(null);
+      setFormData(initialGoalForm);
+      setPhotoFile(null);
+      setShowGoalForm(true);
+      return;
+    }
+
+    setEditingGoalId(goal.id);
+    setFormData({
+      title: goal.title || '',
+      description: goal.description || '',
+      deadline: goal.deadline ? goal.deadline.slice(0, 10) : '',
+      difficulty: goal.difficulty || 1,
+      notifications_enabled: goal.notifications_enabled !== false,
+      goal_mode: goal.goal_mode || 'simple',
+      milestones: (goal.milestones || []).map((milestone) => ({
+        id: milestone.id,
+        title: milestone.title || '',
+        description: milestone.description || '',
+        is_completed: !!milestone.is_completed,
+        sort_order: milestone.sort_order,
+      })),
+    });
+    setPhotoFile(null);
+    setShowGoalForm(true);
+  };
+
+  const handleSelectCategory = (category) => {
+    setSelectedCategory(category);
+    setSectionMode('category');
+    setSearchQuery('');
+    resetGoalForm();
   };
 
   const handleCreateCategory = async () => {
@@ -84,7 +199,7 @@ const Goals = () => {
       await loadSummary();
       setFeedback({ type: 'success', message: 'Categoria criada.' });
     } catch (error) {
-      console.error('Erro ao criar categoria:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao criar categoria.' });
     }
   };
@@ -92,58 +207,32 @@ const Goals = () => {
   const handleEditCategory = async () => {
     if (!selectedCategory) return;
     const nextName = window.prompt('Novo nome da categoria:', selectedCategory.name);
-    if (!nextName || !nextName.trim()) return;
+    if (!nextName?.trim()) return;
+
     try {
       await goalsApi.updateCategory(selectedCategory.id, { name: nextName.trim() });
       await loadSummary();
-      const refreshed = (await goalsApi.listCategories()).data.data || [];
-      const current = refreshed.find((item) => item.id === selectedCategory.id) || null;
-      setCategories(refreshed);
-      setSelectedCategory(current);
+      setSelectedCategory((prev) => (prev ? { ...prev, name: nextName.trim() } : prev));
       setFeedback({ type: 'success', message: 'Categoria atualizada.' });
     } catch (error) {
-      console.error('Erro ao editar categoria:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao editar categoria.' });
     }
   };
 
   const handleDeleteCategory = async () => {
-    if (!selectedCategory) return;
-    if (!window.confirm(`Excluir a categoria "${selectedCategory.name}" e suas metas?`)) return;
+    if (!selectedCategory || !window.confirm(`Excluir a categoria "${selectedCategory.name}" e suas metas?`)) return;
+
     try {
       await goalsApi.removeCategory(selectedCategory.id);
       setSelectedCategory(null);
-      setMode('summary');
+      setSectionMode('summary');
       await loadSummary();
       setFeedback({ type: 'success', message: 'Categoria excluída.' });
     } catch (error) {
-      console.error('Erro ao excluir categoria:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao excluir categoria.' });
     }
-  };
-
-  const handleSelectCategory = (category) => {
-    setSelectedCategory(category);
-    setMode('category');
-    resetGoalForm();
-  };
-
-  const handleAddMilestone = () => {
-    setFormData((prev) => ({ ...prev, milestones: [...prev.milestones, emptyMilestone()] }));
-  };
-
-  const handleUpdateMilestoneDraft = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      milestones: prev.milestones.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
-    }));
-  };
-
-  const handleRemoveMilestoneDraft = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      milestones: prev.milestones.filter((_, itemIndex) => itemIndex !== index),
-    }));
   };
 
   const handleSubmitGoal = async (event) => {
@@ -157,6 +246,7 @@ const Goals = () => {
         deadline: formData.deadline || null,
         difficulty: formData.difficulty,
         category_id: selectedCategory.id,
+        notifications_enabled: formData.notifications_enabled,
         goal_mode: formData.goal_mode,
       };
 
@@ -173,10 +263,12 @@ const Goals = () => {
       }
 
       if (goalId && formData.goal_mode === 'milestones') {
-        await goalsApi.syncMilestones(goalId, formData.milestones.filter((item) => item.title.trim()).map((item, index) => ({
-          ...item,
-          sort_order: index,
-        })));
+        await goalsApi.syncMilestones(
+          goalId,
+          formData.milestones
+            .filter((item) => item.title.trim())
+            .map((item, index) => ({ ...item, sort_order: index }))
+        );
       }
 
       if (goalId && formData.goal_mode === 'simple' && editingGoalId) {
@@ -188,41 +280,8 @@ const Goals = () => {
       resetGoalForm();
       setFeedback({ type: 'success', message: editingGoalId ? 'Meta atualizada.' : 'Meta criada.' });
     } catch (error) {
-      console.error('Erro ao salvar meta:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao salvar meta.' });
-    }
-  };
-
-  const handleEditGoal = (goal) => {
-    setEditingGoalId(goal.id);
-    setFormData({
-      title: goal.title || '',
-      description: goal.description || '',
-      deadline: goal.deadline ? goal.deadline.slice(0, 10) : '',
-      difficulty: goal.difficulty || 1,
-      goal_mode: goal.goal_mode || 'simple',
-      milestones: (goal.milestones || []).map((milestone) => ({
-        id: milestone.id,
-        title: milestone.title || '',
-        description: milestone.description || '',
-        is_completed: !!milestone.is_completed,
-        sort_order: milestone.sort_order,
-      })),
-    });
-    setPhotoFile(null);
-    setShowGoalForm(true);
-  };
-
-  const handleDeleteGoal = async (goalId) => {
-    if (!window.confirm('Excluir esta meta?')) return;
-    try {
-      await goalsApi.remove(goalId);
-      await loadGoalsByCategory(selectedCategory.id);
-      await loadSummary();
-      setFeedback({ type: 'success', message: 'Meta excluída.' });
-    } catch (error) {
-      console.error('Erro ao excluir meta:', error);
-      setFeedback({ type: 'error', message: 'Erro ao excluir meta.' });
     }
   };
 
@@ -231,137 +290,222 @@ const Goals = () => {
       await goalsApi.updateStatus(goalId, 'concluida');
       await loadGoalsByCategory(selectedCategory.id);
       await loadSummary();
-      setFeedback({ type: 'success', message: 'Meta concluída.' });
+      setFeedback({ type: '', message: '' });
     } catch (error) {
-      console.error('Erro ao concluir meta:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao concluir meta.' });
     }
   };
 
-  const handleToggleMilestoneStatus = async (milestoneId, currentValue) => {
+  const handleDeleteGoal = async (goalId) => {
+    if (!window.confirm('Excluir esta meta?')) return;
+
     try {
-      await goalsApi.updateMilestoneStatus(milestoneId, !currentValue);
+      await goalsApi.remove(goalId);
+      await loadGoalsByCategory(selectedCategory.id);
+      await loadSummary();
+      setFeedback({ type: 'success', message: 'Meta excluída.' });
+    } catch (error) {
+      console.error(error);
+      setFeedback({ type: 'error', message: 'Erro ao excluir meta.' });
+    }
+  };
+
+  const handleToggleMilestone = async (milestone) => {
+    try {
+      await goalsApi.updateMilestoneStatus(milestone.id, !milestone.is_completed);
       await loadGoalsByCategory(selectedCategory.id);
       await loadSummary();
     } catch (error) {
-      console.error('Erro ao atualizar etapa:', error);
+      console.error(error);
       setFeedback({ type: 'error', message: 'Erro ao atualizar etapa.' });
     }
   };
 
   if (loading) {
     return (
-      <div className="goals-page-wow">
-        <div className="card goals-loading">Carregando...</div>
+      <div className="goals-page">
+        <div className="goals-shell page-shell">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="goals-page-wow">
-      <aside className="goals-left-column">
-        <button type="button" className={`category-btn ${mode === 'summary' ? 'active' : ''}`} onClick={() => { setMode('summary'); setSelectedCategory(null); resetGoalForm(); loadSummary(); }}>
-          Sumário
+    <div className="goals-page">
+      <aside className="goals-sidebar page-shell">
+        <button
+          type="button"
+          className={`goals-sidebar__item ${sectionMode === 'summary' ? 'active' : ''}`}
+          onClick={() => {
+            setSectionMode('summary');
+            setSelectedCategory(null);
+            setSearchQuery('');
+            resetGoalForm();
+            loadSummary();
+          }}
+        >
+          <span>Sumário</span>
         </button>
-        {categories.map((category) => (
-          <button
-            type="button"
-            key={category.id}
-            className={`category-btn ${selectedCategory?.id === category.id ? 'active' : ''}`}
-            onClick={() => handleSelectCategory(category)}
-          >
-            {category.name}
-          </button>
-        ))}
+
+        {categories.map((category) => {
+          const overview = categoryOverviewMap.get(category.id) || {};
+          return (
+            <button
+              key={category.id}
+              type="button"
+              className={`goals-sidebar__item ${selectedCategory?.id === category.id ? 'active' : ''}`}
+              onClick={() => handleSelectCategory(category)}
+            >
+              <span>{category.name}</span>
+              <small>{overview.total || 0}</small>
+            </button>
+          );
+        })}
       </aside>
 
-      <section className="goals-main">
+      <section className="goals-shell page-shell">
         {feedback.message ? <div className={`goals-feedback ${feedback.type}`}>{feedback.message}</div> : null}
 
-        <header className="goals-header-wrapper">
-          <div className="goals-header-centered">
-            <h1 className="goals-title">Metas</h1>
-            <div className="stars-centered">
-              <Star size={24} className="star-yellow" />
-              <span className="stars-number">{home.total_stars || 0}</span>
-            </div>
+        <header className="goals-topbar">
+          <div className="goals-topbar__filler" />
+
+          <div className="goals-points-shell">
+            <span className="goals-kicker">Goal Points</span>
+            <strong>{home.total_stars || 0}</strong>
           </div>
 
-          <div className="header-actions-right">
-            {mode === 'summary' ? (
-              <div className="create-category-inline">
-                <input
-                  type="text"
-                  value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                  placeholder="Nova categoria"
-                />
-                <button className="btn btn-primary" onClick={handleCreateCategory}>
-                  <Plus size={16} /> Criar
-                </button>
-              </div>
-            ) : (
-              <div className="category-action-group">
-                <button className="btn btn-primary" onClick={() => { setShowGoalForm(true); setEditingGoalId(null); setFormData(initialGoalForm); }}>
-                  <Plus size={16} /> Nova meta
-                </button>
-                <button className="btn btn-secondary" onClick={handleEditCategory}>Editar categoria</button>
-                <button className="btn btn-danger" onClick={handleDeleteCategory}>Excluir categoria</button>
-              </div>
-            )}
+          <div className="goals-topbar__actions">
+            <label className="goals-search-shell">
+              <Search size={15} />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Buscar"
+              />
+            </label>
+
+            <div className="goals-mode-toggle">
+              <button type="button" className={uiMode === 'view' ? 'active' : ''} onClick={() => setUiMode('view')}>
+                Exibição
+              </button>
+              <button type="button" className={uiMode === 'edit' ? 'active' : ''} onClick={() => setUiMode('edit')}>
+                Edição
+              </button>
+            </div>
           </div>
         </header>
 
-        {mode === 'summary' ? (
-          <div className="goals-summary-grid">
-            <div className="card summary-card-block">
-              <h2 className="section-title">Metas recentes</h2>
-              {home.recent_achievements?.length ? home.recent_achievements.map((goal) => (
-                <div key={goal.id} className="recent-item-wide">
-                  {goal.image_path ? <img src={resolveMediaUrl(goal.image_path)} alt={goal.title} className="goal-thumb-img" /> : <div className="thumb-box">Sem imagem</div>}
-                  <div className="recent-mid">
-                    <div className="recent-title">{goal.title}</div>
-                    <div className="recent-desc">{goal.description || 'Sem descrição.'}</div>
-                  </div>
-                  <div className="recent-right">
-                    <div>{goal.completed_at ? new Date(goal.completed_at).toLocaleDateString('pt-BR') : ''}</div>
-                    <div className="recent-stars">{goal.difficulty || 1}★</div>
-                  </div>
-                </div>
-              )) : <div className="empty-centered">Nenhuma meta concluída ainda.</div>}
-            </div>
+        {sectionMode === 'summary' ? (
+          <div className="goals-overview">
+            <section className="goals-panel">
+              <div className="goals-panel__head">
+                <h2>Metas recentes</h2>
+              </div>
 
-            <div className="card summary-card-block">
-              <h2 className="section-title">Progresso por categoria</h2>
-              {home.categories_overview?.length ? home.categories_overview.map((category) => {
-                const total = category.total || 0;
-                const completed = category.completed || 0;
-                const percentage = total ? Math.round((completed / total) * 100) : 0;
-                return (
-                  <div key={category.id} className="progress-row-compact">
-                    <div className="progress-label-compact">{category.name}</div>
-                    <div className="progress-bar-outer-compact">
-                      <div className="progress-bar-inner-compact" style={{ width: `${percentage}%` }} />
+              <div className="goal-achievement-list">
+                {filteredRecentGoals.length ? filteredRecentGoals.map((goal) => (
+                  <article key={goal.id} className={`goal-achievement-row is-complete ${goal.goal_mode === 'milestones' ? 'is-composite' : 'is-simple'}`}>
+                    <div className="goal-achievement-row__icon">
+                      {goal.image_path ? (
+                        <img src={resolveMediaUrl(goal.image_path)} alt={goal.title} />
+                      ) : (
+                        <Star size={16} />
+                      )}
                     </div>
-                    <div className="progress-count-compact">{completed}/{total}</div>
-                  </div>
-                );
-              }) : <div className="empty-centered">Sem categorias ainda.</div>}
-            </div>
+
+                    <div className="goal-achievement-row__body">
+                      <div className={`goal-achievement-row__titlebar ${goal.goal_mode === 'milestones' ? 'is-composite' : 'is-simple'}`}>
+                        <h3>{goal.title}</h3>
+                      </div>
+                      {goal.description ? <p>{goal.description}</p> : null}
+                    </div>
+
+                    <div className="goal-achievement-row__aside">
+                      <div className="goal-points-badge">
+                        <Star size={28} className="goal-points-badge__star" />
+                        <span className="goal-points-badge__value">{goal.difficulty || 1}</span>
+                      </div>
+                      <small>{formatDate(goal.completed_at)}</small>
+                    </div>
+                  </article>
+                )) : (
+                  <div className="goals-empty-inline">Nenhuma meta criada ainda.</div>
+                )}
+              </div>
+            </section>
+
+            <section className="goals-panel">
+              <div className="goals-panel__head">
+                <h2>Visão de progresso</h2>
+              </div>
+
+              <div className="goals-overview-earned">
+                <div className="goals-overview-earned__head">
+                  <span className="goals-overview-earned__title">Metas concluídas</span>
+                  <strong>{overallProgress.completed}/{overallProgress.total || 0}</strong>
+                </div>
+                <div className="goals-overview-earned__bar">
+                  <div style={{ width: `${overallProgressPercentage}%` }} />
+                </div>
+              </div>
+
+              <div className="goals-overview-grid">
+                {filteredCategories.length ? filteredCategories.map((category) => {
+                  const overview = categoryOverviewMap.get(category.id) || {};
+                  const total = overview.total || 0;
+                  const completed = overview.completed || 0;
+                  const percentage = total ? Math.round((completed / total) * 100) : 0;
+
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={`goals-overview-chip ${total > 0 && completed === total ? 'is-complete' : ''}`}
+                      onClick={() => handleSelectCategory(category)}
+                    >
+                      <span>{category.name}</span>
+                      <strong>{completed}/{total || 0}</strong>
+                      <div className="goals-overview-chip__bar">
+                        <div style={{ width: `${percentage}%` }} />
+                      </div>
+                    </button>
+                  );
+                }) : (
+                  <div className="goals-empty-inline">Nenhuma categoria criada ainda.</div>
+                )}
+              </div>
+
+              {uiMode === 'edit' ? (
+                <div className="goals-category-creator">
+                  <input
+                    value={newCategoryName}
+                    onChange={(event) => setNewCategoryName(event.target.value)}
+                    placeholder="Nova categoria"
+                  />
+                  <button className="btn btn-primary" onClick={handleCreateCategory}>
+                    <Plus size={16} /> Criar
+                  </button>
+                </div>
+              ) : null}
+            </section>
           </div>
         ) : (
-          <div className="category-body">
-            <div className="goal-category-header">
-              <h2>{selectedCategory?.name}</h2>
-              <p>Metas simples e metas fragmentadas em etapas convivem no mesmo fluxo.</p>
-            </div>
+          <div className="goals-category-view">
+            <section className="goals-panel">
 
-            {showGoalForm && (
-              <div className="card goal-form-card">
-                <h3>{editingGoalId ? 'Editar meta' : 'Nova meta'}</h3>
-                <form onSubmit={handleSubmitGoal} className="goal-form-grid">
+              {uiMode === 'edit' ? (
+                <div className="goals-category-actions">
+                  <button className="btn btn-primary" onClick={() => openGoalForm()}>
+                    <Plus size={16} /> Nova meta
+                  </button>
+                  <button className="btn btn-secondary" onClick={handleEditCategory}>Editar categoria</button>
+                  <button className="btn btn-danger" onClick={handleDeleteCategory}>Excluir categoria</button>
+                </div>
+              ) : null}
+
+              {showGoalForm && uiMode === 'edit' ? (
+                <form onSubmit={handleSubmitGoal} className="goal-form">
                   <input
-                    type="text"
                     value={formData.title}
                     onChange={(event) => setFormData({ ...formData, title: event.target.value })}
                     placeholder="Título"
@@ -369,151 +513,174 @@ const Goals = () => {
                   />
 
                   <textarea
+                    rows={3}
                     value={formData.description}
                     onChange={(event) => setFormData({ ...formData, description: event.target.value })}
                     placeholder="Descrição"
-                    rows={4}
                   />
 
-                  <div className="goal-form-inline">
-                    <label>
-                      Prazo
-                      <input
-                        type="date"
-                        value={formData.deadline}
-                        onChange={(event) => setFormData({ ...formData, deadline: event.target.value })}
-                      />
-                    </label>
-                    <label>
-                      Dificuldade
-                      <select
-                        value={formData.difficulty}
-                        onChange={(event) => setFormData({ ...formData, difficulty: Number(event.target.value) })}
-                      >
-                        {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <label>
-                      Modo
-                      <select
-                        value={formData.goal_mode}
-                        onChange={(event) => setFormData({ ...formData, goal_mode: event.target.value })}
-                      >
-                        <option value="simple">Meta simples</option>
-                        <option value="milestones">Meta com etapas</option>
-                      </select>
-                    </label>
+                  <div className="goal-form__row">
+                    <input
+                      type="date"
+                      value={formData.deadline}
+                      onChange={(event) => setFormData({ ...formData, deadline: event.target.value })}
+                    />
+
+                    <select
+                      value={formData.difficulty}
+                      onChange={(event) => setFormData({ ...formData, difficulty: Number(event.target.value) })}
+                    >
+                      {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}★</option>)}
+                    </select>
+
+                    <select
+                      value={formData.goal_mode}
+                      onChange={(event) => setFormData({ ...formData, goal_mode: event.target.value })}
+                    >
+                      <option value="simple">Meta simples</option>
+                      <option value="milestones">Meta com etapas</option>
+                    </select>
                   </div>
 
-                  <label>
-                    Foto (opcional)
-                    <input type="file" accept="image/*" onChange={(event) => setPhotoFile(event.target.files?.[0] || null)} />
+                  <label className="goal-form__toggle">
+                    <span>Notificar esta meta</span>
+                    <input
+                      type="checkbox"
+                      checked={formData.notifications_enabled}
+                      onChange={(event) => setFormData({ ...formData, notifications_enabled: event.target.checked })}
+                    />
                   </label>
 
-                  {formData.goal_mode === 'milestones' && (
+                  <input type="file" accept="image/*" onChange={(event) => setPhotoFile(event.target.files?.[0] || null)} />
+
+                  {formData.goal_mode === 'milestones' ? (
                     <div className="goal-milestone-editor">
-                      <div className="goal-milestone-editor-head">
-                        <h4>Etapas</h4>
-                        <button type="button" className="btn btn-secondary" onClick={handleAddMilestone}>
-                          <Plus size={16} /> Adicionar etapa
+                      <div className="goals-panel__subhead">
+                        <h3>Etapas</h3>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setFormData((prev) => ({ ...prev, milestones: [...prev.milestones, emptyMilestone()] }))}
+                        >
+                          <Plus size={16} /> Etapa
                         </button>
                       </div>
 
-                      {formData.milestones.length === 0 ? (
-                        <p className="goal-helper-text">Esta meta ficará fragmentada quando você adicionar as etapas.</p>
-                      ) : (
-                        formData.milestones.map((milestone, index) => (
-                          <div key={`${milestone.id || 'new'}-${index}`} className="milestone-draft-card">
-                            <input
-                              type="text"
-                              value={milestone.title}
-                              onChange={(event) => handleUpdateMilestoneDraft(index, 'title', event.target.value)}
-                              placeholder={`Etapa ${index + 1}`}
-                            />
-                            <textarea
-                              rows={2}
-                              value={milestone.description || ''}
-                              onChange={(event) => handleUpdateMilestoneDraft(index, 'description', event.target.value)}
-                              placeholder="Descrição da etapa"
-                            />
-                            <button type="button" className="btn btn-danger" onClick={() => handleRemoveMilestoneDraft(index)}>
-                              <Trash2 size={16} /> Remover
-                            </button>
-                          </div>
-                        ))
+                      {formData.milestones.length ? formData.milestones.map((milestone, index) => (
+                        <div key={`${milestone.id || 'new'}-${index}`} className="goal-milestone-draft">
+                          <input
+                            value={milestone.title}
+                            onChange={(event) => setFormData((prev) => ({
+                              ...prev,
+                              milestones: prev.milestones.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item),
+                            }))}
+                            placeholder={`Etapa ${index + 1}`}
+                          />
+
+                          <textarea
+                            rows={2}
+                            value={milestone.description || ''}
+                            onChange={(event) => setFormData((prev) => ({
+                              ...prev,
+                              milestones: prev.milestones.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item),
+                            }))}
+                            placeholder="Descrição da etapa"
+                          />
+
+                          <button
+                            type="button"
+                            className="btn btn-danger"
+                            onClick={() => setFormData((prev) => ({
+                              ...prev,
+                              milestones: prev.milestones.filter((_, itemIndex) => itemIndex !== index),
+                            }))}
+                          >
+                            <Trash2 size={16} /> Remover
+                          </button>
+                        </div>
+                      )) : (
+                        <div className="goals-empty-inline">Adicione etapas para fragmentar a meta.</div>
                       )}
                     </div>
-                  )}
+                  ) : null}
 
-                  <div className="form-actions">
+                  <div className="goal-form__actions">
                     <button type="button" className="btn btn-secondary" onClick={resetGoalForm}>Cancelar</button>
                     <button type="submit" className="btn btn-primary">{editingGoalId ? 'Salvar meta' : 'Criar meta'}</button>
                   </div>
                 </form>
+              ) : null}
+
+              <div className="goal-achievement-list">
+                {orderedGoals.length ? orderedGoals.map((goal) => (
+                  <article key={goal.id} className={`goal-achievement-row ${goal.status === 'concluida' ? 'is-complete' : 'is-active'} ${goal.goal_mode === 'milestones' ? 'is-composite' : 'is-simple'}`}>
+                    <div className="goal-achievement-row__icon">
+                      {goal.image_path ? (
+                        <img src={resolveMediaUrl(goal.image_path)} alt={goal.title} />
+                      ) : goal.status === 'concluida' ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <Circle size={16} />
+                      )}
+                    </div>
+
+                    <div className="goal-achievement-row__body">
+                      <div className={`goal-achievement-row__titlebar ${goal.goal_mode === 'milestones' ? 'is-composite' : 'is-simple'}`}>
+                        <h3>{goal.title}</h3>
+                      </div>
+                      {goal.description ? <p>{goal.description}</p> : null}
+                      {shouldShowProgressMeta(goal) || (goal.deadline && goal.status !== 'concluida') ? (
+                        <div className="goal-achievement-row__meta">
+                          {shouldShowProgressMeta(goal) ? <span><Target size={14} /> {getProgressSummary(goal)}</span> : null}
+                          {goal.deadline && goal.status !== 'concluida' ? <span><Flag size={14} /> {formatDate(goal.deadline)}</span> : null}
+                        </div>
+                      ) : null}
+
+                      {goal.goal_mode === 'milestones' && goal.milestones?.length ? (
+                        <div className="goal-achievement-row__milestones">
+                          {goal.milestones.map((milestone) => (
+                            <button
+                              key={milestone.id}
+                              type="button"
+                              className={`goal-milestone-chip ${milestone.is_completed ? 'done' : ''}`}
+                              onClick={() => goal.status !== 'concluida' && handleToggleMilestone(milestone)}
+                            >
+                              {milestone.is_completed ? <CheckCircle2 size={13} /> : <Circle size={13} />}
+                              <span>{milestone.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="goal-achievement-row__aside">
+                      <div className="goal-points-badge">
+                        <Star size={28} className="goal-points-badge__star" />
+                        <span className="goal-points-badge__value">{goal.difficulty}</span>
+                      </div>
+                      <small>{goal.status === 'concluida' ? formatDate(goal.completed_at) : (goal.deadline ? formatDate(goal.deadline) : '')}</small>
+                    </div>
+
+                    {uiMode === 'edit' ? (
+                      <div className="goal-achievement-row__actions">
+                        {goal.status !== 'concluida' ? (
+                          <>
+                            <button className="goal-icon-btn" onClick={() => openGoalForm(goal)}><PencilLine size={15} /></button>
+                            <button className="goal-icon-btn goal-icon-btn--primary" onClick={() => handleConcludeGoal(goal.id)}><CheckCircle2 size={15} /></button>
+                          </>
+                        ) : null}
+                        <button className="goal-icon-btn goal-icon-btn--danger" onClick={() => handleDeleteGoal(goal.id)}><Trash2 size={15} /></button>
+                      </div>
+                    ) : null}
+                  </article>
+                )) : (
+                  <div className="goals-empty-inline">Nenhuma meta criada nesta categoria.</div>
+                )}
               </div>
-            )}
-
-            <div className="goals-list">
-              {!showGoalForm && goals.length === 0 && <div className="card empty">Nenhuma meta nesta categoria.</div>}
-
-              {goals.map((goal) => (
-                <article key={goal.id} className={`card goal-card ${goal.status === 'concluida' ? 'goal-completed' : 'goal-active'}`}>
-                  <div className="goal-card-media">
-                    {goal.image_path ? <img src={resolveMediaUrl(goal.image_path)} alt={goal.title} className="goal-thumb" /> : <div className="thumb-box">-</div>}
-                  </div>
-
-                  <div className="goal-card-body">
-                    <div className="goal-title-row">
-                      <div>
-                        <h3 className="goal-title">{goal.title}</h3>
-                        <p className="goal-desc">{goal.description || 'Sem descrição.'}</p>
-                      </div>
-                      <div className="goal-card-badges">
-                        <span className="goal-mode-badge">{goal.goal_mode === 'milestones' ? 'Etapas' : 'Simples'}</span>
-                        <span className="goal-stars-badge"><Star size={16} /> {goal.difficulty}</span>
-                      </div>
-                    </div>
-
-                    <div className="goal-meta-line">
-                      <span><Target size={14} /> {goal.progress_snapshot?.summary || goal.progress}</span>
-                      {goal.deadline && <span><Flag size={14} /> {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>}
-                      {goal.status === 'concluida' && goal.completed_at && <span><CheckCircle2 size={14} /> {new Date(goal.completed_at).toLocaleDateString('pt-BR')}</span>}
-                    </div>
-
-                    {goal.goal_mode === 'milestones' && goal.milestones?.length > 0 && (
-                      <div className="goal-milestones-list">
-                        {goal.milestones.map((milestone) => (
-                          <button
-                            type="button"
-                            key={milestone.id}
-                            className={`goal-milestone-chip ${milestone.is_completed ? 'done' : ''}`}
-                            onClick={() => goal.status !== 'concluida' && handleToggleMilestoneStatus(milestone.id, milestone.is_completed)}
-                          >
-                            {milestone.is_completed ? <CheckCircle2 size={14} /> : <Circle size={14} />}
-                            <span>{milestone.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="goal-actions-inline">
-                    {goal.status !== 'concluida' && (
-                      <>
-                        <button className="btn btn-secondary" onClick={() => handleEditGoal(goal)}>Editar</button>
-                        <button className="btn btn-primary" onClick={() => handleConcludeGoal(goal.id)}>Concluir</button>
-                      </>
-                    )}
-                    <button className="btn btn-danger" onClick={() => handleDeleteGoal(goal.id)}>Excluir</button>
-                  </div>
-                </article>
-              ))}
-            </div>
+            </section>
           </div>
         )}
       </section>
     </div>
   );
-};
-
-export default Goals;
+}

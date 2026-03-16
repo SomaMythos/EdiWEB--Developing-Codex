@@ -178,3 +178,175 @@ class PaintingEngine:
         with Database() as db:
             cursor = db.execute("DELETE FROM media_items WHERE id = ?", (item_id,))
             return cursor.rowcount > 0
+
+    @staticmethod
+    def get_insights(visual_category=None):
+        with Database() as db:
+            artwork_where = ""
+            artwork_params = []
+            media_where = ""
+            media_params = []
+            completed_where = "WHERE p.finished_at IS NOT NULL"
+
+            if visual_category:
+                artwork_where = "WHERE p.visual_category = ?"
+                artwork_params.append(visual_category)
+                media_where = "WHERE mf.section_type = ?"
+                media_params.append(visual_category)
+                completed_where = "WHERE p.visual_category = ? AND p.finished_at IS NOT NULL"
+
+            artwork_summary = db.fetchone(
+                f"""
+                SELECT
+                    COUNT(*) AS total_artworks,
+                    COALESCE(SUM(CASE WHEN LOWER(COALESCE(p.status, '')) IN ('concluido', 'concluído') THEN 1 ELSE 0 END), 0) AS completed_artworks,
+                    COALESCE(SUM(CASE WHEN LOWER(COALESCE(p.status, '')) IN ('concluido', 'concluído') THEN 0 ELSE 1 END), 0) AS active_artworks,
+                    COALESCE(SUM(CASE WHEN strftime('%Y-%m', p.finished_at) = strftime('%Y-%m', 'now', 'localtime') THEN 1 ELSE 0 END), 0) AS completions_this_month,
+                    ROUND(COALESCE(AVG(COALESCE(progress_counts.progress_count, 0)), 0), 1) AS avg_updates_per_artwork
+                FROM paintings p
+                LEFT JOIN (
+                    SELECT painting_id, COUNT(*) AS progress_count
+                    FROM painting_progress
+                    GROUP BY painting_id
+                ) progress_counts ON progress_counts.painting_id = p.id
+                {artwork_where}
+                """,
+                tuple(artwork_params),
+            )
+
+            update_summary = db.fetchone(
+                f"""
+                SELECT
+                    COUNT(*) AS total_updates,
+                    COALESCE(SUM(CASE WHEN strftime('%Y-%m', pp.timestamp) = strftime('%Y-%m', 'now', 'localtime') THEN 1 ELSE 0 END), 0) AS updates_this_month
+                FROM painting_progress pp
+                JOIN paintings p ON p.id = pp.painting_id
+                {artwork_where}
+                """,
+                tuple(artwork_params),
+            )
+
+            folder_summary = db.fetchone(
+                f"""
+                SELECT COUNT(*) AS total_folders
+                FROM media_folders mf
+                {media_where}
+                """,
+                tuple(media_params),
+            )
+
+            media_summary = db.fetchone(
+                f"""
+                SELECT
+                    COUNT(*) AS total_media_items,
+                    COALESCE(SUM(CASE WHEN strftime('%Y-%m', mi.created_at) = strftime('%Y-%m', 'now', 'localtime') THEN 1 ELSE 0 END), 0) AS media_items_this_month
+                FROM media_items mi
+                JOIN media_folders mf ON mf.id = mi.folder_id
+                {media_where}
+                """,
+                tuple(media_params),
+            )
+
+            artwork_summary = dict(artwork_summary or {})
+            update_summary = dict(update_summary or {})
+            folder_summary = dict(folder_summary or {})
+            media_summary = dict(media_summary or {})
+
+            return {
+                "total_artworks": int(artwork_summary.get("total_artworks") or 0),
+                "active_artworks": int(artwork_summary.get("active_artworks") or 0),
+                "completed_artworks": int(artwork_summary.get("completed_artworks") or 0),
+                "completions_this_month": int(artwork_summary.get("completions_this_month") or 0),
+                "avg_updates_per_artwork": float(artwork_summary.get("avg_updates_per_artwork") or 0),
+                "total_updates": int(update_summary.get("total_updates") or 0),
+                "updates_this_month": int(update_summary.get("updates_this_month") or 0),
+                "total_folders": int(folder_summary.get("total_folders") or 0),
+                "total_media_items": int(media_summary.get("total_media_items") or 0),
+                "media_items_this_month": int(media_summary.get("media_items_this_month") or 0),
+            }
+
+    @staticmethod
+    def get_log(limit=40, visual_category=None):
+        with Database() as db:
+            artwork_filter = ""
+            media_filter = ""
+            completed_where = "WHERE p.finished_at IS NOT NULL"
+            params = []
+
+            if visual_category:
+                artwork_filter = "WHERE p.visual_category = ?"
+                media_filter = "WHERE mf.section_type = ?"
+                completed_where = "WHERE p.visual_category = ? AND p.finished_at IS NOT NULL"
+                params.extend([visual_category, visual_category, visual_category, visual_category, visual_category])
+
+            rows = db.fetchall(
+                f"""
+                SELECT *
+                FROM (
+                    SELECT
+                        'artwork_created' AS event_type,
+                        p.id AS event_id,
+                        p.title AS title,
+                        p.created_at AS occurred_at,
+                        p.size AS detail,
+                        p.visual_category AS visual_category
+                    FROM paintings p
+                    {artwork_filter}
+
+                    UNION ALL
+
+                    SELECT
+                        'artwork_update' AS event_type,
+                        pp.id AS event_id,
+                        p.title AS title,
+                        pp.timestamp AS occurred_at,
+                        COALESCE(pp.update_title, 'Atualização') AS detail,
+                        p.visual_category AS visual_category
+                    FROM painting_progress pp
+                    JOIN paintings p ON p.id = pp.painting_id
+                    {artwork_filter}
+
+                    UNION ALL
+
+                    SELECT
+                        'artwork_completed' AS event_type,
+                        p.id AS event_id,
+                        p.title AS title,
+                        p.finished_at AS occurred_at,
+                        'Concluída' AS detail,
+                        p.visual_category AS visual_category
+                    FROM paintings p
+                    {completed_where}
+
+                    UNION ALL
+
+                    SELECT
+                        'media_folder' AS event_type,
+                        mf.id AS event_id,
+                        mf.name AS title,
+                        mf.created_at AS occurred_at,
+                        'Pasta criada' AS detail,
+                        mf.section_type AS visual_category
+                    FROM media_folders mf
+                    {media_filter}
+
+                    UNION ALL
+
+                    SELECT
+                        'media_item' AS event_type,
+                        mi.id AS event_id,
+                        mi.title AS title,
+                        COALESCE(mi.created_at, mi.date) AS occurred_at,
+                        mf.name AS detail,
+                        mf.section_type AS visual_category
+                    FROM media_items mi
+                    JOIN media_folders mf ON mf.id = mi.folder_id
+                    {media_filter}
+                ) events
+                WHERE occurred_at IS NOT NULL
+                ORDER BY datetime(occurred_at) DESC
+                LIMIT ?
+                """,
+                tuple([*params, limit]),
+            )
+            return rows

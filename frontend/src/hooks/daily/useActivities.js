@@ -7,27 +7,46 @@ export function useActivities() {
   const [showActivitiesModal, setShowActivitiesModal] = useState(false);
   const [activities, setActivities] = useState([]);
   const [newActivity, setNewActivity] = useState(DEFAULT_ACTIVITY);
+  const [editingActivityId, setEditingActivityId] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
   const [state, setState] = useState(createUiState());
+
+  const resetActivityForm = () => {
+    setNewActivity(DEFAULT_ACTIVITY);
+    setEditingActivityId(null);
+    setValidationErrors({});
+  };
+
+  const mapActivityToForm = activity => ({
+    title: activity?.title || "",
+    min_duration: Number(activity?.min_duration) || 0,
+    max_duration: Number(activity?.max_duration) || 0,
+    frequency_type: activity?.frequency_type || "flex",
+    intercalate_days: activity?.intercalate_days ?? "",
+    fixed_time: activity?.fixed_time || "",
+    fixed_duration: activity?.fixed_duration ?? "",
+    is_disc: Boolean(activity?.is_disc),
+    is_fun: Boolean(activity?.is_fun)
+  });
 
   const validateActivity = activity => {
     const errors = {};
     const title = (activity.title || "").trim();
 
     if (!title) {
-      errors.title = "Título é obrigatório.";
+      errors.title = "Titulo e obrigatorio.";
     }
 
     if (activity.min_duration <= 0) {
-      errors.min_duration = "A duração mínima deve ser maior que zero.";
+      errors.min_duration = "A duracao minima deve ser maior que zero.";
     }
 
     if (activity.max_duration <= 0) {
-      errors.max_duration = "A duração máxima deve ser maior que zero.";
+      errors.max_duration = "A duracao maxima deve ser maior que zero.";
     }
 
     if (activity.max_duration < activity.min_duration) {
-      errors.max_duration = "A duração máxima deve ser maior ou igual à mínima.";
+      errors.max_duration = "A duracao maxima deve ser maior ou igual a minima.";
     }
 
     const hasFixedTime = Boolean(activity.fixed_time);
@@ -36,18 +55,30 @@ export function useActivities() {
         ? null
         : Number(activity.fixed_duration);
     const hasFixedDuration = Number.isFinite(fixedDurationValue);
+    const intercalateDaysValue =
+      activity.intercalate_days === "" || activity.intercalate_days === null || activity.intercalate_days === undefined
+        ? null
+        : Number(activity.intercalate_days);
 
     if (hasFixedTime !== hasFixedDuration) {
-      errors.fixed_time = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
-      errors.fixed_duration = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
+      errors.fixed_time = "Defina horario e duracao fixos juntos, ou deixe ambos em branco.";
+      errors.fixed_duration = "Defina horario e duracao fixos juntos, ou deixe ambos em branco.";
     }
 
     if (hasFixedDuration && fixedDurationValue <= 0) {
-      errors.fixed_duration = "A duração fixa deve ser maior que zero.";
+      errors.fixed_duration = "A duracao fixa deve ser maior que zero.";
     }
 
     if (!activity.is_disc && !activity.is_fun) {
       errors.category = "Marque pelo menos uma categoria.";
+    }
+
+    if (activity.frequency_type === "intercalate") {
+      if (!Number.isFinite(intercalateDaysValue)) {
+        errors.intercalate_days = "Defina os dias minimos para repetir a atividade.";
+      } else if (intercalateDaysValue <= 0) {
+        errors.intercalate_days = "Os dias minimos devem ser maiores que zero.";
+      }
     }
 
     return errors;
@@ -58,13 +89,13 @@ export function useActivities() {
     try {
       const res = await activitiesApi.list();
       if (res.data.success) {
-        setActivities(res.data.data);
+        setActivities(Array.isArray(res.data.data) ? res.data.data : []);
         setShowActivitiesModal(true);
       }
       setState(createUiState("success"));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Não foi possível carregar as atividades."));
+      setState(createUiState("error", "Nao foi possivel carregar as atividades."));
     }
   };
 
@@ -82,21 +113,36 @@ export function useActivities() {
       const payload = {
         ...newActivity,
         title: newActivity.title.trim(),
+        intercalate_days:
+          newActivity.frequency_type === "intercalate"
+            ? Number(newActivity.intercalate_days)
+            : null,
         fixed_time: newActivity.fixed_time || null,
         fixed_duration:
           newActivity.fixed_duration === "" || newActivity.fixed_duration === null || newActivity.fixed_duration === undefined
             ? null
             : Number(newActivity.fixed_duration)
       };
-      await activitiesApi.create(payload);
-      setNewActivity(DEFAULT_ACTIVITY);
-      setValidationErrors({});
+
+      if (editingActivityId) {
+        await activitiesApi.update(editingActivityId, payload);
+      } else {
+        await activitiesApi.create(payload);
+      }
+
+      resetActivityForm();
       await fetchActivities();
-      setState(createUiState("success", null, "Atividade criada com sucesso."));
+      setState(
+        createUiState(
+          "success",
+          null,
+          editingActivityId ? "Atividade atualizada com sucesso." : "Atividade criada com sucesso."
+        )
+      );
     } catch (error) {
       console.error(error);
       const detail = error?.response?.data?.detail;
-      setState(createUiState("error", detail || "Não foi possível criar a atividade."));
+      setState(createUiState("error", detail || "Nao foi possivel salvar a atividade."));
     }
   };
 
@@ -108,7 +154,7 @@ export function useActivities() {
       setState(createUiState("success", null, "Status da atividade atualizado."));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Não foi possível alterar o status da atividade."));
+      setState(createUiState("error", "Nao foi possivel alterar o status da atividade."));
     }
   };
 
@@ -116,16 +162,35 @@ export function useActivities() {
     setState(createUiState("loading"));
     try {
       await activitiesApi.remove(id);
+      if (editingActivityId === id) {
+        resetActivityForm();
+      }
       await fetchActivities();
-      setState(createUiState("success", null, "Atividade excluída com sucesso."));
+      setState(createUiState("success", null, "Atividade excluida com sucesso."));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Não foi possível excluir a atividade."));
+      setState(createUiState("error", "Nao foi possivel excluir a atividade."));
     }
   };
 
   const handleFrequencyChange = frequencyType => {
-    setNewActivity(prev => ({ ...prev, frequency_type: frequencyType }));
+    setNewActivity(prev => ({
+      ...prev,
+      frequency_type: frequencyType,
+      intercalate_days: frequencyType === "intercalate" ? prev.intercalate_days : ""
+    }));
+  };
+
+  const startEditingActivity = activity => {
+    setNewActivity(mapActivityToForm(activity));
+    setEditingActivityId(activity?.id ?? null);
+    setValidationErrors({});
+    setState(createUiState());
+  };
+
+  const cancelEditingActivity = () => {
+    resetActivityForm();
+    setState(createUiState());
   };
 
   return {
@@ -134,6 +199,7 @@ export function useActivities() {
     activities,
     newActivity,
     setNewActivity,
+    editingActivityId,
     validationErrors,
     state,
     fetchActivities,
@@ -141,6 +207,8 @@ export function useActivities() {
     toggleActivity,
     deleteActivity,
     handleFrequencyChange,
+    startEditingActivity,
+    cancelEditingActivity,
     clearState: () => setState(createUiState())
   };
 }

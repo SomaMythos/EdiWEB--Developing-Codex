@@ -14,7 +14,8 @@
 
 .daily-modal {
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--glass-premium-bg-raised);
   border: 1px solid var(--glass-premium-border-strong);
   color: var(--glass-text-primary);
@@ -25,7 +26,6 @@
   border-radius: 12px;
   width: min(480px, 100%);
   max-height: calc(100vh - 40px);
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -43,7 +43,7 @@
 }
 
 .daily-modal--wide {
-  width: min(700px, 100%);
+  width: min(980px, calc(100vw - 32px));
 }
 
 .daily-modal h3 {

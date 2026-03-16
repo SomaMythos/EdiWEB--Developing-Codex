@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS activities (
     min_duration INTEGER NOT NULL DEFAULT 30,
     max_duration INTEGER NOT NULL DEFAULT 60,
 
-    frequency_type TEXT DEFAULT 'flex', -- flex, everyday, workday, offday
+    frequency_type TEXT DEFAULT 'flex', -- flex, everyday, workday, offday, intercalate
+    intercalate_days INTEGER,
 
     fixed_time TEXT,       -- HH:MM se for horÃ¡rio fixo
     fixed_duration INTEGER, -- duraÃ§Ã£o fixa em minutos
@@ -62,6 +63,21 @@ CREATE TABLE IF NOT EXISTS activity_metadata (
     value TEXT,
     FOREIGN KEY(activity_id) REFERENCES activities(id)
 );
+
+CREATE TABLE IF NOT EXISTS activity_counters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    elapsed_days INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_counters_started_at
+    ON activity_counters(started_at);
+
+CREATE INDEX IF NOT EXISTS idx_activity_counters_completed_at
+    ON activity_counters(completed_at);
 
 -- =========================
 -- LOG DIÃRIO
@@ -133,6 +149,7 @@ CREATE TABLE IF NOT EXISTS goals (
     difficulty INTEGER DEFAULT 1,
     category_id INTEGER,
     image_path TEXT,
+    notifications_enabled INTEGER NOT NULL DEFAULT 1,
     completed_at TEXT,
     goal_mode TEXT DEFAULT 'simple',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
