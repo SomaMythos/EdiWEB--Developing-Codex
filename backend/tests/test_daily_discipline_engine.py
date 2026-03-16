@@ -139,3 +139,52 @@ def test_intercalate_frequency_waits_minimum_days_after_last_registration(monkey
 
     assert result_before == []
     assert [item["title"] for item in result_after] == ["Lavar Roupas"]
+
+
+def test_everyday_activity_without_fixed_time_is_always_included(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+
+    with Database(path=db_path) as db:
+        db.execute(
+            """
+            INSERT INTO activities (
+                title,
+                min_duration,
+                max_duration,
+                frequency_type,
+                intercalate_days,
+                fixed_time,
+                fixed_duration,
+                is_disc,
+                is_fun
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("Treinar - Guitarra", 30, 45, "everyday", None, None, None, 1, 0),
+        )
+        db.execute(
+            """
+            INSERT INTO activities (
+                title,
+                min_duration,
+                max_duration,
+                frequency_type,
+                intercalate_days,
+                fixed_time,
+                fixed_duration,
+                is_disc,
+                is_fun
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("Jogar", 30, 45, "flex", None, None, None, 0, 1),
+        )
+
+    monkeypatch.setattr("core.daily_discipline_engine.Database", lambda: Database(path=db_path))
+    monkeypatch.setattr(
+        "core.daily_discipline_engine.DailyOverrideEngine.get_day_type",
+        lambda _date: "work",
+    )
+
+    result = DailyDisciplineEngine.build_today_activity_list("2026-03-16", 90)
+
+    assert "Treinar - Guitarra" in [item["title"] for item in result]

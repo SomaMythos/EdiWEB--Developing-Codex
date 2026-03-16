@@ -58,10 +58,10 @@ function Start-ManagedProcess {
 
 function Stop-ManagedProcesses {
     $pids = $script:startedProcessIds | Select-Object -Unique | Sort-Object -Descending
-    foreach ($pid in $pids) {
+    foreach ($managedProcessId in $pids) {
         try {
-            if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
-                Start-Process -FilePath "taskkill.exe" -ArgumentList @("/PID", $pid, "/T", "/F") -WindowStyle Hidden -Wait | Out-Null
+            if (Get-Process -Id $managedProcessId -ErrorAction SilentlyContinue) {
+                Start-Process -FilePath "taskkill.exe" -ArgumentList @("/PID", $managedProcessId, "/T", "/F") -WindowStyle Hidden -Wait | Out-Null
             }
         }
         catch {

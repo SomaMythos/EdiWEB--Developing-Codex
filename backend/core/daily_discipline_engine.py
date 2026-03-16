@@ -193,11 +193,14 @@ class DailyDisciplineEngine:
 
             fixed_time_activities = []
             flex_pool = []
+            required_everyday_activities = []
 
             for act in filtered_activities:
 
                 if act["fixed_time"] and act["fixed_duration"]:
                     fixed_time_activities.append(dict(act))
+                elif (act["frequency_type"] or "flex") == "everyday":
+                    required_everyday_activities.append(dict(act))
                 else:
                     flex_pool.append(dict(act))
 
@@ -212,6 +215,10 @@ class DailyDisciplineEngine:
                 act["max_duration"] = act["fixed_duration"]
                 final_list.append(act)
                 free_minutes -= act["fixed_duration"]
+
+            for act in required_everyday_activities:
+                final_list.append(act)
+                free_minutes -= int(act["min_duration"] or 0)
 
             if free_minutes <= 0:
                 return final_list
@@ -315,7 +322,10 @@ class DailyDisciplineEngine:
 
             disc_used = 0
             fun_used = 0
-            selected_ids = {act["id"] for act in fixed_time_activities}
+            selected_ids = {
+                act["id"]
+                for act in (fixed_time_activities + required_everyday_activities)
+            }
 
             turn_disc = True
             stalled_turns = 0
