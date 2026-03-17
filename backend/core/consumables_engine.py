@@ -69,6 +69,18 @@ class ConsumablesEngine:
         return normalized
 
     @staticmethod
+    def _normalize_stock_quantity(value, field_name: str = "stock_quantity") -> int:
+        try:
+            normalized = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ConsumablesValidationError(f"{field_name} deve ser inteiro") from exc
+
+        if normalized <= 0:
+            raise ConsumablesValidationError(f"{field_name} deve ser maior que zero")
+
+        return normalized
+
+    @staticmethod
     def _get_category(category_id: int):
         with Database() as db:
             return db.fetchone("SELECT id, name, created_at FROM consumable_categories WHERE id = ?", (category_id,))
@@ -85,6 +97,159 @@ class ConsumablesEngine:
                 """,
                 (item_id,),
             )
+
+    @staticmethod
+    def _load_cycles_for_item(db, item_id: int):
+        rows = db.fetchall(
+            """
+            SELECT
+                c.id,
+                c.item_id,
+                c.purchase_date,
+                c.stock_quantity,
+                c.remaining_quantity,
+                c.price_paid,
+                c.ended_at,
+                c.duration_days,
+                c.created_at,
+                COUNT(l.id) AS unit_logs_count,
+                MAX(l.consumed_at) AS last_consumed_at
+            FROM consumable_cycles c
+            LEFT JOIN consumable_unit_logs l ON l.cycle_id = c.id
+            WHERE c.item_id = ?
+            GROUP BY c.id
+            ORDER BY c.purchase_date DESC, c.id DESC
+            """,
+            (item_id,),
+        )
+
+        cycles = []
+        for row in rows:
+            cycle = dict(row)
+            stock_quantity = int(cycle.get("stock_quantity") or 1)
+            remaining_quantity = int(cycle.get("remaining_quantity") or stock_quantity)
+            unit_logs_count = int(cycle.get("unit_logs_count") or 0)
+
+            if cycle.get("ended_at"):
+                remaining_quantity = 0
+
+            units_consumed = unit_logs_count
+            if units_consumed == 0 and cycle.get("ended_at") and cycle.get("duration_days") is not None:
+                units_consumed = 1
+
+            unit_price = None
+            if cycle.get("price_paid") is not None and stock_quantity > 0:
+                unit_price = float(cycle["price_paid"]) / stock_quantity
+
+            cycle["stock_quantity"] = stock_quantity
+            cycle["remaining_quantity"] = remaining_quantity
+            cycle["unit_logs_count"] = unit_logs_count
+            cycle["units_consumed"] = units_consumed
+            cycle["last_consumed_at"] = cycle.get("last_consumed_at") or (
+                cycle.get("ended_at") if units_consumed > 0 else None
+            )
+            cycle["unit_price"] = unit_price
+            cycles.append(cycle)
+
+        return cycles
+
+    @staticmethod
+    def _load_unit_logs_for_item(db, item_id: int):
+        return [
+            dict(row)
+            for row in db.fetchall(
+                """
+                SELECT id, cycle_id, item_id, consumed_at, duration_days, created_at
+                FROM consumable_unit_logs
+                WHERE item_id = ?
+                ORDER BY consumed_at DESC, id DESC
+                """,
+                (item_id,),
+            )
+        ]
+
+    @staticmethod
+    def _build_stats(cycles_list, unit_logs):
+        total_purchases = len(cycles_list)
+        open_cycle = next((cycle for cycle in cycles_list if cycle.get("ended_at") is None), None)
+
+        legacy_unit_durations = [
+            float(cycle["duration_days"])
+            for cycle in cycles_list
+            if cycle.get("ended_at") and cycle.get("duration_days") is not None and int(cycle.get("unit_logs_count") or 0) == 0
+        ]
+        unit_durations = [float(log["duration_days"]) for log in unit_logs if log.get("duration_days") is not None]
+        unit_durations.extend(legacy_unit_durations)
+        total_units_consumed = len(unit_durations)
+
+        avg_duration_days = None
+        if unit_durations:
+            avg_duration_days = sum(unit_durations) / len(unit_durations)
+
+        avg_purchase_price = None
+        priced_cycles = [cycle for cycle in cycles_list if cycle.get("price_paid") is not None]
+        if priced_cycles:
+            avg_purchase_price = sum(float(cycle["price_paid"]) for cycle in priced_cycles) / len(priced_cycles)
+
+        avg_unit_price = None
+        total_priced_amount = 0.0
+        total_priced_units = 0
+        for cycle in priced_cycles:
+            total_priced_amount += float(cycle["price_paid"])
+            total_priced_units += int(cycle.get("stock_quantity") or 0)
+        if total_priced_units > 0:
+            avg_unit_price = total_priced_amount / total_priced_units
+
+        last_price_delta = None
+        last_price_delta_percent = None
+        priced_unit_cycles = [cycle for cycle in cycles_list if cycle.get("unit_price") is not None]
+        if len(priced_unit_cycles) >= 2:
+            latest_price = ConsumablesEngine._to_float(priced_unit_cycles[0].get("unit_price"))
+            previous_price = ConsumablesEngine._to_float(priced_unit_cycles[1].get("unit_price"))
+            if latest_price is not None and previous_price is not None:
+                last_price_delta = latest_price - previous_price
+                if previous_price != 0:
+                    last_price_delta_percent = (last_price_delta / previous_price) * 100
+
+        purchase_frequency_per_month = None
+        if total_purchases > 0 and cycles_list:
+            first_purchase = min(date.fromisoformat(cycle["purchase_date"]) for cycle in cycles_list)
+            days_since_first_purchase = (date.today() - first_purchase).days
+            months_since_first_purchase = days_since_first_purchase / 30 if days_since_first_purchase > 0 else 0
+            if months_since_first_purchase > 0:
+                purchase_frequency_per_month = total_purchases / months_since_first_purchase
+
+        monthly_avg_spend = None
+        annual_avg_spend = None
+        if avg_unit_price is not None and avg_duration_days is not None and avg_duration_days > 0:
+            monthly_avg_spend = avg_unit_price / (avg_duration_days / 30)
+            annual_avg_spend = monthly_avg_spend * 12
+
+        predicted_end_date = None
+        if open_cycle and avg_duration_days is not None and avg_duration_days > 0:
+            remaining_quantity = int(open_cycle.get("remaining_quantity") or 0)
+            if remaining_quantity > 0:
+                baseline_iso = open_cycle.get("last_consumed_at") or open_cycle["purchase_date"]
+                baseline_date = date.fromisoformat(baseline_iso)
+                predicted_days = round(avg_duration_days * remaining_quantity)
+                predicted_end_date = (baseline_date + timedelta(days=predicted_days)).isoformat()
+
+        stats = {
+            "total_purchases": total_purchases,
+            "total_units_consumed": total_units_consumed,
+            "avg_price": avg_unit_price,
+            "avg_purchase_price": avg_purchase_price,
+            "avg_unit_price": avg_unit_price,
+            "last_price_delta": last_price_delta,
+            "last_price_delta_percent": last_price_delta_percent,
+            "avg_duration_days": avg_duration_days,
+            "purchase_frequency_per_month": purchase_frequency_per_month,
+            "monthly_avg_spend": monthly_avg_spend,
+            "annual_avg_spend": annual_avg_spend,
+            "predicted_end_date": predicted_end_date,
+            "current_stock_quantity": int(open_cycle.get("remaining_quantity") or 0) if open_cycle else 0,
+        }
+        return stats, open_cycle
 
     @staticmethod
     def create_category(name: str) -> int:
@@ -126,9 +291,20 @@ class ConsumablesEngine:
             raise ConsumablesNotFoundError("Categoria não encontrada")
 
         query = """
-            SELECT i.id, i.name, i.category_id, i.created_at, c.name AS category_name
+            SELECT
+                i.id,
+                i.name,
+                i.category_id,
+                i.created_at,
+                c.name AS category_name,
+                oc.id AS open_cycle_id,
+                oc.purchase_date AS open_purchase_date,
+                oc.stock_quantity,
+                oc.remaining_quantity,
+                oc.price_paid AS open_cycle_price
             FROM consumable_items i
             JOIN consumable_categories c ON c.id = i.category_id
+            LEFT JOIN consumable_cycles oc ON oc.item_id = i.id AND oc.ended_at IS NULL
         """
         params = ()
         if category_id is not None:
@@ -138,15 +314,31 @@ class ConsumablesEngine:
         query += " ORDER BY c.name, i.name"
 
         with Database() as db:
-            return db.fetchall(query, params)
+            rows = db.fetchall(query, params)
+
+        items = []
+        for row in rows:
+            item = dict(row)
+            item["stock_quantity"] = int(item["stock_quantity"] or 0) if item.get("open_cycle_id") else 0
+            item["remaining_quantity"] = int(item["remaining_quantity"] or 0) if item.get("open_cycle_id") else 0
+            item["has_open_cycle"] = bool(item.get("open_cycle_id"))
+            items.append(item)
+
+        return items
 
     @staticmethod
-    def restock_item(item_id: int, purchase_date: str, price_paid: Optional[float] = None) -> int:
+    def restock_item(
+        item_id: int,
+        purchase_date: str,
+        price_paid: Optional[float] = None,
+        stock_quantity: int = 1,
+    ) -> int:
         if not ConsumablesEngine._get_item(item_id):
             raise ConsumablesNotFoundError("Item não encontrado")
 
         purchase_date_iso = ConsumablesEngine._require_iso_date(purchase_date, "purchase_date")
         normalized_price = ConsumablesEngine._normalize_price(price_paid)
+        normalized_stock_quantity = ConsumablesEngine._normalize_stock_quantity(stock_quantity)
 
         with Database() as db:
             open_cycle = db.fetchone(
@@ -158,10 +350,16 @@ class ConsumablesEngine:
 
             db.execute(
                 """
-                INSERT INTO consumable_cycles (item_id, purchase_date, price_paid)
-                VALUES (?, ?, ?)
+                INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (item_id, purchase_date_iso, normalized_price),
+                (
+                    item_id,
+                    purchase_date_iso,
+                    normalized_stock_quantity,
+                    normalized_stock_quantity,
+                    normalized_price,
+                ),
             )
             return db.lastrowid
 
@@ -175,7 +373,7 @@ class ConsumablesEngine:
         with Database() as db:
             open_cycle = db.fetchone(
                 """
-                SELECT id, purchase_date
+                SELECT id, purchase_date, stock_quantity, remaining_quantity
                 FROM consumable_cycles
                 WHERE item_id = ? AND ended_at IS NULL
                 ORDER BY id DESC
@@ -191,21 +389,48 @@ class ConsumablesEngine:
             if duration_days < 0:
                 raise ConsumablesValidationError("ended_at não pode ser anterior a purchase_date")
 
+            stock_quantity = int(open_cycle["stock_quantity"] or 1)
+            remaining_quantity = int(open_cycle["remaining_quantity"] or stock_quantity)
+            if remaining_quantity <= 0:
+                raise ConsumablesConflictError("Não há unidades restantes em estoque para este item")
+
             db.execute(
                 """
-                UPDATE consumable_cycles
-                SET ended_at = ?, duration_days = ?
-                WHERE id = ?
+                INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+                VALUES (?, ?, ?, ?)
                 """,
-                (ended_at_iso, duration_days, open_cycle["id"]),
+                (open_cycle["id"], item_id, ended_at_iso, duration_days),
             )
+
+            remaining_after = remaining_quantity - 1
+            if remaining_after == 0:
+                db.execute(
+                    """
+                    UPDATE consumable_cycles
+                    SET remaining_quantity = ?, ended_at = ?, duration_days = ?
+                    WHERE id = ?
+                    """,
+                    (0, ended_at_iso, duration_days, open_cycle["id"]),
+                )
+            else:
+                db.execute(
+                    """
+                    UPDATE consumable_cycles
+                    SET remaining_quantity = ?
+                    WHERE id = ?
+                    """,
+                    (remaining_after, open_cycle["id"]),
+                )
 
             return {
                 "id": open_cycle["id"],
                 "item_id": item_id,
                 "purchase_date": purchase_date_iso,
-                "ended_at": ended_at_iso,
+                "ended_at": ended_at_iso if remaining_after == 0 else None,
                 "duration_days": duration_days,
+                "stock_quantity": stock_quantity,
+                "remaining_quantity": remaining_after,
+                "cycle_closed": remaining_after == 0,
             }
 
     @staticmethod
@@ -215,94 +440,18 @@ class ConsumablesEngine:
             raise ConsumablesNotFoundError("Item não encontrado")
 
         with Database() as db:
-            cycles = db.fetchall(
-                """
-                SELECT id, item_id, purchase_date, price_paid, ended_at, duration_days, created_at
-                FROM consumable_cycles
-                WHERE item_id = ?
-                ORDER BY purchase_date DESC, id DESC
-                """,
-                (item_id,),
-            )
+            cycles_list = ConsumablesEngine._load_cycles_for_item(db, item_id)
+            unit_logs = ConsumablesEngine._load_unit_logs_for_item(db, item_id)
 
-            aggregate = db.fetchone(
-                """
-                SELECT
-                    COUNT(*) AS total_purchases,
-                    AVG(price_paid) AS avg_price,
-                    AVG(CASE WHEN ended_at IS NOT NULL THEN duration_days END) AS avg_duration_days,
-                    MIN(purchase_date) AS first_purchase_date
-                FROM consumable_cycles
-                WHERE item_id = ?
-                """,
-                (item_id,),
-            )
-
-            open_cycle = db.fetchone(
-                """
-                SELECT id, item_id, purchase_date, price_paid, ended_at, duration_days, created_at
-                FROM consumable_cycles
-                WHERE item_id = ? AND ended_at IS NULL
-                ORDER BY purchase_date DESC, id DESC
-                LIMIT 1
-                """,
-                (item_id,),
-            )
-
-        cycles_list = [dict(cycle) for cycle in cycles]
+        stats, open_cycle = ConsumablesEngine._build_stats(cycles_list, unit_logs)
         item_data = dict(item)
-
-        aggregate_data = dict(aggregate) if aggregate else {}
-
-        total_purchases = int(aggregate_data.get("total_purchases") or 0)
-        avg_price = ConsumablesEngine._to_float(aggregate_data.get("avg_price"))
-        avg_duration_days = ConsumablesEngine._to_float(aggregate_data.get("avg_duration_days"))
-
-        last_price_delta = None
-        last_price_delta_percent = None
-        if len(cycles_list) >= 2:
-            latest_price = ConsumablesEngine._to_float(cycles_list[0].get("price_paid"))
-            previous_price = ConsumablesEngine._to_float(cycles_list[1].get("price_paid"))
-            if latest_price is not None and previous_price is not None:
-                last_price_delta = latest_price - previous_price
-                if previous_price != 0:
-                    last_price_delta_percent = (last_price_delta / previous_price) * 100
-
-        purchase_frequency_per_month = None
-        first_purchase_date = aggregate_data.get("first_purchase_date")
-        if total_purchases > 0 and first_purchase_date:
-            first_purchase = date.fromisoformat(first_purchase_date)
-            days_since_first_purchase = (date.today() - first_purchase).days
-            months_since_first_purchase = days_since_first_purchase / 30 if days_since_first_purchase > 0 else 0
-            if months_since_first_purchase > 0:
-                purchase_frequency_per_month = total_purchases / months_since_first_purchase
-
-        monthly_avg_spend = None
-        annual_avg_spend = None
-        if avg_price is not None and avg_duration_days is not None and avg_duration_days > 0:
-            monthly_avg_spend = avg_price / (avg_duration_days / 30)
-            annual_avg_spend = monthly_avg_spend * 12
-
-        predicted_end_date = None
-        if open_cycle and avg_duration_days is not None and avg_duration_days > 0:
-            open_purchase_date = date.fromisoformat(open_cycle["purchase_date"])
-            predicted_end_date = (open_purchase_date + timedelta(days=round(avg_duration_days))).isoformat()
-
-        stats = {
-            "total_purchases": total_purchases,
-            "avg_price": avg_price,
-            "last_price_delta": last_price_delta,
-            "last_price_delta_percent": last_price_delta_percent,
-            "avg_duration_days": avg_duration_days,
-            "purchase_frequency_per_month": purchase_frequency_per_month,
-            "monthly_avg_spend": monthly_avg_spend,
-            "annual_avg_spend": annual_avg_spend,
-            "predicted_end_date": predicted_end_date,
-        }
+        item_data["current_stock_quantity"] = stats["current_stock_quantity"]
 
         return {
             "item": item_data,
             "cycles": cycles_list,
+            "unit_logs": unit_logs,
+            "open_cycle": open_cycle,
             "stats": stats,
         }
 
@@ -321,36 +470,29 @@ class ConsumablesEngine:
                 SELECT
                     i.id AS item_id,
                     i.name AS item_name,
-                    c.name AS category_name,
-                    oc.id AS open_cycle_id,
-                    oc.purchase_date AS open_purchase_date,
-                    stats.closed_cycles_count,
-                    stats.avg_duration_days
+                    c.name AS category_name
                 FROM consumable_items i
                 JOIN consumable_categories c ON c.id = i.category_id
                 JOIN consumable_cycles oc ON oc.item_id = i.id AND oc.ended_at IS NULL
-                LEFT JOIN (
-                    SELECT
-                        item_id,
-                        COUNT(CASE WHEN ended_at IS NOT NULL THEN 1 END) AS closed_cycles_count,
-                        AVG(CASE WHEN ended_at IS NOT NULL THEN duration_days END) AS avg_duration_days
-                    FROM consumable_cycles
-                    GROUP BY item_id
-                ) stats ON stats.item_id = i.id
                 ORDER BY c.name, i.name
                 """
             )
 
         notifications = []
         for row in rows:
+            detail = ConsumablesEngine.get_item_detail(row["item_id"])
+            stats = detail["stats"]
+            open_cycle = detail.get("open_cycle")
+            if not open_cycle:
+                continue
+
             item_id = row["item_id"]
             item_name = row["item_name"]
             category_name = row["category_name"]
-            purchase_date = date.fromisoformat(row["open_purchase_date"])
-            closed_cycles_count = int(row["closed_cycles_count"] or 0)
-            avg_duration_days = row["avg_duration_days"]
+            predicted_end_date_iso = stats.get("predicted_end_date")
+            total_units_consumed = int(stats.get("total_units_consumed") or 0)
 
-            if avg_duration_days is None or closed_cycles_count < min_history_cycles:
+            if not predicted_end_date_iso or total_units_consumed < min_history_cycles:
                 if include_insufficient_history:
                     notifications.append(
                         {
@@ -365,14 +507,15 @@ class ConsumablesEngine:
                                 "category_name": category_name,
                                 "predicted_end_date": None,
                                 "days_remaining": None,
+                                "remaining_quantity": int(open_cycle.get("remaining_quantity") or 0),
                             },
                             "color_token": "primary",
-                            "unique_key": f"consumable_insufficient_history:{item_id}:{purchase_date.isoformat()}",
+                            "unique_key": f"consumable_insufficient_history:{item_id}:{open_cycle['purchase_date']}",
                         }
                     )
                 continue
 
-            predicted_end_date = purchase_date + timedelta(days=round(float(avg_duration_days)))
+            predicted_end_date = date.fromisoformat(predicted_end_date_iso)
             days_remaining = (predicted_end_date - today).days
             risk_type = None
             severity = "warning"
@@ -405,6 +548,7 @@ class ConsumablesEngine:
                         "category_name": category_name,
                         "predicted_end_date": predicted_end_date.isoformat(),
                         "days_remaining": days_remaining,
+                        "remaining_quantity": int(open_cycle.get("remaining_quantity") or 0),
                     },
                     "color_token": color_token,
                     "unique_key": f"{risk_type}:{item_id}:{predicted_end_date.isoformat()}",

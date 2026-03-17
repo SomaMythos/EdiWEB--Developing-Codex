@@ -14,14 +14,17 @@ from core.daily_engine import DailyEngine
 from core.goal_engine import GoalEngine
 from main import (
     CalendarEventPayload,
+    CalendarEventCompletionPayload,
     CalendarManualLogPayload,
     app,
+    calendar_complete_event,
     calendar_create_event,
     calendar_create_manual_log,
     calendar_day,
     calendar_delete_event,
     calendar_delete_manual_log,
     calendar_month,
+    calendar_week,
     calendar_update_event,
     calendar_update_manual_log,
 )
@@ -54,6 +57,7 @@ def test_calendar_routes_are_registered_once_per_method_and_path():
         ('GET', '/api/calendar/day'),
         ('POST', '/api/calendar/events'),
         ('PUT', '/api/calendar/events/{event_id}'),
+        ('PATCH', '/api/calendar/events/{event_id}/complete'),
         ('DELETE', '/api/calendar/events/{event_id}'),
         ('POST', '/api/calendar/logs'),
         ('PUT', '/api/calendar/logs/{log_id}'),
@@ -124,7 +128,9 @@ def test_calendar_month_and_day_merge_manual_and_automatic_logs(monkeypatch, tmp
     assert month_payload['manual_events'][0]['title'] == 'Dentista'
 
     automatic_types = {entry['event_type'] for entry in day_payload['automatic_logs']}
-    assert {'daily_completed', 'goal_completed', 'book_created', 'book_finished'} <= automatic_types
+    assert {'goal_completed', 'book_created', 'book_finished'} <= automatic_types
+    assert 'daily_completed' not in automatic_types
+    assert day_payload['summary']['daily_blocks'] == 0
     assert day_payload['events'][0]['title'] == 'Dentista'
     assert day_payload['manual_logs'][0]['title'] == 'Dia puxado'
 
@@ -147,6 +153,37 @@ def test_calendar_delete_endpoints_remove_manual_entries(monkeypatch, tmp_path):
     with pytest.raises(HTTPException) as log_exc:
         _run(calendar_delete_manual_log(log_id))
     assert log_exc.value.status_code == 404
+
+
+def test_calendar_manual_event_can_be_marked_completed(monkeypatch, tmp_path):
+    db_path = tmp_path / 'lifemanager.db'
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    event_id = _run(
+        calendar_create_event(
+            CalendarEventPayload(
+                date='2026-03-15',
+                title='Fechar relatório',
+                description='Entrega final',
+                start_time='10:00',
+                end_time='11:00',
+            )
+        )
+    )['data']['id']
+
+    assert _run(calendar_complete_event(event_id, CalendarEventCompletionPayload(completed=True))) == {'success': True}
+
+    day_payload = _run(calendar_day('2026-03-15'))['data']
+
+    assert day_payload['events'][0]['title'] == 'Fechar relatório'
+    assert day_payload['events'][0]['is_completed'] is True
+    assert day_payload['events'][0]['completed_at'] is not None
+
+    assert _run(calendar_complete_event(event_id, CalendarEventCompletionPayload(completed=False))) == {'success': True}
+    reopened_payload = _run(calendar_day('2026-03-15'))['data']
+    assert reopened_payload['events'][0]['is_completed'] is False
+    assert reopened_payload['events'][0]['completed_at'] is None
 
 
 def test_calendar_rejects_invalid_month_and_date(monkeypatch, tmp_path):
@@ -185,13 +222,25 @@ def test_calendar_automatic_logs_track_daily_block_completion_and_goal_status(mo
     month_payload = _run(calendar_month(month_key))['data']
 
     automatic_types = {entry['event_type'] for entry in day_payload['automatic_logs']}
-    assert 'daily_completed' in automatic_types
+    assert 'daily_completed' not in automatic_types
     assert 'goal_completed' in automatic_types
-    assert month_payload['days'][today]['automatic_logs'] >= 2
+    assert month_payload['days'][today]['automatic_logs'] >= 1
 
-    daily_entries = [entry for entry in day_payload['automatic_logs'] if entry['event_type'] == 'daily_completed']
-    assert any(entry['title'] == 'Leitura focada' for entry in daily_entries)
-    assert any(entry['details'].get('source') == 'daily_plan_block' for entry in daily_entries)
+    assert day_payload['daily_blocks']
+    assert any(block['title'] == 'Leitura focada' and block['completed'] is True for block in day_payload['daily_blocks'])
+    assert day_payload['summary']['daily_blocks'] == 1
+    assert day_payload['summary']['daily_completed_blocks'] == 1
+    assert day_payload['summary']['daily_pending_blocks'] == 0
+    assert day_payload['summary']['daily_all_completed'] is True
+    assert month_payload['days'][today]['daily_blocks'] == 1
+    assert month_payload['days'][today]['daily_completed_blocks'] == 1
+    assert month_payload['days'][today]['daily_pending_blocks'] == 0
+    assert month_payload['days'][today]['daily_all_completed'] is True
+
+    week_payload = _run(calendar_week(today))['data']
+    assert any(day['date'] == today and day['summary']['daily_all_completed'] is True for day in week_payload['days'])
+    today_week_card = next(day for day in week_payload['days'] if day['date'] == today)
+    assert all(entry['title'] != 'Leitura focada' for entry in today_week_card['preview'])
 
     goal_entries = [entry for entry in day_payload['automatic_logs'] if entry['event_type'] == 'goal_completed']
     assert any(entry['title'] == 'Fechar sprint pessoal' for entry in goal_entries)
@@ -266,3 +315,52 @@ def test_calendar_update_endpoints_return_404_when_entry_is_missing(monkeypatch,
     with pytest.raises(HTTPException) as log_exc:
         _run(calendar_update_manual_log(999, CalendarManualLogPayload(date='2026-03-10', title='Nao existe')))
     assert log_exc.value.status_code == 404
+
+
+def test_calendar_day_includes_finance_consumables_and_counter_logs(monkeypatch, tmp_path):
+    db_path = tmp_path / 'lifemanager.db'
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    with Database(path=db_path) as db:
+        db.execute(
+            """
+            INSERT INTO finance_transactions (description, amount, category, occurred_at, kind)
+            VALUES ('Mercado', 85.5, 'avulso', '2026-03-15T09:30:00', 'expense')
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO finance_transactions (description, amount, category, occurred_at, kind)
+            VALUES ('Freela', 250, 'avulso', '2026-03-15T13:00:00', 'income')
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO activity_counters (title, started_at, completed_at, elapsed_days)
+            VALUES ('Filtro da torneira', '2026-03-01', '2026-03-15', 14)
+            """
+        )
+        db.execute("INSERT INTO consumable_categories (name) VALUES ('Casa')")
+        db.execute("INSERT INTO consumable_items (name, category_id) VALUES ('Detergente', 1)")
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid)
+            VALUES (1, '2026-03-15', 2, 1, 12)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+            VALUES (1, 1, '2026-03-15T18:20:00', 5)
+            """
+        )
+
+    day_payload = _run(calendar_day('2026-03-15'))['data']
+    automatic_types = {entry['event_type'] for entry in day_payload['automatic_logs']}
+
+    assert 'expense_created' in automatic_types
+    assert 'income_created' in automatic_types
+    assert 'activity_counter_completed' in automatic_types
+    assert 'consumable_restock' in automatic_types
+    assert 'consumable_finished' in automatic_types

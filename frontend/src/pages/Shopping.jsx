@@ -218,12 +218,12 @@ const Shopping = () => {
                       onChange={() => handleToggleMarked(item)}
                       title="Marcar para orçamento"
                     />
-                    {item.photo_url ? <img src={item.photo_url} alt={item.name} className="shopping-thumb" /> : <div className="shopping-thumb placeholder">sem foto</div>}
+                    {item.photo_url ? <img src={item.photo_display_url || item.photo_url} alt={item.name} className="shopping-thumb" /> : <div className="shopping-thumb placeholder">sem foto</div>}
                     <div className="shopping-item-content">
                       <h4>{item.name}</h4>
                       <p>R$ {(Number(item.price) || 0).toFixed(2)}</p>
                       {item.link && (
-                        <a href={item.link} target="_blank" rel="noreferrer">
+                        <a href={item.link} target="_blank" rel="noreferrer" className="shopping-link-button">
                           Abrir link
                         </a>
                       )}

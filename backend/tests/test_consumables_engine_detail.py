@@ -100,3 +100,49 @@ def test_get_item_detail_not_found(monkeypatch, tmp_path):
         assert False, "Expected ConsumablesNotFoundError"
     except ConsumablesNotFoundError:
         assert True
+
+
+def test_get_item_detail_multiplies_unit_average_by_remaining_stock(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+
+    monkeypatch.setattr("core.consumables_engine.Database", lambda: Database(path=db_path))
+
+    with Database(path=db_path) as db:
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid, ended_at, duration_days)
+            VALUES (1, '2024-01-01', 1, 0, 10, '2024-01-06', 5)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+            VALUES (1, 1, '2024-01-06', 5)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid, ended_at, duration_days)
+            VALUES (1, '2024-02-01', 1, 0, 12, '2024-02-06', 5)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+            VALUES (2, 1, '2024-02-06', 5)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid)
+            VALUES (1, '2024-03-01', 4, 4, 44)
+            """
+        )
+
+    detail = ConsumablesEngine.get_item_detail(1)
+
+    assert detail["stats"]["avg_duration_days"] == 5
+    assert detail["stats"]["current_stock_quantity"] == 4
+    assert detail["stats"]["avg_unit_price"] == 11
+    assert detail["stats"]["predicted_end_date"] == "2024-03-21"

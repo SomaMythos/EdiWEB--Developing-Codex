@@ -49,6 +49,7 @@ const Consumiveis = () => {
 
   const [restockDate, setRestockDate] = useState(getToday());
   const [restockPrice, setRestockPrice] = useState('');
+  const [restockQuantity, setRestockQuantity] = useState('1');
   const [finishDate, setFinishDate] = useState(getToday());
 
   const [isLoadingBase, setIsLoadingBase] = useState(false);
@@ -208,10 +209,12 @@ const Consumiveis = () => {
       await consumablesApi.restock(itemId, {
         purchase_date: restockDate,
         price_paid: normalizedPrice,
+        stock_quantity: Number(restockQuantity || 1),
       });
       setRestockPrice('');
+      setRestockQuantity('1');
       markItemTemporarily(itemId, setRecentlyRestocked, 'restock');
-      setFeedback({ type: 'success', message: 'Restoque registrado com sucesso.' });
+      setFeedback({ type: 'success', message: 'Estoque registrado com sucesso.' });
     });
   };
 
@@ -219,15 +222,20 @@ const Consumiveis = () => {
     if (!itemId || !finishDate) return;
 
     await withSubmit(async () => {
-      await consumablesApi.finishCycle(itemId, { ended_at: finishDate });
+      const response = await consumablesApi.finishCycle(itemId, { ended_at: finishDate });
+      const cycleData = response.data.data || {};
+      const remainingQuantity = Number(cycleData.remaining_quantity ?? 0);
+      const message = cycleData.cycle_closed
+        ? 'Última unidade concluída e ciclo encerrado.'
+        : `1 unidade concluída. Restam ${remainingQuantity} em estoque.`;
+
       markItemTemporarily(itemId, setRecentlyFinished, 'finish');
-      setFeedback({ type: 'success', message: 'Ciclo finalizado com sucesso.' });
+      setFeedback({ type: 'success', message });
     });
   };
 
   const groupedItems = useMemo(() => {
-    const scopedItems = filteredItems;
-    const grouped = scopedItems.reduce((accumulator, item) => {
+    const grouped = filteredItems.reduce((accumulator, item) => {
       const key = item.category_id;
       if (!accumulator[key]) {
         accumulator[key] = {
@@ -246,7 +254,9 @@ const Consumiveis = () => {
   const panelDetail = openPanelItemId ? itemDetailsById[openPanelItemId] : null;
   const stats = panelDetail?.stats || {};
   const cycles = panelDetail?.cycles || [];
-  const hasOpenCycle = cycles.some((cycle) => cycle.ended_at == null);
+  const openCycle = panelDetail?.open_cycle || null;
+  const hasOpenCycle = Boolean(openCycle && Number(openCycle.remaining_quantity || 0) > 0);
+  const currentStockQuantity = Number(openCycle?.remaining_quantity || 0);
   const isPanelRecentlyRestocked = Boolean(openPanelItemId && recentlyRestocked[openPanelItemId]);
   const isPanelRecentlyFinished = Boolean(openPanelItemId && recentlyFinished[openPanelItemId]);
 
@@ -334,6 +344,9 @@ const Consumiveis = () => {
                     const isTooltipOpen = openStatsItemId === item.id;
                     const isRecentlyRestocked = Boolean(recentlyRestocked[item.id]);
                     const isRecentlyFinished = Boolean(recentlyFinished[item.id]);
+                    const stockText = item.has_open_cycle
+                      ? `${formatNumber(item.remaining_quantity)} em estoque`
+                      : 'Sem estoque aberto';
 
                     return (
                       <div
@@ -342,6 +355,7 @@ const Consumiveis = () => {
                       >
                         <strong>{item.name}</strong>
                         <span>{item.category_name}</span>
+                        <div className="item-stock-badge">{stockText}</div>
 
                         <div className="item-actions">
                           <button type="button" className="btn btn-secondary" onClick={() => handleOpenPanel(item.id)}>
@@ -358,8 +372,10 @@ const Consumiveis = () => {
                             {isLoadingDetailId !== item.id ? (
                               <>
                                 <div><span>Total de compras</span><strong>{itemStats.total_purchases ?? 0}</strong></div>
-                                <div><span>Preço médio</span><strong>{formatCurrency(itemStats.avg_price)}</strong></div>
-                                <div><span>Duração média (dias)</span><strong>{formatNumber(itemStats.avg_duration_days)}</strong></div>
+                                <div><span>Unidades concluídas</span><strong>{itemStats.total_units_consumed ?? 0}</strong></div>
+                                <div><span>Em estoque</span><strong>{itemStats.current_stock_quantity ?? 0}</strong></div>
+                                <div><span>Preço médio por unidade</span><strong>{formatCurrency(itemStats.avg_unit_price)}</strong></div>
+                                <div><span>Duração média por unidade</span><strong>{formatNumber(itemStats.avg_duration_days)}</strong></div>
                                 <div><span>Término previsto</span><strong>{formatDate(itemStats.predicted_end_date)}</strong></div>
                               </>
                             ) : null}
@@ -385,66 +401,84 @@ const Consumiveis = () => {
               {isLoadingDetailId === openPanelItemId ? <p className="muted">Carregando detalhe...</p> : null}
 
               {isLoadingDetailId !== openPanelItemId && panelDetail ? (
-            <>
-              <p className="panel-title">
-                <strong>{panelDetail.item.name}</strong> · {panelDetail.item.category_name}
-              </p>
+                <>
+                  <p className="panel-title">
+                    <strong>{panelDetail.item.name}</strong> · {panelDetail.item.category_name}
+                  </p>
+                  <p className="panel-stock-summary">
+                    {hasOpenCycle ? `Estoque atual: ${formatNumber(currentStockQuantity)} unidade(s)` : 'Sem estoque aberto no momento'}
+                  </p>
 
-              <div className="actions-grid">
-                <div className={`action-card ${isPanelRecentlyRestocked ? 'action-card--restocked' : ''}`.trim()}>
-                  <h4>Restocar</h4>
-                  <p className="muted">Preço é opcional para registrar compras sem valor.</p>
-                  <input className="input" type="date" value={restockDate} onChange={(event) => setRestockDate(event.target.value)} />
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Preço pago (opcional)"
-                    value={restockPrice}
-                    onChange={(event) => setRestockPrice(event.target.value)}
-                  />
-                  <button type="button" className="btn btn-primary" onClick={() => handleRestock(openPanelItemId)} disabled={isSubmitting}>Restocar</button>
-                </div>
+                  <div className="actions-grid">
+                    <div className={`action-card ${isPanelRecentlyRestocked ? 'action-card--restocked' : ''}`.trim()}>
+                      <h4>Restocar</h4>
+                      <p className="muted">Informe a quantidade comprada para a previsão multiplicar a média por unidade.</p>
+                      <input className="input" type="date" value={restockDate} onChange={(event) => setRestockDate(event.target.value)} />
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="Quantidade em estoque"
+                        value={restockQuantity}
+                        onChange={(event) => setRestockQuantity(event.target.value)}
+                      />
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Preço pago (opcional)"
+                        value={restockPrice}
+                        onChange={(event) => setRestockPrice(event.target.value)}
+                      />
+                      <button type="button" className="btn btn-primary" onClick={() => handleRestock(openPanelItemId)} disabled={isSubmitting}>Restocar</button>
+                    </div>
 
-                <div className={`action-card ${isPanelRecentlyFinished ? 'action-card--finished' : ''}`.trim()}>
-                  <h4>Marcar como finalizado</h4>
-                  <input className="input" type="date" value={finishDate} onChange={(event) => setFinishDate(event.target.value)} />
-                  {!hasOpenCycle ? <p className="muted">Sem ciclo aberto para finalizar.</p> : null}
-                  <button type="button" className="btn btn-secondary" onClick={() => handleFinishCycle(openPanelItemId)} disabled={isSubmitting || !hasOpenCycle}>Finalizar ciclo</button>
-                  <span className={`finish-confirmation ${isPanelRecentlyFinished ? 'is-visible' : ''}`.trim()} aria-live="polite">
-                    <span className="finish-confirmation__icon" aria-hidden="true">✓</span>
-                    Concluído
-                  </span>
-                </div>
-              </div>
-
-              <h4>Estatísticas e previsão</h4>
-              <div className="stats-grid">
-                <div><span>Total de compras</span><strong>{stats.total_purchases ?? 0}</strong></div>
-                <div><span>Preço médio</span><strong>{formatCurrency(stats.avg_price)}</strong></div>
-                <div><span>Variação do último preço</span><strong>{formatCurrency(stats.last_price_delta)}</strong></div>
-                <div><span>Variação do último preço (%)</span><strong>{stats.last_price_delta_percent == null ? '—' : `${formatNumber(stats.last_price_delta_percent)}%`}</strong></div>
-                <div><span>Duração média (dias)</span><strong>{formatNumber(stats.avg_duration_days)}</strong></div>
-                <div><span>Frequência de compra / mês</span><strong>{formatNumber(stats.purchase_frequency_per_month)}</strong></div>
-                <div><span>Gasto médio mensal</span><strong>{formatCurrency(stats.monthly_avg_spend)}</strong></div>
-                <div><span>Gasto médio anual</span><strong>{formatCurrency(stats.annual_avg_spend)}</strong></div>
-                <div><span>Término previsto do ciclo aberto</span><strong>{formatDate(stats.predicted_end_date)}</strong></div>
-              </div>
-
-              <h4>Histórico de ciclos</h4>
-              <div className="cycles-list">
-                {cycles.map((cycle) => (
-                  <div key={cycle.id} className="cycle-row">
-                    <span data-label="Compra">{formatDate(cycle.purchase_date)}</span>
-                    <span data-label="Preço">{formatCurrency(cycle.price_paid)}</span>
-                    <span data-label="Fim">{formatDate(cycle.ended_at)}</span>
-                    <span data-label="Duração">{cycle.duration_days == null ? 'Em aberto' : `${formatNumber(cycle.duration_days)} dias`}</span>
+                    <div className={`action-card ${isPanelRecentlyFinished ? 'action-card--finished' : ''}`.trim()}>
+                      <h4>Concluir 1 unidade</h4>
+                      <p className="muted">
+                        {hasOpenCycle ? `Restam ${formatNumber(currentStockQuantity)} unidade(s) em estoque.` : 'Sem estoque aberto para concluir.'}
+                      </p>
+                      <input className="input" type="date" value={finishDate} onChange={(event) => setFinishDate(event.target.value)} />
+                      <button type="button" className="btn btn-secondary" onClick={() => handleFinishCycle(openPanelItemId)} disabled={isSubmitting || !hasOpenCycle}>Concluir unidade</button>
+                      <span className={`finish-confirmation ${isPanelRecentlyFinished ? 'is-visible' : ''}`.trim()} aria-live="polite">
+                        <span className="finish-confirmation__icon" aria-hidden="true">✓</span>
+                        Concluído
+                      </span>
+                    </div>
                   </div>
-                ))}
-                {cycles.length === 0 ? <p className="muted">Sem ciclos registrados.</p> : null}
-              </div>
-            </>
+
+                  <h4>Estatísticas e previsão</h4>
+                  <div className="stats-grid">
+                    <div><span>Total de compras</span><strong>{stats.total_purchases ?? 0}</strong></div>
+                    <div><span>Unidades concluídas</span><strong>{stats.total_units_consumed ?? 0}</strong></div>
+                    <div><span>Estoque atual</span><strong>{stats.current_stock_quantity ?? 0}</strong></div>
+                    <div><span>Preço médio por unidade</span><strong>{formatCurrency(stats.avg_unit_price)}</strong></div>
+                    <div><span>Preço médio por compra</span><strong>{formatCurrency(stats.avg_purchase_price)}</strong></div>
+                    <div><span>Variação do último preço/unidade</span><strong>{formatCurrency(stats.last_price_delta)}</strong></div>
+                    <div><span>Variação do último preço/unidade (%)</span><strong>{stats.last_price_delta_percent == null ? '—' : `${formatNumber(stats.last_price_delta_percent)}%`}</strong></div>
+                    <div><span>Duração média por unidade</span><strong>{formatNumber(stats.avg_duration_days)} dias</strong></div>
+                    <div><span>Frequência de compra / mês</span><strong>{formatNumber(stats.purchase_frequency_per_month)}</strong></div>
+                    <div><span>Gasto médio mensal</span><strong>{formatCurrency(stats.monthly_avg_spend)}</strong></div>
+                    <div><span>Gasto médio anual</span><strong>{formatCurrency(stats.annual_avg_spend)}</strong></div>
+                    <div><span>Término previsto do estoque aberto</span><strong>{formatDate(stats.predicted_end_date)}</strong></div>
+                  </div>
+
+                  <h4>Histórico de ciclos</h4>
+                  <div className="cycles-list">
+                    {cycles.map((cycle) => (
+                      <div key={cycle.id} className="cycle-row">
+                        <span data-label="Compra">{formatDate(cycle.purchase_date)}</span>
+                        <span data-label="Qtd inicial">{formatNumber(cycle.stock_quantity)}</span>
+                        <span data-label="Em estoque">{formatNumber(cycle.remaining_quantity)}</span>
+                        <span data-label="Preço">{formatCurrency(cycle.price_paid)}</span>
+                        <span data-label="Fim">{formatDate(cycle.ended_at)}</span>
+                      </div>
+                    ))}
+                    {cycles.length === 0 ? <p className="muted">Sem ciclos registrados.</p> : null}
+                  </div>
+                </>
               ) : null}
             </article>
           </div>

@@ -113,3 +113,51 @@ def test_item_without_open_cycle_does_not_generate_false_positive(monkeypatch, t
     alerts = ConsumablesEngine.detect_restock_risks(window_days=7, reference_date=today)
 
     assert alerts == []
+
+
+def test_open_stock_quantity_scales_due_prediction(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+
+    monkeypatch.setattr("core.consumables_engine.Database", lambda: Database(path=db_path))
+
+    today = date(2024, 7, 26)
+    with Database(path=db_path) as db:
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid, ended_at, duration_days)
+            VALUES (1, '2024-05-01', 1, 0, 20, '2024-05-11', 10)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+            VALUES (1, 1, '2024-05-11', 10)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid, ended_at, duration_days)
+            VALUES (1, '2024-06-01', 1, 0, 22, '2024-06-11', 10)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_unit_logs (cycle_id, item_id, consumed_at, duration_days)
+            VALUES (2, 1, '2024-06-11', 10)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO consumable_cycles (item_id, purchase_date, stock_quantity, remaining_quantity, price_paid)
+            VALUES (1, '2024-07-01', 3, 3, 69)
+            """
+        )
+
+    alerts = ConsumablesEngine.detect_restock_risks(window_days=7, reference_date=today)
+
+    assert len(alerts) == 1
+    assert alerts[0]["notification_type"] == "consumable_restock_due"
+    assert alerts[0]["meta"]["predicted_end_date"] == "2024-07-31"
+    assert alerts[0]["meta"]["remaining_quantity"] == 3
+    assert alerts[0]["meta"]["days_remaining"] == 5

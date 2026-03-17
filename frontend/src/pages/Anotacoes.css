@@ -276,7 +276,28 @@
 }
 
 .journal-history-row {
+  width: 100%;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
   align-items: flex-start;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
+}
+
+.journal-history-row:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.journal-history-row.is-active {
+  opacity: 1;
+}
+
+.journal-history-row.is-active strong {
+  color: #ffffff;
 }
 
 .journal-history-row strong {
@@ -409,6 +430,14 @@
   gap: 18px;
 }
 
+.journal-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .journal-editor-meta {
   display: flex;
   flex-direction: column;
@@ -471,6 +500,19 @@
   text-transform: uppercase;
 }
 
+.journal-archive-badge {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .notes-empty-state {
   min-height: 180px;
   display: grid;
@@ -501,6 +543,11 @@
   .journal-editor {
     padding: 20px;
     min-height: auto;
+  }
+
+  .journal-editor-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .journal-editor > .journal-editor-fields > textarea {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -73,6 +74,14 @@ const sortEntriesByTime = (items) => [...items].sort((left, right) => {
   const rightTime = right.sortTime || '99:99';
   return leftTime.localeCompare(rightTime) || left.title.localeCompare(right.title);
 });
+
+const getDailyProgress = (summary = {}) => {
+  const total = Number(summary.daily_blocks || 0);
+  const completed = Number(summary.daily_completed_blocks || 0);
+  const pending = Number(summary.daily_pending_blocks || Math.max(total - completed, 0));
+  const allCompleted = Boolean(summary.daily_all_completed);
+  return { total, completed, pending, allCompleted };
+};
 
 export default function Calendario() {
   const today = useMemo(() => new Date(), []);
@@ -215,6 +224,16 @@ export default function Calendario() {
     }
   };
 
+  const handleToggleEventCompletion = async (id, completed) => {
+    try {
+      setError('');
+      await calendarApi.completeEvent(id, completed);
+      await refreshCalendar();
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || 'Não foi possível atualizar o evento.');
+    }
+  };
+
   const handleDeleteManualLog = async (id) => {
     try {
       setError('');
@@ -233,10 +252,11 @@ export default function Calendario() {
       sourceId: event.id,
       kind: 'event',
       title: event.title,
-      meta: event.description || 'Evento manual',
+      meta: event.is_completed ? 'Concluído' : (event.description || 'Evento manual'),
       time: formatTimeRange(event),
       sortTime: event.start_time || '99:99',
       removable: true,
+      completed: Boolean(event.is_completed),
     })),
     ...(dayData.daily_blocks || []).map((block) => ({
       id: `daily-${block.id}`,
@@ -328,6 +348,7 @@ export default function Calendario() {
         <div className="calendar-week-grid">
           {weekCards.map((day) => {
             const dayDate = parseIsoDate(day.date);
+            const dailyProgress = getDailyProgress(day.summary);
             return (
               <button
                 type="button"
@@ -336,6 +357,7 @@ export default function Calendario() {
                   'calendar-week-card',
                   'elevation-1',
                   selectedDate === day.date ? 'is-selected' : '',
+                  dailyProgress.allCompleted ? 'is-daily-complete' : '',
                   day.is_today ? 'is-today' : '',
                 ].join(' ')}
                 onClick={() => setSelectedDate(day.date)}
@@ -347,9 +369,16 @@ export default function Calendario() {
 
                 <div className="calendar-week-card-metrics">
                   {day.summary.manual_events ? <span className="calendar-dot is-event">{day.summary.manual_events} evento</span> : null}
-                  {day.summary.daily_blocks ? <span className="calendar-dot is-daily">{day.summary.daily_blocks} daily</span> : null}
+                  {dailyProgress.total ? <span className="calendar-dot is-daily">{dailyProgress.completed}/{dailyProgress.total} daily</span> : null}
                   {day.summary.goal_deadlines ? <span className="calendar-dot is-goal">{day.summary.goal_deadlines} meta</span> : null}
                 </div>
+
+                {dailyProgress.total ? (
+                  <div className={`calendar-daily-progress ${dailyProgress.allCompleted ? 'is-complete' : ''}`.trim()}>
+                    <strong>{dailyProgress.allCompleted ? '100% concluído' : `${dailyProgress.completed}/${dailyProgress.total} atividades concluídas`}</strong>
+                    <span>{dailyProgress.allCompleted ? 'Daily finalizada' : `${dailyProgress.pending} pendente(s)`}</span>
+                  </div>
+                ) : null}
 
                 <div className="calendar-week-preview">
                   {day.preview.length ? day.preview.map((entry) => (
@@ -357,7 +386,7 @@ export default function Calendario() {
                       <span>{entry.time || 'Sem hora'}</span>
                       <strong>{entry.title}</strong>
                     </div>
-                  )) : <span className="calendar-empty-inline">Livre</span>}
+                  )) : (!dailyProgress.total ? <span className="calendar-empty-inline">Livre</span> : null)}
                 </div>
               </button>
             );
@@ -387,21 +416,31 @@ export default function Calendario() {
               </div>
               <div className="calendar-panel-body">
                 {agendaItems.length ? agendaItems.map((entry) => (
-                  <div key={entry.id} className={`calendar-entry is-${entry.kind}`}>
+                  <div key={entry.id} className={`calendar-entry is-${entry.kind} ${entry.completed ? 'is-completed' : ''}`.trim()}>
                     <div className="calendar-entry-main">
                       <span className="calendar-entry-time">{entry.time}</span>
                       <strong>{entry.title}</strong>
                       <p>{entry.meta}</p>
                     </div>
                     {entry.removable ? (
-                      <button
-                        type="button"
-                        className="calendar-icon-button"
-                        onClick={() => handleDeleteEvent(entry.sourceId)}
-                        aria-label="Excluir evento"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="calendar-entry-actions">
+                        <button
+                          type="button"
+                          className={`calendar-icon-button calendar-complete-button ${entry.completed ? 'is-completed' : ''}`.trim()}
+                          onClick={() => handleToggleEventCompletion(entry.sourceId, !entry.completed)}
+                          aria-label={entry.completed ? 'Reabrir evento' : 'Concluir evento'}
+                        >
+                          <Check size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className="calendar-icon-button"
+                          onClick={() => handleDeleteEvent(entry.sourceId)}
+                          aria-label="Excluir evento"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 )) : <p className="calendar-empty-block">Nada programado para este dia.</p>}
@@ -472,6 +511,7 @@ export default function Calendario() {
 
                 const isoDay = toIsoDate(day);
                 const summary = monthData.days?.[isoDay] || {};
+                const dailyProgress = getDailyProgress(summary);
                 return (
                   <button
                     type="button"
@@ -479,11 +519,13 @@ export default function Calendario() {
                     className={[
                       'calendar-mini-cell',
                       selectedDate === isoDay ? 'is-selected' : '',
+                      dailyProgress.allCompleted ? 'is-daily-complete' : '',
                       isoDay === todayIso ? 'is-today' : '',
                     ].join(' ')}
                     onClick={() => setSelectedDate(isoDay)}
                   >
                     <span>{day.getDate()}</span>
+                    {dailyProgress.allCompleted ? <em className="calendar-mini-progress">100%</em> : null}
                     <div className="calendar-mini-dots">
                       {summary.manual_events ? <i className="is-event" /> : null}
                       {summary.daily_blocks ? <i className="is-daily" /> : null}

@@ -7,6 +7,14 @@ from data.database import Database
 
 class CalendarEngine:
     @staticmethod
+    def _normalize_manual_event(row):
+        event = dict(row)
+        event["date"] = event.get("event_date") or event.get("date")
+        event["entry_type"] = "manual_event"
+        event["is_completed"] = bool(event.get("is_completed"))
+        return event
+
+    @staticmethod
     def _parse_date(date_value: str):
         normalized = (date_value or "").strip()
         if not normalized:
@@ -63,6 +71,11 @@ class CalendarEngine:
             return f"Daily concluida{f' em {duration} min' if duration else ''}"
         if event_type == "goal_completed":
             return "Meta concluida"
+        if event_type == "activity_counter_completed":
+            elapsed_days = details.get("elapsed_days")
+            if elapsed_days is None:
+                return "Contador concluido"
+            return f"Contador concluido em {elapsed_days} dia(s)"
         if event_type == "painting_created":
             return "Arte visual adicionada"
         if event_type == "painting_progress":
@@ -83,6 +96,22 @@ class CalendarEngine:
             return f"Treino musical{f' a {bpm} BPM' if bpm else ''}"
         if event_type == "album_listened_confirmation":
             return "Album ouvido"
+        if event_type == "consumable_restock":
+            quantity = details.get("stock_quantity")
+            if quantity:
+                return f"Restoque registrado ({quantity} un)"
+            return "Restoque registrado"
+        if event_type == "consumable_finished":
+            remaining_quantity = details.get("remaining_quantity")
+            if remaining_quantity is not None:
+                return f"Concluiu 1 unidade, restam {remaining_quantity}"
+            return "Ciclo de consumivel concluido"
+        if event_type == "expense_created":
+            amount = details.get("amount")
+            return f"Gastou R$ {float(amount):.2f}".replace(".", ",") if amount is not None else "Gasto registrado"
+        if event_type == "income_created":
+            amount = details.get("amount")
+            return f"Recebeu R$ {float(amount):.2f}".replace(".", ",") if amount is not None else "Recebimento registrado"
         return "Registro automatico"
 
     @staticmethod
@@ -163,7 +192,19 @@ class CalendarEngine:
         return grouped
 
     @staticmethod
-    def _build_week_preview(events, daily_blocks, goal_deadlines):
+    def _summarize_daily_blocks(daily_blocks):
+        total = len(daily_blocks)
+        completed = sum(1 for block in daily_blocks if block.get("completed"))
+        pending = max(total - completed, 0)
+        return {
+            "total": total,
+            "completed": completed,
+            "pending": pending,
+            "all_completed": total > 0 and completed == total,
+        }
+
+    @staticmethod
+    def _build_week_preview(events, goal_deadlines):
         preview = []
 
         for event in events:
@@ -172,17 +213,7 @@ class CalendarEngine:
                     "kind": "event",
                     "title": event["title"],
                     "time": event.get("start_time"),
-                    "meta": event.get("description") or "Evento",
-                }
-            )
-
-        for block in daily_blocks:
-            preview.append(
-                {
-                    "kind": "daily",
-                    "title": block["title"],
-                    "time": block.get("start_time"),
-                    "meta": "Concluido" if block.get("completed") else "Daily",
+                    "meta": "Concluido" if event.get("is_completed") else (event.get("description") or "Evento"),
                 }
             )
 
@@ -204,50 +235,6 @@ class CalendarEngine:
         rows = db.fetchall(
             """
             SELECT * FROM (
-                SELECT
-                    'daily-block:' || dpb.id AS item_id,
-                    dpb.date AS event_date,
-                    CASE
-                        WHEN COALESCE(dpb.start_time, '') = '' THEN dpb.date || 'T00:00:00'
-                        ELSE dpb.date || 'T' || dpb.start_time || ':00'
-                    END AS event_timestamp,
-                    'daily' AS source_module,
-                    'daily_completed' AS event_type,
-                    COALESCE(a.title, dpb.block_name, 'Atividade concluida') AS title,
-                    json_object(
-                        'activity_id', dpb.activity_id,
-                        'duration', COALESCE(dpb.duration, 0),
-                        'source', 'daily_plan_block'
-                    ) AS details
-                FROM daily_plan_blocks dpb
-                LEFT JOIN activities a ON a.id = dpb.activity_id
-                WHERE COALESCE(dpb.completed, 0) = 1
-                  AND dpb.activity_id IS NOT NULL
-
-                UNION ALL
-
-                SELECT
-                    'daily-log:' || dal.id AS item_id,
-                    dl.date AS event_date,
-                    CASE
-                        WHEN COALESCE(dal.timestamp, '') = '' THEN dl.date || 'T00:00:00'
-                        ELSE dl.date || 'T' || dal.timestamp
-                    END AS event_timestamp,
-                    'daily' AS source_module,
-                    'daily_completed' AS event_type,
-                    COALESCE(a.title, 'Atividade concluida') AS title,
-                    json_object(
-                        'activity_id', a.id,
-                        'duration', COALESCE(dal.duration, 0),
-                        'source', 'daily_activity_log'
-                    ) AS details
-                FROM daily_activity_logs dal
-                JOIN daily_logs dl ON dl.id = dal.daily_log_id
-                LEFT JOIN activities a ON a.id = dal.activity_id
-                WHERE COALESCE(dal.completed, 0) = 1
-
-                UNION ALL
-
                 SELECT
                     'goal:' || g.id AS item_id,
                     date(g.completed_at) AS event_date,
@@ -413,6 +400,93 @@ class CalendarEngine:
                 LEFT JOIN music_artists mart ON mart.id = ma.artist_id
                 WHERE ma.status = 'listened'
                   AND ma.created_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    'counter-completed:' || ac.id AS item_id,
+                    date(ac.completed_at) AS event_date,
+                    ac.completed_at AS event_timestamp,
+                    'daily' AS source_module,
+                    'activity_counter_completed' AS event_type,
+                    ac.title AS title,
+                    json_object(
+                        'counter_id', ac.id,
+                        'elapsed_days', COALESCE(ac.elapsed_days, 0)
+                    ) AS details
+                FROM activity_counters ac
+                WHERE ac.completed_at IS NOT NULL
+
+                UNION ALL
+
+                SELECT
+                    'consumable-restock:' || cc.id AS item_id,
+                    cc.purchase_date AS event_date,
+                    CASE
+                        WHEN cc.created_at IS NOT NULL AND date(cc.created_at) = cc.purchase_date THEN cc.created_at
+                        ELSE cc.purchase_date || 'T00:00:00'
+                    END AS event_timestamp,
+                    'consumiveis' AS source_module,
+                    'consumable_restock' AS event_type,
+                    ci.name AS title,
+                    json_object(
+                        'item_id', ci.id,
+                        'stock_quantity', COALESCE(cc.stock_quantity, 1)
+                    ) AS details
+                FROM consumable_cycles cc
+                JOIN consumable_items ci ON ci.id = cc.item_id
+
+                UNION ALL
+
+                SELECT
+                    'consumable-finished:' || cul.id AS item_id,
+                    date(cul.consumed_at) AS event_date,
+                    cul.consumed_at AS event_timestamp,
+                    'consumiveis' AS source_module,
+                    'consumable_finished' AS event_type,
+                    ci.name AS title,
+                    json_object(
+                        'item_id', ci.id,
+                        'elapsed_days', COALESCE(cul.duration_days, 0),
+                        'remaining_quantity', COALESCE(cc.remaining_quantity, 0)
+                    ) AS details
+                FROM consumable_unit_logs cul
+                JOIN consumable_cycles cc ON cc.id = cul.cycle_id
+                JOIN consumable_items ci ON ci.id = cul.item_id
+
+                UNION ALL
+
+                SELECT
+                    'finance-expense:' || ft.id AS item_id,
+                    date(COALESCE(ft.occurred_at, ft.created_at)) AS event_date,
+                    COALESCE(ft.occurred_at, ft.created_at) AS event_timestamp,
+                    'financeiro' AS source_module,
+                    'expense_created' AS event_type,
+                    ft.description AS title,
+                    json_object(
+                        'transaction_id', ft.id,
+                        'amount', COALESCE(ft.amount, 0),
+                        'category', COALESCE(ft.category, '')
+                    ) AS details
+                FROM finance_transactions ft
+                WHERE ft.kind = 'expense'
+
+                UNION ALL
+
+                SELECT
+                    'finance-income:' || ft.id AS item_id,
+                    date(COALESCE(ft.occurred_at, ft.created_at)) AS event_date,
+                    COALESCE(ft.occurred_at, ft.created_at) AS event_timestamp,
+                    'financeiro' AS source_module,
+                    'income_created' AS event_type,
+                    ft.description AS title,
+                    json_object(
+                        'transaction_id', ft.id,
+                        'amount', COALESCE(ft.amount, 0),
+                        'category', COALESCE(ft.category, '')
+                    ) AS details
+                FROM finance_transactions ft
+                WHERE ft.kind = 'income'
             ) calendar_logs
             WHERE event_date >= ? AND event_date < ?
             ORDER BY datetime(event_timestamp) ASC, title ASC
@@ -491,6 +565,20 @@ class CalendarEngine:
                 ),
             )
             return db.lastrowid
+
+    @staticmethod
+    def set_event_completed(event_id: int, completed: bool):
+        completed_at = datetime.now().isoformat() if completed else None
+        with Database() as db:
+            result = db.execute(
+                """
+                UPDATE calendar_events
+                SET is_completed = ?, completed_at = ?
+                WHERE id = ?
+                """,
+                (1 if completed else 0, completed_at, event_id),
+            )
+            return result.rowcount > 0
 
     @staticmethod
     def update_event(event_id: int, date: str, title: str, description: Optional[str] = None, start_time: Optional[str] = None, end_time: Optional[str] = None):
@@ -572,10 +660,10 @@ class CalendarEngine:
 
         with Database() as db:
             manual_events = [
-                dict(row)
+                CalendarEngine._normalize_manual_event(row)
                 for row in db.fetchall(
                     """
-                    SELECT id, event_date AS date, title, description, start_time, end_time, created_at
+                    SELECT id, event_date AS date, title, description, start_time, end_time, is_completed, completed_at, created_at
                     FROM calendar_events
                     WHERE event_date >= ? AND event_date < ?
                     ORDER BY event_date ASC, COALESCE(start_time, '23:59') ASC, title ASC
@@ -630,10 +718,17 @@ class CalendarEngine:
         for block in daily_blocks:
             bucket = ensure_bucket(block["date"])
             bucket["daily_blocks"] += 1
+            bucket["daily_completed_blocks"] = bucket.get("daily_completed_blocks", 0) + (1 if block.get("completed") else 0)
 
         for goal in goal_deadlines:
             bucket = ensure_bucket(goal["date"])
             bucket["goal_deadlines"] += 1
+
+        for bucket in day_map.values():
+            total = bucket.get("daily_blocks", 0)
+            completed = bucket.get("daily_completed_blocks", 0)
+            bucket["daily_pending_blocks"] = max(total - completed, 0)
+            bucket["daily_all_completed"] = total > 0 and completed == total
 
         return {
             "month": start_date.strftime("%Y-%m"),
@@ -651,14 +746,10 @@ class CalendarEngine:
 
         with Database() as db:
             events = [
-                {
-                    **dict(row),
-                    "entry_type": "manual_event",
-                    "date": row["event_date"],
-                }
+                CalendarEngine._normalize_manual_event(row)
                 for row in db.fetchall(
                     """
-                    SELECT id, event_date, title, description, start_time, end_time, created_at
+                    SELECT id, event_date, title, description, start_time, end_time, is_completed, completed_at, created_at
                     FROM calendar_events
                     WHERE event_date = ?
                     ORDER BY COALESCE(start_time, '23:59') ASC, title ASC
@@ -685,6 +776,7 @@ class CalendarEngine:
             automatic_logs = CalendarEngine._list_automatic_logs(db, target_iso, end_iso)
             daily_blocks = CalendarEngine._list_daily_blocks(db, target_iso, end_iso)
             goal_deadlines = CalendarEngine._list_goal_deadlines(db, target_iso, end_iso)
+            daily_progress = CalendarEngine._summarize_daily_blocks(daily_blocks)
 
         return {
             "date": target_iso,
@@ -698,6 +790,9 @@ class CalendarEngine:
                 "manual_logs": len(manual_logs),
                 "automatic_logs": len(automatic_logs),
                 "daily_blocks": len(daily_blocks),
+                "daily_completed_blocks": daily_progress["completed"],
+                "daily_pending_blocks": daily_progress["pending"],
+                "daily_all_completed": daily_progress["all_completed"],
                 "goal_deadlines": len(goal_deadlines),
             },
         }
@@ -711,14 +806,10 @@ class CalendarEngine:
 
         with Database() as db:
             events = [
-                {
-                    **dict(row),
-                    "entry_type": "manual_event",
-                    "date": row["event_date"],
-                }
+                CalendarEngine._normalize_manual_event(row)
                 for row in db.fetchall(
                     """
-                    SELECT id, event_date, title, description, start_time, end_time, created_at
+                    SELECT id, event_date, title, description, start_time, end_time, is_completed, completed_at, created_at
                     FROM calendar_events
                     WHERE event_date >= ? AND event_date < ?
                     ORDER BY event_date ASC, COALESCE(start_time, '23:59') ASC, title ASC
@@ -761,6 +852,7 @@ class CalendarEngine:
             day_auto_logs = automatic_logs_by_date.get(day_iso, [])
             day_blocks = daily_blocks_by_date.get(day_iso, [])
             day_goals = goal_deadlines_by_date.get(day_iso, [])
+            daily_progress = CalendarEngine._summarize_daily_blocks(day_blocks)
 
             days.append(
                 {
@@ -774,9 +866,12 @@ class CalendarEngine:
                         "manual_logs": len(day_logs),
                         "automatic_logs": len(day_auto_logs),
                         "daily_blocks": len(day_blocks),
+                        "daily_completed_blocks": daily_progress["completed"],
+                        "daily_pending_blocks": daily_progress["pending"],
+                        "daily_all_completed": daily_progress["all_completed"],
                         "goal_deadlines": len(day_goals),
                     },
-                    "preview": CalendarEngine._build_week_preview(day_events, day_blocks, day_goals),
+                    "preview": CalendarEngine._build_week_preview(day_events, day_goals),
                 }
             )
             cursor += timedelta(days=1)

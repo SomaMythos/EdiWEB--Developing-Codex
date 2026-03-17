@@ -8,6 +8,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { booksApi } from '../services/api';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import './Books.css';
 
 const EMPTY_FORM = {
@@ -84,10 +85,10 @@ const BookCard = ({ book, onOpenUpdate, onDelete, removeMode, uiMode }) => {
         }
       }}
     >
-      <div className="reading-card-cover-shell">
-        {book.cover_image ? (
-          <img src={book.cover_image} alt={book.title} className="reading-card-cover" />
-        ) : (
+        <div className="reading-card-cover-shell">
+          {book.cover_image ? (
+            <img src={resolveMediaUrl(book.cover_image)} alt={book.title} className="reading-card-cover" />
+          ) : (
           <div className="reading-card-fallback">
             <span>{buildFallbackLabel(book.title)}</span>
           </div>
@@ -370,7 +371,7 @@ const Books = () => {
               <>
                 <div className="books-spotlight-cover">
                   {spotlightBook.cover_image ? (
-                    <img src={spotlightBook.cover_image} alt={spotlightBook.title} className="books-spotlight-image" />
+                    <img src={resolveMediaUrl(spotlightBook.cover_image)} alt={spotlightBook.title} className="books-spotlight-image" />
                   ) : (
                     <div className="books-spotlight-fallback">{buildFallbackLabel(spotlightBook.title)}</div>
                   )}

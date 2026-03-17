@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { activitiesApi } from "../../services/api";
 import { DEFAULT_ACTIVITY } from "./constants";
-import { createUiState } from "./utils";
+import { createUiState, usesNeutralActivityCategory } from "./utils";
 
 export function useActivities() {
   const [showActivitiesModal, setShowActivitiesModal] = useState(false);
@@ -32,6 +32,7 @@ export function useActivities() {
   const validateActivity = activity => {
     const errors = {};
     const title = (activity.title || "").trim();
+    const usesNeutralCategory = usesNeutralActivityCategory(activity);
 
     if (!title) {
       errors.title = "Titulo e obrigatorio.";
@@ -69,7 +70,7 @@ export function useActivities() {
       errors.fixed_duration = "A duracao fixa deve ser maior que zero.";
     }
 
-    if (!activity.is_disc && !activity.is_fun) {
+    if (!usesNeutralCategory && !activity.is_disc && !activity.is_fun) {
       errors.category = "Marque pelo menos uma categoria.";
     }
 
@@ -83,6 +84,12 @@ export function useActivities() {
 
     return errors;
   };
+
+  const normalizeActivityPayload = activity => ({
+    ...activity,
+    is_disc: usesNeutralActivityCategory(activity) ? false : Boolean(activity.is_disc),
+    is_fun: usesNeutralActivityCategory(activity) ? false : Boolean(activity.is_fun)
+  });
 
   const fetchActivities = async () => {
     setState(createUiState("loading"));
@@ -110,7 +117,7 @@ export function useActivities() {
     setValidationErrors({});
     setState(createUiState("loading"));
     try {
-      const payload = {
+      const payload = normalizeActivityPayload({
         ...newActivity,
         title: newActivity.title.trim(),
         intercalate_days:
@@ -122,7 +129,7 @@ export function useActivities() {
           newActivity.fixed_duration === "" || newActivity.fixed_duration === null || newActivity.fixed_duration === undefined
             ? null
             : Number(newActivity.fixed_duration)
-      };
+      });
 
       if (editingActivityId) {
         await activitiesApi.update(editingActivityId, payload);

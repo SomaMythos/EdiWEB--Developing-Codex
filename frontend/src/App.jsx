@@ -13,6 +13,7 @@ import NotificationsPage from './pages/Notifications';
 import Music from './pages/music/Music';
 import Games from './pages/Games';
 import Watch from './pages/Watch';
+import Study from './pages/Study';
 import Shopping from './pages/Shopping';
 import Consumiveis from './pages/Consumiveis';
 import Anotacoes from './pages/Anotacoes';
@@ -70,6 +71,7 @@ function App() {
           <Route path="/hobby/musica" element={<Music />} />
           <Route path="/hobby/games" element={<Games />} />
           <Route path="/hobby/assistir" element={<Watch />} />
+          <Route path="/hobby/estudo" element={<Study />} />
           <Route path="/shopping" element={<Shopping />} />
           <Route path="/shopping/consumiveis" element={<Consumiveis />} />
           <Route path="/notifications" element={<NotificationsPage />} />

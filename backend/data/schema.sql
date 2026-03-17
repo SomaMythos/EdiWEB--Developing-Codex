@@ -213,6 +213,10 @@ CREATE TABLE IF NOT EXISTS music_training_tabs (
     name TEXT NOT NULL,
     instrument TEXT NOT NULL, -- guitar | keyboard
     image_path TEXT NOT NULL,
+    content_type TEXT DEFAULT 'image', -- image | exercise
+    exercise_data TEXT,
+    target_bpm INTEGER,
+    tuning TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -266,6 +270,42 @@ CREATE TABLE IF NOT EXISTS watch_items (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES watch_categories(id)
 );
+
+-- =========================
+-- ESTUDO
+-- =========================
+
+CREATE TABLE IF NOT EXISTS study_topics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS study_videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id INTEGER NOT NULL,
+    title TEXT,
+    source_url TEXT NOT NULL,
+    embed_url TEXT,
+    provider TEXT NOT NULL DEFAULT 'external',
+    notes TEXT,
+    current_seconds INTEGER NOT NULL DEFAULT 0,
+    duration_seconds INTEGER,
+    progress_percent INTEGER NOT NULL DEFAULT 0,
+    is_completed INTEGER NOT NULL DEFAULT 0,
+    completed_at TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(topic_id) REFERENCES study_topics(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_study_videos_topic_id
+    ON study_videos(topic_id, created_at ASC);
+
+CREATE INDEX IF NOT EXISTS idx_study_videos_completed
+    ON study_videos(is_completed, completed_at DESC);
 
 
 -- =========================
@@ -389,16 +429,38 @@ CREATE TABLE IF NOT EXISTS consumable_cycles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
     purchase_date TEXT NOT NULL,
+    stock_quantity INTEGER NOT NULL DEFAULT 1,
+    remaining_quantity INTEGER NOT NULL DEFAULT 1,
     price_paid NUMERIC,
     ended_at TEXT,
     duration_days INTEGER,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    CHECK(stock_quantity > 0),
+    CHECK(remaining_quantity >= 0),
+    CHECK(remaining_quantity <= stock_quantity),
+    FOREIGN KEY(item_id) REFERENCES consumable_items(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS consumable_unit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cycle_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL,
+    consumed_at TEXT NOT NULL,
+    duration_days INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(cycle_id) REFERENCES consumable_cycles(id) ON DELETE CASCADE,
     FOREIGN KEY(item_id) REFERENCES consumable_items(id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_consumable_cycles_open_item
     ON consumable_cycles(item_id)
     WHERE ended_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_consumable_unit_logs_item_id
+    ON consumable_unit_logs(item_id, consumed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_consumable_unit_logs_cycle_id
+    ON consumable_unit_logs(cycle_id, consumed_at DESC);
 
 CREATE TRIGGER IF NOT EXISTS trg_consumable_cycles_no_delete
 BEFORE DELETE ON consumable_cycles
@@ -412,9 +474,23 @@ WHEN (
     OLD.ended_at IS NOT NULL
     OR NEW.item_id <> OLD.item_id
     OR NEW.purchase_date <> OLD.purchase_date
+    OR COALESCE(NEW.stock_quantity, 1) <> COALESCE(OLD.stock_quantity, 1)
     OR COALESCE(NEW.price_paid, -1) <> COALESCE(OLD.price_paid, -1)
     OR COALESCE(NEW.created_at, '') <> COALESCE(OLD.created_at, '')
-    OR NEW.ended_at IS NULL
+    OR NEW.remaining_quantity < 0
+    OR NEW.remaining_quantity > OLD.remaining_quantity
+    OR NEW.remaining_quantity > NEW.stock_quantity
+    OR (
+        NEW.remaining_quantity = 0
+        AND (NEW.ended_at IS NULL OR NEW.duration_days IS NULL)
+    )
+    OR (
+        NEW.remaining_quantity > 0
+        AND (
+            COALESCE(NEW.ended_at, '') <> COALESCE(OLD.ended_at, '')
+            OR COALESCE(NEW.duration_days, -1) <> COALESCE(OLD.duration_days, -1)
+        )
+    )
 )
 BEGIN
     SELECT RAISE(ABORT, 'consumable_cycles_only_close_open_cycle');
@@ -459,6 +535,8 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     description TEXT,
     start_time TEXT,
     end_time TEXT,
+    is_completed INTEGER NOT NULL DEFAULT 0,
+    completed_at TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

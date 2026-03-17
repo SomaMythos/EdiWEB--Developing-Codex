@@ -11,9 +11,12 @@ import json
 import re
 import secrets
 import asyncio
+import mimetypes
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from uuid import uuid4
+from urllib.parse import urlparse
+from urllib.request import Request as UrlRequest, urlopen as urlopen_request
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -29,6 +32,7 @@ from core.goal_engine import GoalEngine, GoalActivityValidationError
 from core.finance_engine import FinanceEngine
 from core.music_engine import MusicEngine
 from core.watch_engine import WatchEngine
+from core.study_engine import StudyEngine
 from core.routine_engine import RoutineEngine
 from core.analytics_engine import AnalyticsEngine
 from core.notification_engine import NotificationEngine
@@ -82,6 +86,7 @@ def _get_edi_storage_dir() -> Path:
 EDI_STORAGE_DIR = _get_edi_storage_dir()
 UPLOADS_DIR = EDI_STORAGE_DIR / "uploads"
 VISUAL_ARTS_UPLOADS_DIR = UPLOADS_DIR / "visual_arts"
+REMOTE_IMAGES_UPLOADS_DIR = UPLOADS_DIR / "remote_images"
 
 
 def _normalize_relative_path(path_value: Optional[str]) -> Optional[str]:
@@ -121,6 +126,73 @@ def _save_upload_file(upload_file: UploadFile, destination_dir: Path) -> str:
 
     with destination.open("wb") as output:
         output.write(upload_file.file.read())
+
+    relative_upload_path = destination.relative_to(UPLOADS_DIR)
+    return f"uploads/{str(relative_upload_path).replace(chr(92), '/')}"
+
+
+def _normalize_upload_url_value(url_value: Optional[str]) -> Optional[str]:
+    normalized = _normalize_relative_path(url_value)
+    if not normalized:
+        return None
+    if normalized.startswith("uploads/"):
+        return normalized
+    parsed = urlparse(normalized)
+    if parsed.scheme and parsed.path.startswith("/uploads/"):
+        return parsed.path.lstrip("/")
+    return None
+
+
+def _infer_remote_image_extension(source_url: str, content_type: Optional[str]) -> str:
+    normalized_content_type = (content_type or "").split(";", 1)[0].strip().lower()
+    if normalized_content_type.startswith("image/"):
+        guessed_extension = mimetypes.guess_extension(normalized_content_type)
+        if guessed_extension:
+            return guessed_extension
+
+    parsed = urlparse(source_url)
+    suffix = Path(parsed.path or "").suffix.lower()
+    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}:
+        return suffix
+    return ".jpg"
+
+
+def _download_remote_image_to_uploads(source_url: Optional[str], destination_dir: Path) -> Optional[str]:
+    normalized_source_url = (source_url or "").strip()
+    if not normalized_source_url:
+        return None
+
+    local_upload_path = _normalize_upload_url_value(normalized_source_url)
+    if local_upload_path:
+        return local_upload_path
+
+    parsed = urlparse(normalized_source_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("URL da imagem inválida. Use um link http ou https.")
+
+    destination_dir.mkdir(parents=True, exist_ok=True)
+    request = UrlRequest(
+        normalized_source_url,
+        headers={
+            "User-Agent": "EDI-Life-Manager/1.0",
+            "Accept": "image/*,*/*;q=0.8",
+        },
+    )
+    try:
+        with urlopen_request(request, timeout=15) as response:
+            content_type = response.headers.get("Content-Type", "")
+            if not (content_type or "").lower().startswith("image/"):
+                raise ValueError("O link informado não aponta para uma imagem válida.")
+            file_extension = _infer_remote_image_extension(normalized_source_url, content_type)
+            file_name = f"{uuid4().hex}{file_extension}"
+            destination = destination_dir / file_name
+            image_bytes = response.read()
+            with destination.open("wb") as output:
+                output.write(image_bytes)
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Não foi possível baixar a imagem informada.") from exc
 
     relative_upload_path = destination.relative_to(UPLOADS_DIR)
     return f"uploads/{str(relative_upload_path).replace(chr(92), '/')}"
@@ -262,6 +334,31 @@ class ActivityCounterCreate(BaseModel):
 
 class BpmRequest(BaseModel):
     bpm: int
+
+
+class MusicTrainingExercisePayload(BaseModel):
+    name: str
+    instrument: str = "guitar"
+    target_bpm: Optional[int] = None
+    tuning: List[str]
+    columns: conint(ge=4, le=32) = 8
+    cells: List[List[str]]
+    notes: Optional[str] = None
+
+    @field_validator("tuning")
+    @classmethod
+    def validate_tuning(cls, value: List[str]):
+        cleaned = [(item or "").strip() for item in value]
+        if len(cleaned) != 6:
+            raise ValueError("A afinação precisa ter 6 cordas.")
+        return cleaned
+
+    @field_validator("cells")
+    @classmethod
+    def validate_cells(cls, value: List[List[str]]):
+        if len(value) != 6:
+            raise ValueError("O exercício precisa ter 6 linhas de tablatura.")
+        return value
 
 
 class DailyActivityLog(BaseModel):
@@ -409,6 +506,30 @@ class WatchLogPayload(BaseModel):
     season_number: Optional[int] = None
     episode_number: Optional[int] = None
     note: Optional[str] = None
+
+
+class StudyTopicPayload(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+
+class StudyVideoCreatePayload(BaseModel):
+    source_url: str
+    title: Optional[str] = None
+
+
+class StudyPlaylistCreatePayload(BaseModel):
+    source_url: str
+
+
+class StudyVideoUpdatePayload(BaseModel):
+    title: Optional[str] = None
+    source_url: Optional[str] = None
+    notes: Optional[str] = None
+    current_seconds: Optional[int] = None
+    duration_seconds: Optional[int] = None
+    progress_percent: Optional[int] = None
+    is_completed: Optional[bool] = None
 
 
 # ============================================================================
@@ -635,7 +756,15 @@ async def create_activity(activity: ActivityCreate):
             except ValueError:
                 raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
 
-        if not activity.is_disc and not activity.is_fun:
+        normalized_is_disc, normalized_is_fun = ActivityEngine.normalize_category_flags(
+            frequency_type=frequency,
+            fixed_time=activity.fixed_time,
+            fixed_duration=activity.fixed_duration,
+            is_disc=activity.is_disc,
+            is_fun=activity.is_fun,
+        )
+
+        if not ActivityEngine.uses_neutral_category(frequency, activity.fixed_time, activity.fixed_duration) and not normalized_is_disc and not normalized_is_fun:
             raise HTTPException(status_code=400, detail="Selecione ao menos uma categoria: is_disc ou is_fun")
 
         _validate_fixed_activity_conflicts(activity)
@@ -648,8 +777,8 @@ async def create_activity(activity: ActivityCreate):
             intercalate_days=intercalate_days,
             fixed_time=activity.fixed_time,
             fixed_duration=activity.fixed_duration,
-            is_disc=activity.is_disc,
-            is_fun=activity.is_fun,
+            is_disc=normalized_is_disc,
+            is_fun=normalized_is_fun,
         )
 
         return {"success": True, "message": "Activity created"}
@@ -779,7 +908,15 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
             except ValueError:
                 raise HTTPException(status_code=400, detail="fixed_time deve estar no formato HH:MM")
 
-        if not activity.is_disc and not activity.is_fun:
+        normalized_is_disc, normalized_is_fun = ActivityEngine.normalize_category_flags(
+            frequency_type=frequency,
+            fixed_time=activity.fixed_time,
+            fixed_duration=activity.fixed_duration,
+            is_disc=activity.is_disc,
+            is_fun=activity.is_fun,
+        )
+
+        if not ActivityEngine.uses_neutral_category(frequency, activity.fixed_time, activity.fixed_duration) and not normalized_is_disc and not normalized_is_fun:
             raise HTTPException(status_code=400, detail="Selecione ao menos uma categoria: is_disc ou is_fun")
 
         _validate_fixed_activity_conflicts(activity)
@@ -793,8 +930,8 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
             intercalate_days=intercalate_days,
             fixed_time=activity.fixed_time,
             fixed_duration=activity.fixed_duration,
-            is_disc=activity.is_disc,
-            is_fun=activity.is_fun,
+            is_disc=normalized_is_disc,
+            is_fun=normalized_is_fun,
         )
 
         if not updated:
@@ -1422,11 +1559,68 @@ async def create_training(
     return {"success": True, "data": {"id": tid, "image_path": image_path}}
     
     
+@app.post("/api/music/training/exercise")
+async def create_training_exercise(payload: MusicTrainingExercisePayload):
+    expected_columns = payload.columns
+    normalized_cells = []
+    for row in payload.cells:
+        normalized_row = [str(cell or "").strip()[:3] for cell in row]
+        if len(normalized_row) != expected_columns:
+            raise HTTPException(status_code=400, detail="Todas as linhas da tablatura precisam ter o mesmo número de colunas.")
+        normalized_cells.append(normalized_row)
+
+    exercise_data = {
+        "columns": expected_columns,
+        "cells": normalized_cells,
+        "notes": (payload.notes or "").strip() or None,
+    }
+    tid = MusicEngine.create_training(
+        payload.name,
+        payload.instrument,
+        "",
+        content_type="exercise",
+        exercise_data=exercise_data,
+        target_bpm=payload.target_bpm,
+        tuning=payload.tuning,
+    )
+    return {"success": True, "data": MusicEngine.get_training(tid)}
+
+
 @app.get("/api/music/training")
 async def list_training():
     return {"success": True, "data": MusicEngine.list_trainings()}
     
     
+@app.put("/api/music/training/{training_id}/exercise")
+async def update_training_exercise(training_id: int, payload: MusicTrainingExercisePayload):
+    expected_columns = payload.columns
+    normalized_cells = []
+    for row in payload.cells:
+        normalized_row = [str(cell or "").strip()[:3] for cell in row]
+        if len(normalized_row) != expected_columns:
+            raise HTTPException(status_code=400, detail="Todas as linhas da tablatura precisam ter o mesmo número de colunas.")
+        normalized_cells.append(normalized_row)
+
+    current = MusicEngine.get_training(training_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="Treino não encontrado.")
+
+    exercise_data = {
+        "columns": expected_columns,
+        "cells": normalized_cells,
+        "notes": (payload.notes or "").strip() or None,
+    }
+    MusicEngine.update_training_exercise(
+        training_id,
+        payload.name,
+        payload.instrument,
+        exercise_data=exercise_data,
+        target_bpm=payload.target_bpm,
+        tuning=payload.tuning,
+    )
+    return {"success": True, "data": MusicEngine.get_training(training_id)}
+
+
 @app.post("/api/music/training/{training_id}/session")
 async def add_training_session(training_id: int, payload: BpmRequest):
     MusicEngine.add_training_session(training_id, payload.bpm)
@@ -1616,11 +1810,9 @@ async def update_watch_item(
         image_path = _save_upload_file(image, UPLOADS_DIR / "watch")
 
     try:
-        item = WatchEngine.update_item(
-            item_id,
+        update_kwargs = dict(
             category_id=category_id,
             name=name,
-            image_path=image_path,
             media_type=media_type,
             status=status,
             description=description,
@@ -1629,6 +1821,13 @@ async def update_watch_item(
             total_episodes=total_episodes,
             current_season=current_season,
             current_episode=current_episode,
+        )
+        if image_path is not None:
+            update_kwargs["image_path"] = image_path
+
+        item = WatchEngine.update_item(
+            item_id,
+            **update_kwargs,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
@@ -1670,6 +1869,93 @@ async def list_watch_items_by_category(category_id: int):
         "success": True,
         "data": WatchEngine.list_items(category_id=category_id)
     }
+
+
+# ==============================
+# STUDY
+# ==============================
+
+@app.get("/api/study/topics")
+async def list_study_topics():
+    return {"success": True, "data": StudyEngine.list_topics()}
+
+
+@app.post("/api/study/topics")
+async def create_study_topic(payload: StudyTopicPayload):
+    try:
+        topic = StudyEngine.create_topic(payload.title, payload.description)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"success": True, "data": topic}
+
+
+@app.get("/api/study/topics/{topic_id}")
+async def get_study_topic(topic_id: int):
+    try:
+        topic = StudyEngine.get_topic(topic_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"success": True, "data": topic}
+
+
+@app.put("/api/study/topics/{topic_id}")
+async def update_study_topic(topic_id: int, payload: StudyTopicPayload):
+    try:
+        topic = StudyEngine.update_topic(topic_id, payload.title, payload.description)
+    except ValueError as exc:
+        raise HTTPException(status_code=400 if "obrigatório" in str(exc) else 404, detail=str(exc))
+    return {"success": True, "data": topic}
+
+
+@app.delete("/api/study/topics/{topic_id}")
+async def delete_study_topic(topic_id: int):
+    StudyEngine.delete_topic(topic_id)
+    return {"success": True}
+
+
+@app.post("/api/study/topics/{topic_id}/videos")
+async def create_study_video(topic_id: int, payload: StudyVideoCreatePayload):
+    try:
+        video = StudyEngine.add_video(topic_id, payload.source_url, payload.title)
+    except ValueError as exc:
+        message = str(exc)
+        raise HTTPException(status_code=404 if "Assunto" in message else 400, detail=message)
+    return {"success": True, "data": video}
+
+
+@app.post("/api/study/topics/{topic_id}/playlists")
+async def create_study_playlist(topic_id: int, payload: StudyPlaylistCreatePayload):
+    try:
+        result = StudyEngine.add_playlist(topic_id, payload.source_url)
+    except ValueError as exc:
+        message = str(exc)
+        raise HTTPException(status_code=404 if "Assunto" in message else 400, detail=message)
+    return {"success": True, "data": result}
+
+
+@app.patch("/api/study/videos/{video_id}")
+async def update_study_video(video_id: int, payload: StudyVideoUpdatePayload):
+    try:
+        video = StudyEngine.update_video(
+            video_id,
+            title=payload.title,
+            source_url=payload.source_url,
+            notes=payload.notes,
+            current_seconds=payload.current_seconds,
+            duration_seconds=payload.duration_seconds,
+            progress_percent=payload.progress_percent,
+            is_completed=payload.is_completed,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        raise HTTPException(status_code=404 if "não encontrado" in message else 400, detail=message)
+    return {"success": True, "data": video}
+
+
+@app.delete("/api/study/videos/{video_id}")
+async def delete_study_video(video_id: int):
+    StudyEngine.delete_video(video_id)
+    return {"success": True}
 
 # ============================================================================
 # ROUTINES ENDPOINTS
@@ -2612,6 +2898,7 @@ class ConsumableItemPayload(BaseModel):
 class RestockPayload(BaseModel):
     purchase_date: str
     price_paid: Optional[float] = None
+    stock_quantity: int = 1
 
 
 class FinishCyclePayload(BaseModel):
@@ -2652,6 +2939,10 @@ class CalendarManualLogPayload(BaseModel):
     description: Optional[str] = None
 
 
+class CalendarEventCompletionPayload(BaseModel):
+    completed: bool
+
+
 class DailyBlockUpdatePayload(BaseModel):
     start_time: str
     duration: int
@@ -2688,7 +2979,11 @@ async def profile_get():
 
 @app.post("/api/profile")
 async def profile_save(payload: ProfilePayload):
-    pid = UserProfileEngine.save_profile(payload.name, payload.birth_date, payload.height, payload.gender, payload.photo_path)
+    try:
+        persisted_photo_path = _download_remote_image_to_uploads(payload.photo_path, REMOTE_IMAGES_UPLOADS_DIR / "profile")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    pid = UserProfileEngine.save_profile(payload.name, payload.birth_date, payload.height, payload.gender, persisted_photo_path)
     return {"success": True, "data": {"id": pid}}
 
 
@@ -2710,12 +3005,16 @@ async def books_list(status: Optional[str] = None):
 
 @app.post("/api/books")
 async def books_create(payload: BookPayload):
+    try:
+        persisted_cover_image = _download_remote_image_to_uploads(payload.cover_image, REMOTE_IMAGES_UPLOADS_DIR / "books")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     book_id = BookEngine.add_book(
         payload.title,
         payload.total_pages,
         payload.book_type,
         payload.genre,
-        payload.cover_image,
+        persisted_cover_image,
     )
     return {"success": True, "data": {"id": book_id}}
 
@@ -2949,19 +3248,30 @@ async def progress_photo_create(activity_id: int, photo_path: str, description: 
 
 
 @app.get("/api/shopping/wishlist")
-async def shopping_wishlist(item_type: Optional[str] = None):
-    return {"success": True, "data": ShoppingEngine.list_wish_items(item_type)}
+async def shopping_wishlist(request: Request, item_type: Optional[str] = None):
+    items = [dict(item) for item in ShoppingEngine.list_wish_items(item_type)]
+    for item in items:
+        item["photo_display_url"] = _to_public_upload_url(item.get("photo_url"), request) if _normalize_upload_url_value(item.get("photo_url")) else item.get("photo_url")
+    return {"success": True, "data": items}
 
 
 @app.post("/api/shopping/wishlist")
 async def shopping_wishlist_create(payload: WishItemPayload):
-    iid = ShoppingEngine.add_wish_item(payload.name, payload.price, payload.link, payload.item_type, payload.photo_url)
+    try:
+        persisted_photo_url = _download_remote_image_to_uploads(payload.photo_url, REMOTE_IMAGES_UPLOADS_DIR / "wishlist")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    iid = ShoppingEngine.add_wish_item(payload.name, payload.price, payload.link, payload.item_type, persisted_photo_url)
     return {"success": True, "data": {"id": iid}}
 
 
 @app.put("/api/shopping/wishlist/{item_id}")
 async def shopping_wishlist_update(item_id: int, payload: WishItemUpdatePayload):
-    ok = ShoppingEngine.update_wish_item(item_id, payload.name, payload.price, payload.link, payload.item_type, payload.photo_url, payload.is_marked)
+    try:
+        persisted_photo_url = _download_remote_image_to_uploads(payload.photo_url, REMOTE_IMAGES_UPLOADS_DIR / "wishlist")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    ok = ShoppingEngine.update_wish_item(item_id, payload.name, payload.price, payload.link, payload.item_type, persisted_photo_url, payload.is_marked)
     return {"success": ok}
 
 
@@ -3041,7 +3351,12 @@ async def consumable_items_create(payload: ConsumableItemPayload):
 @app.post("/api/consumables/items/{item_id}/restock")
 async def consumable_items_restock(item_id: int, payload: RestockPayload):
     try:
-        cycle_id = ConsumablesEngine.restock_item(item_id, payload.purchase_date, payload.price_paid)
+        cycle_id = ConsumablesEngine.restock_item(
+            item_id,
+            payload.purchase_date,
+            payload.price_paid,
+            payload.stock_quantity,
+        )
         return {"success": True, "data": {"id": cycle_id}}
     except ConsumablesValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -3209,6 +3524,13 @@ async def calendar_update_event(event_id: int, payload: CalendarEventPayload):
 async def calendar_delete_event(event_id: int):
     if not CalendarEngine.delete_event(event_id):
         raise HTTPException(status_code=404, detail="Evento nÃ£o encontrado")
+    return {"success": True}
+
+
+@app.patch("/api/calendar/events/{event_id}/complete")
+async def calendar_complete_event(event_id: int, payload: CalendarEventCompletionPayload):
+    if not CalendarEngine.set_event_completed(event_id, payload.completed):
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
     return {"success": True}
 
 

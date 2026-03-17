@@ -283,6 +283,17 @@
   text-align: left;
 }
 
+.activities-helper {
+  margin: 0;
+  padding: 0.82rem 0.95rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border-default);
+  background: rgba(10, 14, 20, 0.26);
+  color: var(--glass-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .activities-form__actions {
   justify-content: flex-end;
   padding-top: 0.15rem;

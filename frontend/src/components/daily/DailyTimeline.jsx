@@ -12,6 +12,7 @@ export default function DailyTimeline({ blocks, loadState, onToggleCompletion, o
       {blocks.map(block => {
         const endTime = addMinutesToTime(block.start_time, block.duration);
         const completed = isBlockCompleted(block.completed);
+        const canEdit = block.source_type !== "calendar";
         return (
           <div
   key={block.id}
@@ -21,7 +22,7 @@ className={`daily-block daily-block--${block.block_category} ${completed ? "comp
               <input
                 type="checkbox"
                 checked={completed}
-                onChange={() => onToggleCompletion(block.id, completed)}
+                onChange={() => onToggleCompletion(block.id, completed, block)}
                 className="daily-block__checkbox"
               />
               <div className="daily-block__meta">
@@ -31,9 +32,11 @@ className={`daily-block daily-block--${block.block_category} ${completed ? "comp
             </div>
             <div className="daily-block__name">{block.activity_title || "Bloco fixo"}</div>
             <div className="daily-block__right">
-              <button type="button" className="daily-block__edit" onClick={() => onEditBlock(block)}>
-                Editar
-              </button>
+              {canEdit ? (
+                <button type="button" className="daily-block__edit" onClick={() => onEditBlock(block)}>
+                  Editar
+                </button>
+              ) : null}
             </div>
           </div>
         );

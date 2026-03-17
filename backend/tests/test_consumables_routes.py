@@ -100,8 +100,6 @@ def test_create_category_and_item_with_validations(monkeypatch, tmp_path):
     assert category_not_found_exc.value.detail == "Categoria não encontrada"
 
 
-
-
 def test_create_category_duplicate_name_returns_conflict(monkeypatch, tmp_path):
     db_path = tmp_path / "lifemanager.db"
     _prepare_db(db_path)
@@ -129,6 +127,7 @@ def test_restock_validates_negative_price(monkeypatch, tmp_path):
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "price_paid não pode ser negativo"
+
 
 def test_restock_is_blocked_when_open_cycle_exists(monkeypatch, tmp_path):
     db_path = tmp_path / "lifemanager.db"
@@ -160,6 +159,8 @@ def test_finish_cycle_calculates_duration_days_and_handles_date_edges(monkeypatc
 
     finished_same_day = _run(consumable_items_finish(1, FinishCyclePayload(ended_at="2024-01-10")))
     assert finished_same_day["data"]["duration_days"] == 0
+    assert finished_same_day["data"]["remaining_quantity"] == 0
+    assert finished_same_day["data"]["cycle_closed"] is True
 
     _run(consumable_items_restock(1, RestockPayload(purchase_date="2024-02-10", price_paid=21.0)))
     with pytest.raises(HTTPException) as exc_info:
@@ -167,6 +168,37 @@ def test_finish_cycle_calculates_duration_days_and_handles_date_edges(monkeypatc
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "ended_at não pode ser anterior a purchase_date"
+
+
+def test_finish_cycle_consumes_one_unit_at_a_time_when_stock_quantity_is_greater_than_one(monkeypatch, tmp_path):
+    db_path = tmp_path / "lifemanager.db"
+    _prepare_db(db_path)
+    _configure_temp_db(monkeypatch, db_path)
+
+    _run(consumable_categories_create(ConsumableCategoryPayload(name="Higiene")))
+    _run(consumable_items_create(ConsumableItemPayload(name="Sabonete", category_id=1)))
+
+    _run(consumable_items_restock(1, RestockPayload(purchase_date="2024-03-01", price_paid=18.0, stock_quantity=3)))
+
+    first_finish = _run(consumable_items_finish(1, FinishCyclePayload(ended_at="2024-03-05")))
+    assert first_finish["data"]["duration_days"] == 4
+    assert first_finish["data"]["remaining_quantity"] == 2
+    assert first_finish["data"]["cycle_closed"] is False
+
+    second_finish = _run(consumable_items_finish(1, FinishCyclePayload(ended_at="2024-03-10")))
+    assert second_finish["data"]["duration_days"] == 9
+    assert second_finish["data"]["remaining_quantity"] == 1
+    assert second_finish["data"]["cycle_closed"] is False
+
+    last_finish = _run(consumable_items_finish(1, FinishCyclePayload(ended_at="2024-03-14")))
+    assert last_finish["data"]["duration_days"] == 13
+    assert last_finish["data"]["remaining_quantity"] == 0
+    assert last_finish["data"]["cycle_closed"] is True
+
+    detail = _run(consumable_item_detail(1))["data"]
+    assert detail["stats"]["total_units_consumed"] == 3
+    assert detail["stats"]["current_stock_quantity"] == 0
+    assert detail["open_cycle"] is None
 
 
 def test_item_stats_for_one_cycle_and_partial_month_frequency(monkeypatch, tmp_path):
@@ -189,6 +221,7 @@ def test_item_stats_for_one_cycle_and_partial_month_frequency(monkeypatch, tmp_p
     stats = detail["stats"]
 
     assert stats["total_purchases"] == 1
+    assert stats["total_units_consumed"] == 1
     assert stats["avg_duration_days"] == 10.0
     assert stats["purchase_frequency_per_month"] == 2.0
     assert stats["predicted_end_date"] is None

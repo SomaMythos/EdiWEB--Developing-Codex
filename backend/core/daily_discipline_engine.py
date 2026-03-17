@@ -2,10 +2,18 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 import random
 from data.database import Database
+from core.activity_engine import ActivityEngine
 from core.daily_override_engine import DailyOverrideEngine
 
 
 class DailyDisciplineEngine:
+
+    @staticmethod
+    def _mark_anchor_duration(activity: Dict) -> Dict:
+        anchored = dict(activity)
+        anchored["planned_duration"] = int(activity.get("min_duration") or 0)
+        anchored["placement_priority"] = max(int(activity.get("placement_priority", 5)), 6)
+        return anchored
 
     @staticmethod
     def _build_last_registration_map(db: Database, target_date: str, activity_ids: List[int]) -> Dict[int, str]:
@@ -16,15 +24,31 @@ class DailyDisciplineEngine:
         rows = db.fetchall(
             f"""
             SELECT
-                dal.activity_id,
-                MAX(dl.date) AS last_registered_date
-            FROM daily_activity_logs dal
-            INNER JOIN daily_logs dl ON dl.id = dal.daily_log_id
-            WHERE dal.activity_id IN ({placeholders})
-              AND dl.date <= ?
-            GROUP BY dal.activity_id
+                source.activity_id,
+                MAX(source.event_date) AS last_registered_date
+            FROM (
+                SELECT
+                    dal.activity_id,
+                    dl.date AS event_date
+                FROM daily_activity_logs dal
+                INNER JOIN daily_logs dl ON dl.id = dal.daily_log_id
+                WHERE dal.activity_id IN ({placeholders})
+                  AND dl.date <= ?
+                  AND COALESCE(dal.completed, 0) = 1
+
+                UNION ALL
+
+                SELECT
+                    dpb.activity_id,
+                    dpb.date AS event_date
+                FROM daily_plan_blocks dpb
+                WHERE dpb.activity_id IN ({placeholders})
+                  AND dpb.date <= ?
+                  AND COALESCE(dpb.completed, 0) = 1
+            ) AS source
+            GROUP BY source.activity_id
             """,
-            (*activity_ids, target_date),
+            (*activity_ids, target_date, *activity_ids, target_date),
         )
 
         return {
@@ -153,36 +177,37 @@ class DailyDisciplineEngine:
             filtered_activities = []
 
             for act in activities:
+                normalized_activity = ActivityEngine.normalize_activity_record(act)
 
-                freq = act["frequency_type"] or "flex"
+                freq = normalized_activity["frequency_type"] or "flex"
 
                 if freq == "flex":
-                    filtered_activities.append(dict(act))
+                    filtered_activities.append(normalized_activity)
 
                 elif freq == "everyday":
-                    filtered_activities.append(dict(act))
+                    filtered_activities.append(normalized_activity)
 
                 elif freq == "workday" and day_type == "work":
-                    filtered_activities.append(dict(act))
+                    filtered_activities.append(normalized_activity)
 
                 elif freq == "offday" and day_type == "off":
-                    filtered_activities.append(dict(act))
+                    filtered_activities.append(normalized_activity)
 
                 elif freq == "intercalate":
-                    minimum_days = act["intercalate_days"] or 0
+                    minimum_days = normalized_activity["intercalate_days"] or 0
                     if minimum_days <= 0:
                         continue
 
-                    last_registered_date = last_registration_map.get(act["id"])
+                    last_registered_date = last_registration_map.get(normalized_activity["id"])
                     if not last_registered_date:
-                        filtered_activities.append(dict(act))
+                        filtered_activities.append(normalized_activity)
                         continue
 
                     last_registered_dt = datetime.strptime(last_registered_date, "%Y-%m-%d").date()
                     days_since_last = (target_dt - last_registered_dt).days
 
                     if days_since_last >= minimum_days:
-                        filtered_activities.append(dict(act))
+                        filtered_activities.append(normalized_activity)
 
             if not filtered_activities:
                 return []
@@ -194,13 +219,17 @@ class DailyDisciplineEngine:
             fixed_time_activities = []
             flex_pool = []
             required_everyday_activities = []
+            required_intercalate_activities = []
 
             for act in filtered_activities:
+                frequency = (act["frequency_type"] or "flex")
 
                 if act["fixed_time"] and act["fixed_duration"]:
                     fixed_time_activities.append(dict(act))
-                elif (act["frequency_type"] or "flex") == "everyday":
+                elif frequency == "everyday":
                     required_everyday_activities.append(dict(act))
+                elif frequency == "intercalate":
+                    required_intercalate_activities.append(dict(act))
                 else:
                     flex_pool.append(dict(act))
 
@@ -217,6 +246,10 @@ class DailyDisciplineEngine:
                 free_minutes -= act["fixed_duration"]
 
             for act in required_everyday_activities:
+                final_list.append(act)
+                free_minutes -= int(act["min_duration"] or 0)
+
+            for act in required_intercalate_activities:
                 final_list.append(act)
                 free_minutes -= int(act["min_duration"] or 0)
 
@@ -324,11 +357,37 @@ class DailyDisciplineEngine:
             fun_used = 0
             selected_ids = {
                 act["id"]
-                for act in (fixed_time_activities + required_everyday_activities)
+                for act in (
+                    fixed_time_activities
+                    + required_everyday_activities
+                    + required_intercalate_activities
+                )
             }
 
             turn_disc = True
             stalled_turns = 0
+            flex_disc_selected = 0
+            flex_fun_selected = 0
+
+            # Garante pelo menos uma atividade de diversao quando ela estiver habilitada
+            # pelo peso, houver atividade elegivel e existir tempo minimo para encaixe.
+            guaranteed_fun_candidates = [
+                act
+                for act in fun_pool
+                if act["id"] not in selected_ids
+                and act["min_duration"] <= free_minutes
+            ]
+            has_fun_selected = any(act.get("is_fun") for act in final_list)
+
+            if FUN_WEIGHT > 0 and not has_fun_selected and guaranteed_fun_candidates:
+                guaranteed_fun = DailyDisciplineEngine._mark_anchor_duration(
+                    DailyDisciplineEngine._weighted_pick(rng, guaranteed_fun_candidates)
+                )
+                final_list.append(guaranteed_fun)
+                selected_ids.add(guaranteed_fun["id"])
+                fun_used += guaranteed_fun["min_duration"]
+                flex_fun_selected += 1
+                turn_disc = True
 
             while stalled_turns < 2:
                 progressed = False
@@ -344,9 +403,12 @@ class DailyDisciplineEngine:
 
                     if disc_candidates:
                         act = DailyDisciplineEngine._weighted_pick(rng, disc_candidates)
+                        if flex_disc_selected == 0:
+                            act = DailyDisciplineEngine._mark_anchor_duration(act)
                         final_list.append(act)
                         selected_ids.add(act["id"])
                         disc_used += act["min_duration"]
+                        flex_disc_selected += 1
                         progressed = True
 
                     turn_disc = False
@@ -362,9 +424,12 @@ class DailyDisciplineEngine:
 
                     if fun_candidates:
                         act = DailyDisciplineEngine._weighted_pick(rng, fun_candidates)
+                        if flex_fun_selected == 0:
+                            act = DailyDisciplineEngine._mark_anchor_duration(act)
                         final_list.append(act)
                         selected_ids.add(act["id"])
                         fun_used += act["min_duration"]
+                        flex_fun_selected += 1
                         progressed = True
 
                     turn_disc = True

@@ -7,6 +7,7 @@ import {
   Clapperboard,
   DollarSign,
   Gamepad2,
+  GraduationCap,
   Home,
   ListChecks,
   Music,
@@ -44,6 +45,7 @@ const Layout = ({ children }) => {
     { path: '/hobby/musica', icon: Music, label: 'Música' },
     { path: '/hobby/games', icon: Gamepad2, label: 'Games' },
     { path: '/hobby/assistir', icon: Clapperboard, label: 'Assistir' },
+    { path: '/hobby/estudo', icon: GraduationCap, label: 'Estudo' },
   ];
 
   const shoppingItems = [

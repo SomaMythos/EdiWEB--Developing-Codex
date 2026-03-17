@@ -15,7 +15,7 @@ export default function NextActivity({ nextActivity, formatDuration }) {
       {nextActivity ? (
         <Link to={nextActivity.path} className="home-daily-link">
           <div
-            className={`daily-block daily-block--${nextActivity.block_category || 'disciplina'} home-daily-block next-activity-strip grainy distressed`}
+            className={`daily-block daily-block--${nextActivity.block_category || 'base'} home-daily-block next-activity-strip grainy distressed`}
           >
             <div className="daily-block__left next-time">
               <div className="daily-block__meta">

@@ -815,6 +815,19 @@ def apply_migrations(db):
     )
 
     run_migration(
+        "v20260316_add_consumable_stock_quantity",
+        lambda: (
+            column_exists(db, "consumable_cycles", "stock_quantity")
+            and column_exists(db, "consumable_cycles", "remaining_quantity")
+            and table_exists(db, "consumable_unit_logs")
+            and index_exists(db, "idx_consumable_unit_logs_item_id")
+            and index_exists(db, "idx_consumable_unit_logs_cycle_id")
+            and trigger_exists(db, "trg_consumable_cycles_close_only")
+        ),
+        read_migration_sql("20260316_add_consumable_stock_quantity.sql"),
+    )
+
+    run_migration(
         "v20260302_add_finance_transactions",
         lambda: table_exists(db, "finance_transactions"),
         read_migration_sql("20260302_add_finance_transactions.sql"),
@@ -829,6 +842,15 @@ def apply_migrations(db):
             and index_exists(db, "idx_calendar_manual_logs_date")
         ),
         read_migration_sql("20260307_add_calendar_tables.sql"),
+    )
+
+    run_migration(
+        "v20260316_add_calendar_event_completion",
+        lambda: (
+            column_exists(db, "calendar_events", "is_completed")
+            and column_exists(db, "calendar_events", "completed_at")
+        ),
+        read_migration_sql("20260316_add_calendar_event_completion.sql"),
     )
 
     run_migration(
@@ -877,6 +899,28 @@ def apply_migrations(db):
         "v20260314_add_goal_notifications",
         lambda: column_exists(db, "goals", "notifications_enabled"),
         read_migration_sql("20260314_add_goal_notifications.sql"),
+    )
+
+    run_migration(
+        "v20260317_add_study_tables",
+        lambda: (
+            table_exists(db, "study_topics")
+            and table_exists(db, "study_videos")
+            and index_exists(db, "idx_study_videos_topic_id")
+            and index_exists(db, "idx_study_videos_completed")
+        ),
+        read_migration_sql("20260317_add_study_tables.sql"),
+    )
+
+    run_migration(
+        "v20260317_add_music_training_exercises",
+        lambda: (
+            column_exists(db, "music_training_tabs", "content_type")
+            and column_exists(db, "music_training_tabs", "exercise_data")
+            and column_exists(db, "music_training_tabs", "target_bpm")
+            and column_exists(db, "music_training_tabs", "tuning")
+        ),
+        read_migration_sql("20260317_add_music_training_exercises.sql"),
     )
 
     run_migration(

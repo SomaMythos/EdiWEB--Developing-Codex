@@ -202,6 +202,11 @@
   --block-accent-end: #c2410c;
 }
 
+.daily-block--base {
+  --block-accent-start: #94a3b8;
+  --block-accent-end: #475569;
+}
+
 .daily-block--disciplina {
   --block-accent-start: #a855f7;
   --block-accent-end: #6b21a8;

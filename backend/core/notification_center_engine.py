@@ -241,6 +241,25 @@ class NotificationCenterEngine:
             )
 
     @staticmethod
+    def complete_daily_activity_notification(plan_block_id: int):
+        if not plan_block_id:
+            return
+
+        notifications = NotificationCenterEngine.list_notifications(
+            notification_type="daily_activity_start",
+            source_feature="daily",
+            include_read=True,
+        )
+
+        for item in notifications:
+            meta = item.get("meta") or {}
+            if int(meta.get("plan_block_id") or 0) != int(plan_block_id):
+                continue
+            if item.get("status") == "completed":
+                continue
+            NotificationCenterEngine.update_notification_status(item["id"], "completed")
+
+    @staticmethod
     def snooze_notification(notification_id: int, minutes: int):
         snooze_minutes = max(1, int(minutes or 0))
         notification = NotificationCenterEngine.get_notification(notification_id)
@@ -1090,7 +1109,6 @@ class NotificationCenterEngine:
             for reminder in NotificationCenterEngine.reminder_adapter_list(status="pendente")
             if reminder.get("due_date") and reminder["due_date"] <= limit_date
         ]
-
 
 
 

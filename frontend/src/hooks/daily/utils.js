@@ -39,6 +39,13 @@ export function formatFixedTime(timeValue) {
   return String(timeValue).slice(0, 5);
 }
 
+export function usesNeutralActivityCategory(activity) {
+  if (!activity || typeof activity !== "object") return false;
+  const frequencyType = String(activity.frequency_type || "flex").toLowerCase();
+  const hasFixedSchedule = Boolean(activity.fixed_time) && activity.fixed_duration !== "" && activity.fixed_duration !== null && activity.fixed_duration !== undefined;
+  return frequencyType === "everyday" || frequencyType === "intercalate" || hasFixedSchedule;
+}
+
 export function createUiState(status = "idle", error = null, successMessage = "") {
   return { status, error, successMessage };
 }

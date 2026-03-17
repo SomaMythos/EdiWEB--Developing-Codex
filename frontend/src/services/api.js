@@ -207,6 +207,18 @@ export const watchApi = {
   markWatched: (id) => api.patch(`/watch/items/${id}/watched`),
 };
 
+export const studyApi = {
+  listTopics: () => api.get('/study/topics'),
+  createTopic: (data) => api.post('/study/topics', data),
+  getTopic: (id) => api.get(`/study/topics/${id}`),
+  updateTopic: (id, data) => api.put(`/study/topics/${id}`, data),
+  deleteTopic: (id) => api.delete(`/study/topics/${id}`),
+  createVideo: (topicId, data) => api.post(`/study/topics/${topicId}/videos`, data),
+  createPlaylist: (topicId, data) => api.post(`/study/topics/${topicId}/playlists`, data),
+  updateVideo: (videoId, data) => api.patch(`/study/videos/${videoId}`, data),
+  deleteVideo: (videoId) => api.delete(`/study/videos/${videoId}`),
+};
+
 // System Integration
 export const systemIntegrationApi = {
   getStatus: () => api.get('/system/integration'),
@@ -369,9 +381,10 @@ export const consumablesApi = {
   }),
   createItem: ({ name, category_id }) => api.post('/consumables/items', { name, category_id }),
   getItemDetail: (itemId) => api.get(`/consumables/items/${itemId}`),
-  restock: (itemId, { purchase_date, price_paid }) => api.post(`/consumables/items/${itemId}/restock`, {
+  restock: (itemId, { purchase_date, price_paid, stock_quantity }) => api.post(`/consumables/items/${itemId}/restock`, {
     purchase_date,
     price_paid,
+    stock_quantity,
   }),
   finishCycle: (itemId, { ended_at }) => api.post(`/consumables/items/${itemId}/finish`, { ended_at }),
 };
@@ -387,6 +400,7 @@ export const calendarApi = {
   getDay: (date) => api.get('/calendar/day', { params: { date } }),
   getWeek: (referenceDate) => api.get('/calendar/week', { params: { reference_date: referenceDate } }),
   createEvent: (data) => api.post('/calendar/events', data),
+  completeEvent: (id, completed) => api.patch(`/calendar/events/${id}/complete`, { completed }),
   deleteEvent: (id) => api.delete(`/calendar/events/${id}`),
   createManualLog: (data) => api.post('/calendar/logs', data),
   deleteManualLog: (id) => api.delete(`/calendar/logs/${id}`),

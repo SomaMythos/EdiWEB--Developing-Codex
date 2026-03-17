@@ -120,6 +120,17 @@
     var(--elevation-1-shadow);
 }
 
+.calendar-week-card.is-daily-complete {
+  background:
+    linear-gradient(90deg, rgba(215, 196, 173, 0.14), rgba(255, 255, 255, 0.02), rgba(215, 196, 173, 0.14)),
+    var(--glass-surface-soft);
+  border-color: rgba(215, 196, 173, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(215, 196, 173, 0.12),
+    var(--elevation-1-shadow);
+}
+
 .calendar-week-card.is-today .calendar-week-card-head strong {
   color: var(--glass-text-accent);
 }
@@ -180,10 +191,41 @@
   background: rgba(244, 114, 182, 0.16);
 }
 
+.calendar-daily-progress {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.58rem 0.72rem;
+  border-radius: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.16);
+  background:
+    linear-gradient(180deg, rgba(147, 197, 253, 0.08), rgba(147, 197, 253, 0.02)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.calendar-daily-progress strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--glass-text-primary);
+}
+
+.calendar-daily-progress span {
+  font-size: 0.72rem;
+  color: var(--glass-text-muted);
+}
+
+.calendar-daily-progress.is-complete {
+  border-color: rgba(215, 196, 173, 0.28);
+  background:
+    linear-gradient(90deg, rgba(215, 196, 173, 0.14), rgba(255, 255, 255, 0.02), rgba(215, 196, 173, 0.14)),
+    var(--glass-surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .calendar-week-preview {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
 }
 
 .calendar-preview-line {
@@ -278,6 +320,13 @@
 
 .calendar-entry {
   position: relative;
+  justify-content: center;
+  padding-right: 5.5rem;
+}
+
+.calendar-entry.is-completed {
+  opacity: 0.72;
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .calendar-entry::before,
@@ -329,6 +378,14 @@
   background: rgba(249, 115, 22, 0.85);
 }
 
+.calendar-log-entry.is-financeiro::before {
+  background: rgba(34, 197, 94, 0.85);
+}
+
+.calendar-log-entry.is-consumiveis::before {
+  background: rgba(251, 146, 60, 0.85);
+}
+
 .calendar-entry-main,
 .calendar-log-copy {
   min-width: 0;
@@ -339,6 +396,15 @@
   justify-content: center;
   text-align: center;
   margin: 0 auto;
+}
+
+.calendar-entry .calendar-entry-main {
+  width: 100%;
+}
+
+.calendar-entry.is-completed .calendar-entry-main strong,
+.calendar-entry.is-completed .calendar-entry-main p {
+  color: var(--glass-text-muted);
 }
 
 .calendar-entry-time {
@@ -383,6 +449,22 @@
   transform: translateY(-1px);
   border-color: rgba(239, 68, 68, 0.28);
   color: #fca5a5;
+}
+
+.calendar-entry-actions {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.calendar-complete-button:hover,
+.calendar-complete-button.is-completed {
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #86efac;
 }
 
 .calendar-mini-head {
@@ -431,6 +513,14 @@
   background: rgba(248, 242, 220, 0.08);
 }
 
+.calendar-mini-cell.is-daily-complete {
+  border-color: rgba(215, 196, 173, 0.28);
+  background:
+    linear-gradient(90deg, rgba(215, 196, 173, 0.14), rgba(255, 255, 255, 0.02), rgba(215, 196, 173, 0.14)),
+    rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .calendar-mini-cell.is-today span {
   color: var(--glass-text-accent);
 }
@@ -442,6 +532,17 @@
 
 .calendar-mini-dots {
   justify-content: center;
+}
+
+.calendar-mini-progress {
+  font-style: normal;
+  font-size: 0.62rem;
+  line-height: 1;
+  color: rgba(248, 242, 220, 0.92);
+  padding: 0.16rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid rgba(215, 196, 173, 0.28);
+  background: rgba(215, 196, 173, 0.12);
 }
 
 .calendar-mini-dots i {

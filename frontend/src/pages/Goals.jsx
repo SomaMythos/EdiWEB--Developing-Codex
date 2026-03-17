@@ -33,9 +33,17 @@ const formatDate = (value) => {
   return date.toLocaleDateString('pt-BR');
 };
 
-const getProgressSummary = (goal) => goal?.progress_snapshot?.summary || goal?.progress || 'Sem progresso ainda';
+const getProgressSummary = (goal, uiMode = 'view') => {
+  const summary = goal?.progress_snapshot?.summary || goal?.progress || 'Sem progresso ainda';
 
-const shouldShowProgressMeta = (goal) => goal?.status !== 'concluida' && Boolean(getProgressSummary(goal));
+  if (uiMode === 'view' && summary === 'Meta simples sem atividades vinculadas') {
+    return '';
+  }
+
+  return summary;
+};
+
+const shouldShowProgressMeta = (goal, uiMode = 'view') => goal?.status !== 'concluida' && Boolean(getProgressSummary(goal, uiMode));
 
 const goalMatchesSearch = (goal, query) => {
   const haystack = [goal.title, goal.description, goal?.progress_snapshot?.summary]
@@ -629,9 +637,9 @@ export default function Goals() {
                         <h3>{goal.title}</h3>
                       </div>
                       {goal.description ? <p>{goal.description}</p> : null}
-                      {shouldShowProgressMeta(goal) || (goal.deadline && goal.status !== 'concluida') ? (
+                      {shouldShowProgressMeta(goal, uiMode) || (goal.deadline && goal.status !== 'concluida') ? (
                         <div className="goal-achievement-row__meta">
-                          {shouldShowProgressMeta(goal) ? <span><Target size={14} /> {getProgressSummary(goal)}</span> : null}
+                          {shouldShowProgressMeta(goal, uiMode) ? <span><Target size={14} /> {getProgressSummary(goal, uiMode)}</span> : null}
                           {goal.deadline && goal.status !== 'concluida' ? <span><Flag size={14} /> {formatDate(goal.deadline)}</span> : null}
                         </div>
                       ) : null}
@@ -661,15 +669,19 @@ export default function Goals() {
                       <small>{goal.status === 'concluida' ? formatDate(goal.completed_at) : (goal.deadline ? formatDate(goal.deadline) : '')}</small>
                     </div>
 
-                    {uiMode === 'edit' ? (
+                    {uiMode === 'edit' || goal.status !== 'concluida' ? (
                       <div className="goal-achievement-row__actions">
                         {goal.status !== 'concluida' ? (
                           <>
-                            <button className="goal-icon-btn" onClick={() => openGoalForm(goal)}><PencilLine size={15} /></button>
+                            {uiMode === 'edit' ? (
+                              <button className="goal-icon-btn" onClick={() => openGoalForm(goal)}><PencilLine size={15} /></button>
+                            ) : null}
                             <button className="goal-icon-btn goal-icon-btn--primary" onClick={() => handleConcludeGoal(goal.id)}><CheckCircle2 size={15} /></button>
                           </>
                         ) : null}
-                        <button className="goal-icon-btn goal-icon-btn--danger" onClick={() => handleDeleteGoal(goal.id)}><Trash2 size={15} /></button>
+                        {uiMode === 'edit' ? (
+                          <button className="goal-icon-btn goal-icon-btn--danger" onClick={() => handleDeleteGoal(goal.id)}><Trash2 size={15} /></button>
+                        ) : null}
                       </div>
                     ) : null}
                   </article>

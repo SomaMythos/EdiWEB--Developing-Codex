@@ -1,11 +1,97 @@
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, List
+from core.activity_engine import ActivityEngine
 from data.database import Database
 from core.day_engine import generate_day_schedule
 from core.daily_discipline_engine import DailyDisciplineEngine
+from core.notification_center_engine import NotificationCenterEngine
 from core.time_overlap import add_minutes, intervals_overlap
 
 class DailyEngine:
+    DEFAULT_CALENDAR_EVENT_DURATION = 60
+
+    @staticmethod
+    def _hm_to_min(hm: str) -> int:
+        h, m = map(int, hm.split(":"))
+        return h * 60 + m
+
+    @staticmethod
+    def _safe_calendar_duration(start_time: str, end_time: str):
+        normalized_start = (start_time or "").strip()
+        if not normalized_start:
+            return None
+
+        try:
+            start_minutes = DailyEngine._hm_to_min(normalized_start)
+        except Exception:
+            return None
+
+        normalized_end = (end_time or "").strip()
+        if normalized_end:
+            try:
+                end_minutes = DailyEngine._hm_to_min(normalized_end)
+                if end_minutes > start_minutes:
+                    return end_minutes - start_minutes
+            except Exception:
+                pass
+
+        return DailyEngine.DEFAULT_CALENDAR_EVENT_DURATION
+
+    @staticmethod
+    def _list_calendar_event_blocks(target_date: str):
+        with Database() as db:
+            rows = db.fetchall(
+                """
+                SELECT id, title, description, start_time, end_time, is_completed, completed_at
+                FROM calendar_events
+                WHERE event_date = ?
+                  AND COALESCE(start_time, '') <> ''
+                ORDER BY start_time ASC, title ASC
+                """,
+                (target_date,),
+            )
+
+        blocks = []
+        for row in rows:
+            duration = DailyEngine._safe_calendar_duration(row["start_time"], row["end_time"])
+            if duration is None:
+                continue
+
+            blocks.append(
+                {
+                    "id": f"calendar-{row['id']}",
+                    "calendar_event_id": row["id"],
+                    "start_time": row["start_time"],
+                    "duration": duration,
+                    "completed": bool(row["is_completed"]),
+                    "source_type": "calendar",
+                    "block_name": row["title"],
+                    "block_category": "calendar",
+                    "updated_source": "calendar",
+                    "activity_id": None,
+                    "activity_title": row["title"],
+                    "description": row["description"],
+                    "completed_at": row["completed_at"],
+                }
+            )
+
+        return blocks
+
+    @staticmethod
+    def _list_calendar_fixed_events(target_date: str):
+        fixed_events = []
+        for block in DailyEngine._list_calendar_event_blocks(target_date):
+            fixed_events.append(
+                {
+                    "id": f"calendar_event:{block['calendar_event_id']}",
+                    "name": block["activity_title"],
+                    "start_hm": block["start_time"],
+                    "end_hm": add_minutes(block["start_time"], block["duration"]),
+                    "category": "calendar",
+                }
+            )
+        return fixed_events
+
 
     @staticmethod
     def _upsert_weekly_activity_counter(
@@ -122,20 +208,17 @@ class DailyEngine:
         config = DailyEngine.get_config()
         day_type = DailyEngine.get_day_type(target_date)
         fixed_blocks = DailyEngine.get_fixed_blocks(day_type)
+        calendar_fixed_events = DailyEngine._list_calendar_fixed_events(target_date)
 
         # ===============================
         # CALCULAR TEMPO LIVRE DO DIA
         # ===============================
 
-        def _hm_to_min(hm: str) -> int:
-            h, m = map(int, hm.split(":"))
-            return h * 60 + m
-
         occupied_minutes = 0
 
         # Sono
-        sleep_start = _hm_to_min(config["sleep_start"])
-        sleep_end = _hm_to_min(config["sleep_end"])
+        sleep_start = DailyEngine._hm_to_min(config["sleep_start"])
+        sleep_end = DailyEngine._hm_to_min(config["sleep_end"])
 
         if sleep_end <= sleep_start:
             occupied_minutes += (24 * 60 - sleep_start) + sleep_end
@@ -144,14 +227,20 @@ class DailyEngine:
 
         # Trabalho (se for work day)
         if day_type == "work":
-            work_start = _hm_to_min(config["work_start"])
-            work_end = _hm_to_min(config["work_end"])
+            work_start = DailyEngine._hm_to_min(config["work_start"])
+            work_end = DailyEngine._hm_to_min(config["work_end"])
             occupied_minutes += work_end - work_start
 
         # Rotinas fixas
         for block in fixed_blocks:
-            start = _hm_to_min(block["start_time"])
-            end = _hm_to_min(block["end_time"])
+            start = DailyEngine._hm_to_min(block["start_time"])
+            end = DailyEngine._hm_to_min(block["end_time"])
+            if end > start:
+                occupied_minutes += end - start
+
+        for event in calendar_fixed_events:
+            start = DailyEngine._hm_to_min(event["start_hm"])
+            end = DailyEngine._hm_to_min(event["end_hm"])
             if end > start:
                 occupied_minutes += end - start
 
@@ -170,7 +259,7 @@ class DailyEngine:
         fixed_discipline_activities: List[Dict[str, Any]] = []
 
         def _add_minutes_to_hm(start_hm: str, minutes: int) -> str:
-            total = _hm_to_min(start_hm) + int(minutes)
+            total = DailyEngine._hm_to_min(start_hm) + int(minutes)
             total = total % (24 * 60)
             h = total // 60
             m = total % 60
@@ -185,10 +274,10 @@ class DailyEngine:
             templates.append({
                 "id": act["id"],
                 "name": act["title"],
-                "category": "disciplina" if act["is_disc"] else "diversao",
-                "min_duration": act["min_duration"],
-                "max_duration": act["max_duration"],
-                "priority": 5
+                "category": ActivityEngine.resolve_block_category(act),
+                "min_duration": int(act.get("planned_duration") or act["min_duration"]),
+                "max_duration": int(act.get("planned_duration") or act["max_duration"]),
+                "priority": int(act.get("placement_priority") or 5)
             })
 
         # ===============================
@@ -204,12 +293,8 @@ class DailyEngine:
         sleep_start = config["sleep_start"]
         sleep_end = config["sleep_end"]
 
-        def _hm_to_min(hm: str) -> int:
-            h, m = map(int, hm.split(":"))
-            return h * 60 + m
-
-        start_min = _hm_to_min(sleep_start)
-        end_min = _hm_to_min(sleep_end)
+        start_min = DailyEngine._hm_to_min(sleep_start)
+        end_min = DailyEngine._hm_to_min(sleep_end)
 
         if end_min <= start_min:
             # Cruza meia-noite → dividir em dois blocos
@@ -275,8 +360,10 @@ class DailyEngine:
                 "name": act["title"],
                 "start_hm": act["fixed_time"],
                 "end_hm": _add_minutes_to_hm(act["fixed_time"], act["fixed_duration"]),
-                "category": "disciplina" if act["is_disc"] else "diversao"
+                "category": ActivityEngine.resolve_block_category(act)
             })
+
+        fixed_events.extend(calendar_fixed_events)
 
 
         # ===============================
@@ -343,6 +430,8 @@ class DailyEngine:
             )
 
             for item in scheduled_items:
+                if str(item.get("source_id") or "").startswith("calendar_event:"):
+                    continue
 
                 duration = item["end_min"] - item["start_min"]
 
@@ -422,6 +511,7 @@ class DailyEngine:
             )
 
         blocks = [dict(r) for r in rows]
+        blocks.extend(DailyEngine._list_calendar_event_blocks(target_date))
 
         # ==========================================
         # UNIFICAR BLOCOS DE SONO (visual apenas)
@@ -445,6 +535,7 @@ class DailyEngine:
                 "start_time": night_block["start_time"],
                 "duration": night_block["duration"] + early_block["duration"],
                 "completed": night_block["completed"] and early_block["completed"],
+                "linked_block_ids": [night_block["id"], early_block["id"]],
                 "source_type": "fixed",
                 "block_name": "Dormir",
                 "block_category": "sleep",
@@ -467,10 +558,12 @@ class DailyEngine:
 
     @staticmethod
     def toggle_block_completion(block_id: int, completed: bool):
+        should_complete_notification = False
+
         with Database() as db:
             block = db.fetchone(
                 """
-                SELECT date, activity_id, completed
+                SELECT id, date, activity_id, completed, source_type, block_category, block_name
                 FROM daily_plan_blocks
                 WHERE id = ?
                 """,
@@ -485,13 +578,33 @@ class DailyEngine:
             if int(block["completed"] or 0) == new_completed:
                 return
 
+            is_sleep_block = (
+                block["source_type"] == "fixed"
+                and (block["block_category"] == "sleep" or block["block_name"] == "Dormir")
+            )
+
+            target_ids = [block["id"]]
+            if is_sleep_block:
+                sleep_rows = db.fetchall(
+                    """
+                    SELECT id
+                    FROM daily_plan_blocks
+                    WHERE date = ?
+                      AND source_type = 'fixed'
+                      AND (block_category = 'sleep' OR block_name = 'Dormir')
+                    """,
+                    (block["date"],)
+                )
+                target_ids = [row["id"] for row in sleep_rows] or [block["id"]]
+
+            placeholders = ",".join("?" for _ in target_ids)
             db.execute(
-                """
+                f"""
                 UPDATE daily_plan_blocks
                 SET completed = ?
-                WHERE id = ?
+                WHERE id IN ({placeholders})
                 """,
-                (new_completed, block_id)
+                (new_completed, *target_ids)
             )
 
             if block["activity_id"] is not None:
@@ -505,6 +618,12 @@ class DailyEngine:
                     "times_completed",
                     delta
                 )
+
+            should_complete_notification = bool(new_completed)
+
+        if should_complete_notification:
+            for target_id in target_ids:
+                NotificationCenterEngine.complete_daily_activity_notification(target_id)
 
     @staticmethod
     def update_block(
@@ -652,33 +771,21 @@ class DailyEngine:
 
     @staticmethod
     def get_day_summary(target_date: str):
+        blocks = DailyEngine.get_day(target_date)
+        total = len(blocks)
 
-        with Database() as db:
-
-            blocks = db.fetchall(
-                """
-                SELECT completed
-                FROM daily_plan_blocks
-                WHERE date = ?
-                """,
-                (target_date,)
-            )
-
-            total = len(blocks)
-
-            if total == 0:
-                return {
-                    "total_blocks": 0,
-                    "completed_blocks": 0,
-                    "percentage": 0
-                }
-
-            completed = sum(1 for b in blocks if b["completed"])
-
-            percentage = int((completed / total) * 100)
-
+        if total == 0:
             return {
-                "total_blocks": total,
-                "completed_blocks": completed,
-                "percentage": percentage
+                "total_blocks": 0,
+                "completed_blocks": 0,
+                "percentage": 0
             }
+
+        completed = sum(1 for block in blocks if bool(block["completed"]))
+        percentage = int((completed / total) * 100)
+
+        return {
+            "total_blocks": total,
+            "completed_blocks": completed,
+            "percentage": percentage
+        }

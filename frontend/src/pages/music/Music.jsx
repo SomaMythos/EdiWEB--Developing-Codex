@@ -4,14 +4,42 @@ import ImageViewer from "./ImageViewer";
 import BpmModal from "./BpmModal";
 import TrainingUploadModal from "./TrainingUploadModal";
 import TrainingHistoryModal from "./TrainingHistoryModal";
+import TrainingExerciseModal from "./TrainingExerciseModal";
 import api from "../../services/api";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import "./music.css";
+
+function ExercisePreview({ training }) {
+  const tuning = training?.tuning?.length ? training.tuning : ["e", "B", "G", "D", "A", "E"];
+  const cells = training?.exercise_data?.cells || [];
+  const columns = training?.exercise_data?.columns || cells[0]?.length || 8;
+
+  return (
+    <div className="training-tab-preview" style={{ ["--tab-columns"]: columns }}>
+      {tuning.map((stringName, rowIndex) => (
+        <div key={`${training.id}-row-${rowIndex}`} className="training-tab-row">
+          <span className="training-tab-string">{stringName}</span>
+          <div className="training-tab-line">
+            {(cells[rowIndex] || []).map((cell, columnIndex) => (
+              <span
+                key={`${training.id}-cell-${rowIndex}-${columnIndex}`}
+                className={`training-tab-cell ${columnIndex % 4 === 0 ? "is-measure-start" : ""}`}
+              >
+                <span className={`training-tab-fret ${cell ? "has-value" : ""}`}>{cell || "\u00A0"}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Music() {
   const [activeTab, setActiveTab] = useState("training");
   const [trainings, setTrainings] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [exerciseModalTraining, setExerciseModalTraining] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [historyTraining, setHistoryTraining] = useState(null);
@@ -28,10 +56,23 @@ export default function Music() {
   const fetchTrainings = async () => {
     try {
       const res = await api.get("/music/training");
-      setTrainings(res.data.data);
+      setTrainings(Array.isArray(res.data.data) ? res.data.data : []);
     } catch (err) {
       console.error("Erro ao buscar treinos:", err);
     }
+  };
+
+  const handleTrainingSaved = async (savedTraining) => {
+    if (savedTraining?.id) {
+      setTrainings((previous) => {
+        const withoutCurrent = previous.filter((item) => item.id !== savedTraining.id);
+        const next = [savedTraining, ...withoutCurrent];
+        return next.sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")));
+      });
+      return;
+    }
+
+    await fetchTrainings();
   };
 
   const fetchListening = async () => {
@@ -59,7 +100,9 @@ export default function Music() {
   }, [activeTab]);
 
   const renderSection = (instrumentKey, label) => {
-    const filtered = trainings.filter((training) => training.instrument === instrumentKey);
+    const filtered = trainings.filter(
+      (training) => String(training.instrument || "").trim().toLowerCase() === instrumentKey
+    );
     if (filtered.length === 0) return null;
 
     return (
@@ -71,16 +114,22 @@ export default function Music() {
         <div className="training-grid stagger">
           {filtered.map((training) => {
             const imageUrl = resolveMediaUrl(training.image_path);
+            const isExercise = training.content_type === "exercise";
+            const targetBpmLabel = training.target_bpm ? `${training.target_bpm} BPM alvo` : null;
 
             return (
-              <div key={training.id} className="card training-card perf-willchange">
+              <div key={training.id} className={`card training-card perf-willchange ${isExercise ? "is-exercise" : ""}`}>
                 <div className="training-thumb">
-                  <img
-                    src={imageUrl}
-                    alt={training.name}
-                    onClick={() => setSelectedImage(imageUrl)}
-                    style={{ cursor: "zoom-in" }}
-                  />
+                  {isExercise ? (
+                    <ExercisePreview training={training} />
+                  ) : (
+                    <img
+                      src={imageUrl}
+                      alt={training.name}
+                      onClick={() => setSelectedImage(imageUrl)}
+                      style={{ cursor: "zoom-in" }}
+                    />
+                  )}
 
                   {training.last_bpm && (
                     <div className="bpm-badge">{training.last_bpm} BPM</div>
@@ -89,13 +138,29 @@ export default function Music() {
 
                 <h4>{training.name}</h4>
 
+                {isExercise && (
+                  <p className="training-meta training-meta--stack">
+                    <span className="training-type-pill">Exercício editável</span>
+                    {targetBpmLabel ? <span>{targetBpmLabel}</span> : null}
+                  </p>
+                )}
+
                 {training.last_bpm && (
                   <p className="training-meta">
-                    Ultimo registro: {training.last_bpm} BPM
+                    Último registro: {training.last_bpm} BPM
                   </p>
                 )}
 
                 <div className="training-actions">
+                  {isExercise && (
+                    <button
+                      className="btn btn-secondary btn-sm perf-willchange"
+                      onClick={() => setExerciseModalTraining(training)}
+                    >
+                      Editar exercício
+                    </button>
+                  )}
+
                   <button
                     className="btn btn-secondary btn-sm perf-willchange"
                     onClick={() => setSelectedTraining(training.id)}
@@ -107,7 +172,7 @@ export default function Music() {
                     className="btn btn-ghost btn-sm perf-willchange"
                     onClick={() => setHistoryTraining(training.id)}
                   >
-                    Historico
+                    Histórico
                   </button>
                 </div>
               </div>
@@ -209,6 +274,12 @@ export default function Music() {
                 <h2>Treinos</h2>
                 <div className="music-toolbar-actions">
                   <Metronome />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setExerciseModalTraining({})}
+                  >
+                    Novo Exercício
+                  </button>
                   <button
                     className="btn btn-primary"
                     onClick={() => setShowUploadModal(true)}
@@ -366,6 +437,14 @@ export default function Music() {
         <TrainingUploadModal
           onClose={() => setShowUploadModal(false)}
           onCreated={fetchTrainings}
+        />
+      )}
+
+      {exerciseModalTraining !== null && (
+        <TrainingExerciseModal
+          training={exerciseModalTraining?.id ? exerciseModalTraining : null}
+          onClose={() => setExerciseModalTraining(null)}
+          onSaved={handleTrainingSaved}
         />
       )}
 

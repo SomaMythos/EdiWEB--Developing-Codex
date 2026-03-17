@@ -28,6 +28,18 @@ const emptyCurrentJournal = {
   pending: true,
 };
 
+const getCurrentWeekStart = () => {
+  const now = new Date();
+  const weekday = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(now.getDate() - weekday);
+  const year = weekStart.getFullYear();
+  const month = String(weekStart.getMonth() + 1).padStart(2, '0');
+  const day = String(weekStart.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Anotacoes = () => {
   const location = useLocation();
   const activeTab = location.pathname === '/anotacoes/diario' ? 'journal' : 'notes';
@@ -43,8 +55,10 @@ const Anotacoes = () => {
   const [currentJournal, setCurrentJournal] = useState(emptyCurrentJournal);
   const [journalForm, setJournalForm] = useState({ title: '', content: '' });
   const [journalHistory, setJournalHistory] = useState([]);
+  const [selectedJournalWeekStart, setSelectedJournalWeekStart] = useState('');
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(true);
+  const currentWeekStart = useMemo(() => getCurrentWeekStart(), []);
 
   useEffect(() => {
     loadAll();
@@ -100,10 +114,10 @@ const Anotacoes = () => {
     setNotes(rows);
   };
 
-  const loadJournal = async () => {
+  const loadJournal = async (referenceDate = null) => {
     const [settingsResponse, currentResponse, historyResponse] = await Promise.all([
       journalApi.getSettings(),
-      journalApi.getCurrent(),
+      journalApi.getCurrent(referenceDate || undefined),
       journalApi.listEntries(),
     ]);
 
@@ -113,6 +127,7 @@ const Anotacoes = () => {
     setJournalSettings(settingsData);
     setCurrentJournal(currentData);
     setJournalHistory(historyResponse.data.data || []);
+    setSelectedJournalWeekStart(currentData.week?.week_start || '');
     setJournalForm({
       title: currentData.entry?.title || '',
       content: currentData.entry?.content || '',
@@ -215,12 +230,25 @@ const Anotacoes = () => {
     }
 
     try {
-      await journalApi.saveEntry(journalForm);
-      await loadJournal();
+      await journalApi.saveEntry({
+        ...journalForm,
+        reference_date: currentJournal.week?.week_start || undefined,
+      });
+      await loadJournal(currentJournal.week?.week_start || null);
       setFeedback({ type: 'success', message: 'Diário semanal salvo.' });
     } catch (error) {
       console.error('Erro ao salvar diário:', error);
       setFeedback({ type: 'error', message: 'Erro ao salvar diário semanal.' });
+    }
+  };
+
+  const handleOpenJournalEntry = async (weekStart) => {
+    try {
+      await loadJournal(weekStart);
+      setFeedback({ type: '', message: '' });
+    } catch (error) {
+      console.error('Erro ao abrir diário do arquivo:', error);
+      setFeedback({ type: 'error', message: 'Não foi possível abrir o diário selecionado.' });
     }
   };
 
@@ -247,6 +275,10 @@ const Anotacoes = () => {
         .some((value) => value.toLowerCase().includes(token))
     );
   }, [notes, searchTerm]);
+
+  const isArchivedJournalView =
+    !!currentJournal.week?.week_start &&
+    currentJournal.week.week_start !== currentWeekStart;
 
   if (loading) {
     return (
@@ -585,14 +617,19 @@ const Anotacoes = () => {
               ) : (
                 <div className="journal-history-list">
                   {journalHistory.map((entry) => (
-                    <div key={entry.id} className="journal-history-row">
+                    <button
+                      key={entry.id}
+                      type="button"
+                      className={`journal-history-row ${selectedJournalWeekStart === entry.week_start ? 'is-active' : ''}`}
+                      onClick={() => handleOpenJournalEntry(entry.week_start)}
+                    >
                       <div>
                         <strong>{entry.title}</strong>
                         <p>
                           {entry.week_start} até {entry.week_end}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -608,7 +645,19 @@ const Anotacoes = () => {
                   {currentJournal.week.week_start || '--'} até {currentJournal.week.week_end || '--'}
                 </p>
               </div>
-              {currentJournal.pending ? <span className="journal-pending-badge">Pendente</span> : null}
+              <div className="journal-editor-actions">
+                {currentJournal.pending ? <span className="journal-pending-badge">Pendente</span> : null}
+                {isArchivedJournalView ? <span className="journal-archive-badge">Arquivo</span> : null}
+                {isArchivedJournalView ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleOpenJournalEntry(null)}
+                  >
+                    Semana atual
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="journal-editor-fields">

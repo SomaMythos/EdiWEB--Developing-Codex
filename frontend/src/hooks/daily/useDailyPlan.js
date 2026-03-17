@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { dailyApi } from "../../services/api";
+import { calendarApi, dailyApi } from "../../services/api";
 import { DEFAULT_SUMMARY } from "./constants";
 import { createUiState, isBlockCompleted } from "./utils";
 
@@ -86,19 +86,24 @@ export function useDailyPlan(selectedDate) {
     }
   }, [refreshAll, selectedDate]);
 
-  const toggleCompletion = useCallback(async (blockId, currentState) => {
+  const toggleCompletion = useCallback(async (blockId, currentState, block = null) => {
     const nextState = !Boolean(currentState);
     setActionState(createUiState("loading"));
     try {
-      await dailyApi.completeBlock(blockId, nextState);
-      setBlocks(prev => prev.map(b => (b.id === blockId ? { ...b, completed: nextState } : b)));
-      await fetchSummary(selectedDate);
+      if (block?.source_type === "calendar") {
+        await calendarApi.completeEvent(block.calendar_event_id, nextState);
+      } else if (Array.isArray(block?.linked_block_ids) && block.linked_block_ids.length > 0) {
+        await Promise.all(block.linked_block_ids.map(id => dailyApi.completeBlock(id, nextState)));
+      } else {
+        await dailyApi.completeBlock(blockId, nextState);
+      }
+      await refreshAll(selectedDate);
       setActionState(createUiState("success", null, "Status do bloco atualizado."));
     } catch (error) {
       console.error(error);
       setActionState(createUiState("error", "Não foi possível atualizar o status do bloco."));
     }
-  }, [fetchSummary, selectedDate]);
+  }, [refreshAll, selectedDate]);
 
   const updateBlock = useCallback(async (blockId, payload) => {
     setActionState(createUiState("loading"));

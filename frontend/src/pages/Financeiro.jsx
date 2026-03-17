@@ -1,6 +1,6 @@
 // src/pages/Financeiro.jsx
-import React, { useState, useEffect } from 'react';
-import { Settings, WalletCards } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowDownCircle, ArrowUpCircle, Settings } from 'lucide-react';
 import { financeApi } from '../services/api';
 import './Financeiro.css';
 import {
@@ -11,7 +11,7 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from 'recharts';
 
 const getCSSVar = (name, fallback = '#22c55e') => {
@@ -22,38 +22,42 @@ const getCSSVar = (name, fallback = '#22c55e') => {
   return value || fallback;
 };
 
+const EMPTY_CASH_FLOW = {
+  name: '',
+  value: '',
+};
+
 const Financeiro = () => {
   const [showConfig, setShowConfig] = useState(false);
-  const [showSpendModal, setShowSpendModal] = useState(false);
+  const [showCashFlowModal, setShowCashFlowModal] = useState(false);
+  const [cashFlowMode, setCashFlowMode] = useState('expense');
   const [summary, setSummary] = useState(null);
   const [config, setConfig] = useState({});
   const [gastosFixos, setGastosFixos] = useState([]);
   const [gastosAvulsos, setGastosAvulsos] = useState([]);
+  const [recebimentosAvulsos, setRecebimentosAvulsos] = useState([]);
   const [projection, setProjection] = useState([]);
-  
+
   const chartColors = {
-  total: getCSSVar('--accent-success', '#22c55e'),
-  current: getCSSVar('--accent-info', '#3b82f6'),
-  cdb: getCSSVar('--accent-warning', '#f59e0b'),
-  extra: getCSSVar('--accent-primary', '#8b5cf6'),
-  fgts: getCSSVar('--error', '#ef4444')
-};
+    total: getCSSVar('--accent-success', '#22c55e'),
+    current: getCSSVar('--accent-info', '#3b82f6'),
+    cdb: getCSSVar('--accent-warning', '#f59e0b'),
+    extra: getCSSVar('--accent-primary', '#8b5cf6'),
+    fgts: getCSSVar('--error', '#ef4444'),
+  };
 
   const [novoGasto, setNovoGasto] = useState({
     name: '',
-    monthly_value: ''
+    monthly_value: '',
   });
 
   const [editandoId, setEditandoId] = useState(null);
   const [editGasto, setEditGasto] = useState({
     name: '',
-    monthly_value: ''
+    monthly_value: '',
   });
 
-  const [novoGastoAvulso, setNovoGastoAvulso] = useState({
-    name: '',
-    value: ''
-  });
+  const [novoFluxo, setNovoFluxo] = useState(EMPTY_CASH_FLOW);
 
   useEffect(() => {
     loadAll();
@@ -66,10 +70,10 @@ const Financeiro = () => {
         loadConfig(),
         loadGastos(),
         loadProjection(),
-        loadTransactions()
+        loadTransactions(),
       ]);
     } catch (error) {
-      console.error("Erro ao carregar dados financeiros:", error);
+      console.error('Erro ao carregar dados financeiros:', error);
     }
   };
 
@@ -95,7 +99,9 @@ const Financeiro = () => {
 
   const loadTransactions = async () => {
     const res = await financeApi.listTransactions(100);
-    setGastosAvulsos((res.data.data || []).filter((item) => item.kind === 'expense'));
+    const allTransactions = res.data.data || [];
+    setGastosAvulsos(allTransactions.filter((item) => item.kind === 'expense'));
+    setRecebimentosAvulsos(allTransactions.filter((item) => item.kind === 'income'));
   };
 
   const handleSaveConfig = async () => {
@@ -104,7 +110,7 @@ const Financeiro = () => {
       setShowConfig(false);
       await loadAll();
     } catch (error) {
-      console.error("Erro ao salvar config:", error);
+      console.error('Erro ao salvar config:', error);
     }
   };
 
@@ -114,14 +120,14 @@ const Financeiro = () => {
     try {
       await financeApi.createFixedExpense({
         name: novoGasto.name,
-        monthly_value: Number(novoGasto.monthly_value)
+        monthly_value: Number(novoGasto.monthly_value),
       });
 
       setNovoGasto({ name: '', monthly_value: '' });
       await loadGastos();
       await loadSummary();
     } catch (error) {
-      console.error("Erro ao adicionar gasto:", error);
+      console.error('Erro ao adicionar gasto:', error);
     }
   };
 
@@ -131,7 +137,7 @@ const Financeiro = () => {
       await loadGastos();
       await loadSummary();
     } catch (error) {
-      console.error("Erro ao remover gasto:", error);
+      console.error('Erro ao remover gasto:', error);
     }
   };
 
@@ -139,7 +145,7 @@ const Financeiro = () => {
     setEditandoId(gasto.id);
     setEditGasto({
       name: gasto.name,
-      monthly_value: gasto.monthly_value
+      monthly_value: gasto.monthly_value,
     });
   };
 
@@ -147,28 +153,35 @@ const Financeiro = () => {
     try {
       await financeApi.updateFixedExpense(id, {
         name: editGasto.name,
-        monthly_value: Number(editGasto.monthly_value)
+        monthly_value: Number(editGasto.monthly_value),
       });
       setEditandoId(null);
       await loadGastos();
       await loadSummary();
     } catch (error) {
-      console.error("Erro ao editar gasto:", error);
+      console.error('Erro ao editar gasto:', error);
     }
   };
 
-  const handleSpend = async () => {
-    const name = novoGastoAvulso.name.trim();
-    const value = Number(novoGastoAvulso.value);
+  const openCashFlowModal = (mode) => {
+    setCashFlowMode(mode);
+    setNovoFluxo(EMPTY_CASH_FLOW);
+    setShowCashFlowModal(true);
+  };
+
+  const handleCashFlow = async () => {
+    const name = novoFluxo.name.trim();
+    const value = Number(novoFluxo.value);
 
     if (!name || !value || value <= 0) return;
 
+    const isExpense = cashFlowMode === 'expense';
     const currentReserve = Number(config?.reserve_current ?? summary?.current ?? 0);
-    const updatedReserve = currentReserve - value;
+    const updatedReserve = isExpense ? currentReserve - value : currentReserve + value;
 
     const updatedConfig = {
       ...config,
-      reserve_current: updatedReserve
+      reserve_current: updatedReserve,
     };
 
     try {
@@ -178,26 +191,24 @@ const Financeiro = () => {
         amount: value,
         category: 'avulso',
         occurred_at: new Date().toISOString(),
-        kind: 'expense'
+        kind: isExpense ? 'expense' : 'income',
       });
 
       setConfig(updatedConfig);
-      setNovoGastoAvulso({ name: '', value: '' });
-      setShowSpendModal(false);
+      setNovoFluxo(EMPTY_CASH_FLOW);
+      setShowCashFlowModal(false);
 
       await loadSummary();
       await loadTransactions();
     } catch (error) {
-      console.error('Erro ao registrar gasto avulso:', error);
+      console.error(`Erro ao registrar ${isExpense ? 'gasto' : 'recebimento'} avulso:`, error);
     }
   };
 
-  // total de gastos fixos
   const totalGastosFixos = (gastosFixos || []).reduce((acc, g) => acc + (Number(g.monthly_value) || 0), 0);
 
-  // formatar saúde (capitalize)
   const formatHealth = (h) => {
-    if (!h) return "-";
+    if (!h) return '-';
     try {
       return String(h).charAt(0).toUpperCase() + String(h).slice(1);
     } catch {
@@ -205,30 +216,37 @@ const Financeiro = () => {
     }
   };
 
-  // Valores "atuais" que mostramos nos cards:
-  // preferimos mostrar summary (que vem do backend com os reserves atuais).
   const currentValue = Number(summary?.current ?? config?.reserve_current ?? 0);
   const cdbValue = Number(summary?.cdb ?? config?.reserve_cdb ?? 0);
   const extraValue = Number(summary?.extra ?? config?.reserve_extra ?? 0);
   const fgtsValue = Number(summary?.fgts ?? config?.reserve_fgts ?? config?.fgts ?? 0);
 
   const chartTooltipStyle = {
-  backgroundColor: 'rgba(20, 25, 35, 0.95)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: '12px',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-  backdropFilter: 'blur(12px)'
+    backgroundColor: 'rgba(20, 25, 35, 0.95)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(12px)',
   };
 
   const chartLabelStyle = { color: 'var(--text-secondary)' };
+
+  const cashFlowActionLabel = cashFlowMode === 'expense' ? 'Gastar' : 'Receber';
+  const cashFlowTitle = cashFlowMode === 'expense' ? 'Registrar gasto' : 'Registrar recebimento';
+  const cashFlowPlaceholder = cashFlowMode === 'expense' ? 'Ex: Uber, Farmácia...' : 'Ex: Freelance, Reembolso...';
+  const cashFlowButtonClass = cashFlowMode === 'expense' ? 'finance-btn-warning' : 'finance-btn-success';
 
   return (
     <div className="finance-page">
       <div className="finance-header">
         <h1>Financeiro</h1>
         <div className="finance-header-actions">
-          <button className="icon-btn icon-btn-warning" onClick={() => setShowSpendModal(true)}>
-            <WalletCards size={22} />
+          <button className="icon-btn icon-btn-success" onClick={() => openCashFlowModal('income')}>
+            <ArrowUpCircle size={22} />
+            <span>Receber</span>
+          </button>
+          <button className="icon-btn icon-btn-warning" onClick={() => openCashFlowModal('expense')}>
+            <ArrowDownCircle size={22} />
             <span>Gastar</span>
           </button>
           <button className="icon-btn" onClick={() => setShowConfig(true)}>
@@ -237,7 +255,6 @@ const Financeiro = () => {
         </div>
       </div>
 
-      {/* DASHBOARD (cards principais) */}
       <div className="finance-grid stagger">
         <div className="card finance-card reveal perf-willchange">
           <div className="finance-label">Patrimônio Total</div>
@@ -296,92 +313,39 @@ const Financeiro = () => {
         </div>
       </div>
 
-{/* PROJEÇÃO FINANCEIRA */}
-<div className="card finance-card perf-willchange">
-  <h3>Projeção Patrimonial (10 anos)</h3>
+      <div className="card finance-card perf-willchange">
+        <h3>Projeção Patrimonial (10 anos)</h3>
 
-  {projection.length > 0 && (
-    <div className="finance-chart-wrapper">
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={projection} margin={{ top: 20, right: 30, left: 10, bottom: 10 }} >
-    {/* DEFINIÇÕES DE GRADIENTE */}
-    <defs>
-  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="5%" stopColor={chartColors.total} stopOpacity={0.4}/>
-<stop offset="95%" stopColor={chartColors.total} stopOpacity={0}/>
-  </linearGradient>
-</defs>
-              <CartesianGrid 
-  stroke="rgba(255,255,255,0.08)" 
-  strokeDasharray="3 3" 
-/>
-
-<XAxis 
-  dataKey="month" 
-  stroke="rgba(255,255,255,0.5)" 
-  tick={{ fill: "rgba(255,255,255,0.6)" }} 
-/>
-				<Tooltip
-					contentStyle={chartTooltipStyle}
-					labelStyle={chartLabelStyle}
-					formatter={(value, name) =>
-					[`R$ ${Number(value).toLocaleString("pt-BR")}`, name]
-				}
-			/>
-              <Legend verticalAlign="bottom" height={36} />
-              {/* total */}
-              <Line
-  type="natural"
-  dataKey="total"
-  stroke={chartColors.total}
-  strokeWidth={3}
-  dot={false}
-  name="Total"
-  fill="url(#colorTotal)"
-/>
-
-<Line
-  type="natural"
-  dataKey="current"
-  stroke={chartColors.current}
-  strokeWidth={2}
-  dot={false}
-  name="Conta Corrente"
-/>
-
-<Line
-  type="natural"
-  dataKey="cdb"
-  stroke={chartColors.cdb}
-  strokeWidth={2}
-  dot={false}
-  name="CDB"
-/>
-
-<Line
-  type="natural"
-  dataKey="extra"
-  stroke={chartColors.extra}
-  strokeWidth={2}
-  dot={false}
-  name="Extra"
-/>
-
-<Line
-  type="natural"
-  dataKey="fgts"
-  stroke={chartColors.fgts}
-  strokeWidth={2}
-  dot={false}
-  name="FGTS"
-/>
-            </LineChart>
-          </ResponsiveContainer>
-		  </div>
+        {projection.length > 0 && (
+          <div className="finance-chart-wrapper">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={projection} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
+                <defs>
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.total} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={chartColors.total} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="month" stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.6)' }} />
+                <YAxis />
+                <Tooltip
+                  contentStyle={chartTooltipStyle}
+                  labelStyle={chartLabelStyle}
+                  formatter={(value, name) => [`R$ ${Number(value).toLocaleString('pt-BR')}`, name]}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+                <Line type="natural" dataKey="total" stroke={chartColors.total} strokeWidth={3} dot={false} name="Total" fill="url(#colorTotal)" />
+                <Line type="natural" dataKey="current" stroke={chartColors.current} strokeWidth={2} dot={false} name="Conta Corrente" />
+                <Line type="natural" dataKey="cdb" stroke={chartColors.cdb} strokeWidth={2} dot={false} name="CDB" />
+                <Line type="natural" dataKey="extra" stroke={chartColors.extra} strokeWidth={2} dot={false} name="Extra" />
+                <Line type="natural" dataKey="fgts" stroke={chartColors.fgts} strokeWidth={2} dot={false} name="FGTS" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
-      {/* CARDS DE RESUMO (valores atuais individuais) */}
       <div className="finance-grid finance-grid--spaced stagger">
         <div className="card finance-card perf-willchange">
           <div className="finance-label">Valor Conta Corrente (atual)</div>
@@ -412,7 +376,6 @@ const Financeiro = () => {
         </div>
       </div>
 
-      {/* CARD GRANDE: LISTA DE GASTOS FIXOS + TOTAL */}
       <div className="card finance-card finance-card--spaced reveal perf-willchange">
         <h3>Gastos Fixos Mensais</h3>
 
@@ -433,38 +396,57 @@ const Financeiro = () => {
         </div>
       </div>
 
-      <div className="card finance-card finance-card--spaced reveal perf-willchange">
-        <h3>Gastos Avulsos</h3>
-        <div className="finance-expenses-list">
-          {gastosAvulsos.length === 0 && <div>Nenhum gasto avulso registrado.</div>}
+      <div className="finance-grid finance-grid--dual">
+        <div className="card finance-card finance-card--spaced reveal perf-willchange">
+          <h3>Gastos Avulsos</h3>
+          <div className="finance-expenses-list">
+            {gastosAvulsos.length === 0 && <div>Nenhum gasto avulso registrado.</div>}
 
-          {gastosAvulsos.map((gasto) => (
-            <div key={gasto.id} className="finance-expense-inline-row">
-              <div className="finance-expense-name">{gasto.description}</div>
-              <div className="finance-expense-meta">
-                <span>R$ {Number(gasto.amount).toLocaleString('pt-BR')}</span>
-                <span>{new Date(gasto.occurred_at).toLocaleDateString('pt-BR')}</span>
+            {gastosAvulsos.map((gasto) => (
+              <div key={gasto.id} className="finance-expense-inline-row">
+                <div className="finance-expense-name">{gasto.description}</div>
+                <div className="finance-expense-meta">
+                  <span>R$ {Number(gasto.amount).toLocaleString('pt-BR')}</span>
+                  <span>{new Date(gasto.occurred_at).toLocaleDateString('pt-BR')}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        <div className="card finance-card finance-card--spaced reveal perf-willchange">
+          <h3>Recebimentos Avulsos</h3>
+          <div className="finance-expenses-list">
+            {recebimentosAvulsos.length === 0 && <div>Nenhum recebimento avulso registrado.</div>}
+
+            {recebimentosAvulsos.map((recebimento) => (
+              <div key={recebimento.id} className="finance-expense-inline-row finance-expense-inline-row--income">
+                <div className="finance-expense-name">{recebimento.description}</div>
+                <div className="finance-expense-meta">
+                  <span>R$ {Number(recebimento.amount).toLocaleString('pt-BR')}</span>
+                  <span>{new Date(recebimento.occurred_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {showSpendModal && (
+      {showCashFlowModal && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <h3>Registrar gasto</h3>
+            <h3>{cashFlowTitle}</h3>
 
             <div className="form-grid">
               <div className="form-group">
                 <label>Nome</label>
                 <input
                   type="text"
-                  value={novoGastoAvulso.name}
+                  value={novoFluxo.name}
                   onChange={(e) =>
-                    setNovoGastoAvulso({ ...novoGastoAvulso, name: e.target.value })
+                    setNovoFluxo({ ...novoFluxo, name: e.target.value })
                   }
-                  placeholder="Ex: Uber, Farmácia..."
+                  placeholder={cashFlowPlaceholder}
                 />
               </div>
 
@@ -474,9 +456,9 @@ const Financeiro = () => {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={novoGastoAvulso.value}
+                  value={novoFluxo.value}
                   onChange={(e) =>
-                    setNovoGastoAvulso({ ...novoGastoAvulso, value: e.target.value })
+                    setNovoFluxo({ ...novoFluxo, value: e.target.value })
                   }
                   placeholder="0,00"
                 />
@@ -484,27 +466,24 @@ const Financeiro = () => {
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowSpendModal(false)}>
+              <button className="btn btn-secondary" onClick={() => setShowCashFlowModal(false)}>
                 Cancelar
               </button>
 
-              <button className="btn finance-btn-warning" onClick={handleSpend}>
-                Gastar
+              <button className={`btn ${cashFlowButtonClass}`} onClick={handleCashFlow}>
+                {cashFlowActionLabel}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL CONFIG */}
       {showConfig && (
         <div className="modal-overlay">
           <div className="modal-card glass-scrollbar">
             <h3>Configuração Financeira</h3>
 
             <div className="form-grid">
-
-              {/* SALÁRIO */}
               <div className="form-group">
                 <label>Salário Mensal</label>
                 <input
@@ -514,13 +493,12 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      salary_monthly: Number(e.target.value)
+                      salary_monthly: Number(e.target.value),
                     })
                   }
                 />
               </div>
 
-              {/* 13º SALÁRIO */}
               <div className="form-group">
                 <label>13º Salário</label>
                 <input
@@ -530,13 +508,12 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      thirteenth: Number(e.target.value)
+                      thirteenth: Number(e.target.value),
                     })
                   }
                 />
               </div>
 
-              {/* CDI */}
               <div className="form-group">
                 <label>CDI Anual (%)</label>
                 <input
@@ -546,7 +523,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      cdi_rate_annual: Number(e.target.value)
+                      cdi_rate_annual: Number(e.target.value),
                     })
                   }
                 />
@@ -561,7 +538,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      cdb_percent_cdi: Number(e.target.value)
+                      cdb_percent_cdi: Number(e.target.value),
                     })
                   }
                 />
@@ -576,7 +553,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      extra_percent_cdi: Number(e.target.value)
+                      extra_percent_cdi: Number(e.target.value),
                     })
                   }
                 />
@@ -591,7 +568,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      interest_rate_current: Number(e.target.value)
+                      interest_rate_current: Number(e.target.value),
                     })
                   }
                 />
@@ -605,7 +582,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      reserve_current: Number(e.target.value)
+                      reserve_current: Number(e.target.value),
                     })
                   }
                 />
@@ -619,7 +596,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      reserve_cdb: Number(e.target.value)
+                      reserve_cdb: Number(e.target.value),
                     })
                   }
                 />
@@ -633,7 +610,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      reserve_extra: Number(e.target.value)
+                      reserve_extra: Number(e.target.value),
                     })
                   }
                 />
@@ -647,7 +624,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      reserve_fgts: Number(e.target.value)
+                      reserve_fgts: Number(e.target.value),
                     })
                   }
                 />
@@ -661,7 +638,7 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      fgts: Number(e.target.value)
+                      fgts: Number(e.target.value),
                     })
                   }
                 />
@@ -675,12 +652,11 @@ const Financeiro = () => {
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      monthly_contribution: Number(e.target.value)
+                      monthly_contribution: Number(e.target.value),
                     })
                   }
                 />
               </div>
-
             </div>
 
             <hr className="finance-divider" />
@@ -689,7 +665,6 @@ const Financeiro = () => {
 
             {gastosFixos.map((g) => (
               <div key={g.id} className="expense-row">
-
                 {editandoId === g.id ? (
                   <>
                     <input
@@ -704,7 +679,7 @@ const Financeiro = () => {
                       onChange={(e) =>
                         setEditGasto({
                           ...editGasto,
-                          monthly_value: e.target.value
+                          monthly_value: e.target.value,
                         })
                       }
                     />
@@ -726,7 +701,6 @@ const Financeiro = () => {
                     </button>
                   </>
                 )}
-
               </div>
             ))}
 

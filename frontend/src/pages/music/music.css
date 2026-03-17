@@ -85,6 +85,248 @@
   padding: clamp(1rem, 1.4vw, 1.5rem);
 }
 
+.music-toolbar-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.training-card.is-exercise {
+  border-color: rgba(248, 242, 220, 0.14);
+}
+
+.training-tab-preview {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    rgba(8, 11, 19, 0.98);
+  font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
+}
+
+.training-tab-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.training-tab-string {
+  color: rgba(241, 232, 210, 0.76);
+  font-size: 0.8rem;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.training-tab-line {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--tab-columns, 8), minmax(0, 1fr));
+  gap: 0;
+  min-height: 24px;
+}
+
+.training-tab-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(241, 232, 210, 0.46);
+  transform: translateY(-50%);
+}
+
+.training-tab-cell {
+  position: relative;
+  min-height: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.training-tab-cell.is-measure-start::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 1px;
+  background: rgba(241, 232, 210, 0.32);
+}
+
+.training-tab-fret {
+  position: relative;
+  z-index: 1;
+  padding: 0 4px;
+  min-width: 14px;
+  text-align: center;
+  color: transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.training-tab-fret.has-value {
+  color: rgba(247, 243, 229, 0.98);
+  background: rgba(8, 11, 19, 0.96);
+}
+
+.training-meta--stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.training-type-pill {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 242, 220, 0.18);
+  background: rgba(248, 242, 220, 0.08);
+  color: var(--glass-text-primary);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.training-exercise-modal {
+  width: min(1100px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.training-exercise-form {
+  display: grid;
+  gap: 16px;
+}
+
+.training-exercise-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) repeat(2, minmax(120px, 0.45fr));
+  gap: 12px;
+}
+
+.training-exercise-panel {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-border-default);
+  background: var(--glass-surface-soft);
+  display: grid;
+  gap: 14px;
+}
+
+.training-exercise-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: var(--glass-text-secondary);
+}
+
+.training-exercise-grid-shell {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.training-exercise-grid {
+  display: grid;
+  gap: 10px;
+  min-width: max-content;
+  font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
+}
+
+.training-exercise-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.training-exercise-line {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--exercise-columns, 8), 42px);
+  align-items: center;
+}
+
+.training-exercise-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(241, 232, 210, 0.5);
+  transform: translateY(-50%);
+}
+
+.training-exercise-slot {
+  position: relative;
+  height: 42px;
+  display: grid;
+  place-items: center;
+}
+
+.training-exercise-slot.is-measure-start::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: rgba(241, 232, 210, 0.34);
+}
+
+.training-exercise-tuning,
+.training-exercise-cell {
+  color: var(--glass-text-primary);
+  text-align: center;
+  font-family: inherit;
+}
+
+.training-exercise-tuning {
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(10, 14, 22, 0.92);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.training-exercise-cell {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(8, 11, 19, 0.96);
+  font-weight: 600;
+  font-size: 0.96rem;
+  line-height: 1;
+}
+
+.training-exercise-cell:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(248, 242, 220, 0.24),
+    0 0 0 4px rgba(248, 242, 220, 0.06);
+}
+
+.training-exercise-notes {
+  min-height: 110px;
+}
+
+@media (max-width: 900px) {
+  .training-exercise-topbar {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ======================================================
    ARTISTS
    ====================================================== */

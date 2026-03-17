@@ -285,7 +285,9 @@ class WatchEngine:
 
             current = dict(current)
             name = WatchEngine._clean_text(changes.get('name')) or current['name']
-            image_path = changes.get('image_path', current.get('image_path'))
+            image_path = changes.get('image_path')
+            if image_path is None:
+                image_path = current.get('image_path')
             media_type = WatchEngine._normalize_media_type(changes.get('media_type') or current.get('media_type'))
             status = WatchEngine._normalize_status(changes.get('status') or current.get('status'))
             description = WatchEngine._clean_text(changes.get('description'))

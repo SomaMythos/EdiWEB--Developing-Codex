@@ -54,6 +54,8 @@ def test_create_activity_accepts_everyday_fixed_schedule(monkeypatch, tmp_path):
     assert activity["frequency_type"] == "everyday"
     assert activity["fixed_time"] == "06:30"
     assert activity["fixed_duration"] == 30
+    assert activity["is_disc"] == 0
+    assert activity["is_fun"] == 0
 
 
 def test_create_activity_accepts_intercalate_frequency(monkeypatch, tmp_path):
@@ -80,7 +82,7 @@ def test_create_activity_accepts_intercalate_frequency(monkeypatch, tmp_path):
     with Database(path=db_path) as db:
         activity = db.fetchone(
             """
-            SELECT title, frequency_type, intercalate_days
+            SELECT title, frequency_type, intercalate_days, is_disc, is_fun
             FROM activities
             WHERE title = ?
             """,
@@ -91,6 +93,8 @@ def test_create_activity_accepts_intercalate_frequency(monkeypatch, tmp_path):
     assert activity is not None
     assert activity["frequency_type"] == "intercalate"
     assert activity["intercalate_days"] == 5
+    assert activity["is_disc"] == 0
+    assert activity["is_fun"] == 0
 
 
 def test_update_activity_persists_new_values(monkeypatch, tmp_path):
@@ -150,4 +154,5 @@ def test_update_activity_persists_new_values(monkeypatch, tmp_path):
     assert activity["frequency_type"] == "everyday"
     assert activity["fixed_time"] == "07:15"
     assert activity["fixed_duration"] == 25
-    assert activity["is_fun"] == 1
+    assert activity["is_disc"] == 0
+    assert activity["is_fun"] == 0

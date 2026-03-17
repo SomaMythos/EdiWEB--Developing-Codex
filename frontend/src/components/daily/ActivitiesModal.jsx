@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./ActivitiesModal.css";
-import { formatFixedTime, getFrequencyLabel, parseIntegerOrFallback } from "../../hooks/daily/utils";
+import { formatFixedTime, getFrequencyLabel, parseIntegerOrFallback, usesNeutralActivityCategory } from "../../hooks/daily/utils";
 import AccessibleModal from "./AccessibleModal";
 
 const ACTIVITY_TABS = [
@@ -34,6 +34,7 @@ const getActivityDurationLabel = activity => {
 
 const getActivityTags = activity => {
   const tags = [getFrequencyLabel(activity?.frequency_type)];
+  const usesNeutralCategory = usesNeutralActivityCategory(activity);
 
   if (activity?.frequency_type === "intercalate" && activity?.intercalate_days) {
     tags.push(`A cada ${activity.intercalate_days} dias`);
@@ -47,8 +48,10 @@ const getActivityTags = activity => {
     tags.push(`${activity.fixed_duration} min fixos`);
   }
 
-  if (activity?.is_disc) tags.push("Disciplina");
-  if (activity?.is_fun) tags.push("Diversao");
+  if (!usesNeutralCategory) {
+    if (activity?.is_disc) tags.push("Disciplina");
+    if (activity?.is_fun) tags.push("Diversao");
+  }
 
   return tags;
 };
@@ -79,6 +82,7 @@ export default function ActivitiesModal({
 }) {
   const titleInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState(ACTIVITY_TABS[0][0]);
+  const usesNeutralCategory = usesNeutralActivityCategory(newActivity);
   const orderedActivities = useMemo(
     () => [...(Array.isArray(activities) ? activities : [])]
       .filter(activity => activity && typeof activity === "object")
@@ -313,27 +317,38 @@ export default function ActivitiesModal({
               </div>
             )}
 
-            <div className="activities-group">
-              <span className="activities-group__label">Categoria</span>
-              <div className="activities-chip-grid activities-chip-grid--compact">
-                <button
-                  type="button"
-                  className={`activities-flag ${newActivity.is_disc ? "active" : ""}`}
-                  onClick={() => setNewActivity({ ...newActivity, is_disc: !newActivity.is_disc })}
-                >
-                  Disciplina
-                </button>
-                <button
-                  type="button"
-                  className={`activities-flag ${newActivity.is_fun ? "active" : ""}`}
-                  onClick={() => setNewActivity({ ...newActivity, is_fun: !newActivity.is_fun })}
-                >
-                  Diversao
-                </button>
+            {usesNeutralCategory ? (
+              <div className="activities-group">
+                <span className="activities-group__label">Categoria</span>
+                <p className="activities-helper">
+                  Atividades todo dia, intercaladas e com horario fixo ficam fora do calculo de pesos e nao usam Disciplina ou Diversao.
+                </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="activities-group">
+                  <span className="activities-group__label">Categoria</span>
+                  <div className="activities-chip-grid activities-chip-grid--compact">
+                    <button
+                      type="button"
+                      className={`activities-flag ${newActivity.is_disc ? "active" : ""}`}
+                      onClick={() => setNewActivity({ ...newActivity, is_disc: !newActivity.is_disc })}
+                    >
+                      Disciplina
+                    </button>
+                    <button
+                      type="button"
+                      className={`activities-flag ${newActivity.is_fun ? "active" : ""}`}
+                      onClick={() => setNewActivity({ ...newActivity, is_fun: !newActivity.is_fun })}
+                    >
+                      Diversao
+                    </button>
+                  </div>
+                </div>
 
-            {validationErrors.category && <span className="activities-error">{validationErrors.category}</span>}
+                {validationErrors.category && <span className="activities-error">{validationErrors.category}</span>}
+              </>
+            )}
 
             <div className="activities-form__actions">
               <button className="btn btn-primary" onClick={onCreateActivity}>
