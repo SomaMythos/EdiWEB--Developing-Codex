@@ -45,7 +45,7 @@ export function useActivityCounters() {
       }
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Nao foi possivel carregar os contadores."));
+      setState(createUiState("error", "Não foi possível carregar os contadores."));
     }
   };
 
@@ -69,7 +69,7 @@ export function useActivityCounters() {
     } catch (error) {
       console.error(error);
       const detail = error?.response?.data?.detail;
-      setState(createUiState("error", detail || "Nao foi possivel registrar o contador."));
+      setState(createUiState("error", detail || "Não foi possível registrar o contador."));
     }
   };
 
@@ -79,11 +79,11 @@ export function useActivityCounters() {
     try {
       await activityCountersApi.complete(counterId);
       await fetchCounters({ openModal: true, silent: true });
-      setState(createUiState("success", null, "Contador concluido com sucesso."));
+      setState(createUiState("success", null, "Contador concluído com sucesso."));
     } catch (error) {
       console.error(error);
       const detail = error?.response?.data?.detail;
-      setState(createUiState("error", detail || "Nao foi possivel concluir o contador."));
+      setState(createUiState("error", detail || "Não foi possível concluir o contador."));
     }
   };
 

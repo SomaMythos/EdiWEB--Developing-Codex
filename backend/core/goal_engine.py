@@ -106,7 +106,7 @@ class GoalEngine:
                     "completed_milestones": 0,
                     "total_milestones": 0,
                     "linked_activities": 0,
-                    "summary": "Meta nao encontrada",
+                    "summary": "Meta não encontrada",
                 }
 
             goal_mode = GoalEngine._normalize_goal_mode(goal_row.get("goal_mode"))
@@ -118,7 +118,7 @@ class GoalEngine:
                     "completed_milestones": len([item for item in milestone_rows if item.get("is_completed")]),
                     "total_milestones": len(milestone_rows),
                     "linked_activities": len(GoalEngine.list_linked_activities(goal_id, db=db)),
-                    "summary": "Meta concluida",
+                    "summary": "Meta concluída",
                 }
 
             if goal_mode == "milestones":
@@ -132,7 +132,7 @@ class GoalEngine:
                     "completed_milestones": completed,
                     "total_milestones": total,
                     "linked_activities": len(GoalEngine.list_linked_activities(goal_id, db=db)),
-                    "summary": f"{completed}/{total} etapas concluidas" if total else "Meta fragmentada sem etapas ainda",
+                    "summary": f"{completed}/{total} etapas concluídas" if total else "Meta fragmentada sem etapas ainda",
                 }
 
             return GoalEngine._progress_from_activities(goal_id, db=db)
@@ -257,7 +257,7 @@ class GoalEngine:
     @staticmethod
     def update_status(goal_id: int, status: str) -> bool:
         if status not in ["ativa", "concluida", "cancelada"]:
-            raise ValueError("Status invalido")
+            raise ValueError("Status inválido")
         completed_at = datetime.now().isoformat() if status == "concluida" else None
         with Database() as db:
             db.execute("UPDATE goals SET status = ?, completed_at = ? WHERE id = ?", (status, completed_at, goal_id))
@@ -274,10 +274,10 @@ class GoalEngine:
         with Database() as db:
             goal_exists = db.fetchone("SELECT 1 FROM goals WHERE id = ?", (goal_id,))
             if not goal_exists:
-                raise GoalActivityValidationError(f"Meta {goal_id} nao encontrada")
+                raise GoalActivityValidationError(f"Meta {goal_id} não encontrada")
             activity_exists = db.fetchone("SELECT 1 FROM activities WHERE id = ?", (activity_id,))
             if not activity_exists:
-                raise GoalActivityValidationError(f"Atividade {activity_id} nao encontrada")
+                raise GoalActivityValidationError(f"Atividade {activity_id} não encontrada")
             db.execute("INSERT OR IGNORE INTO goal_activities (goal_id, activity_id) VALUES (?, ?)", (goal_id, activity_id))
             return db.execute("SELECT changes() AS c").fetchone()[0] > 0
 
@@ -286,10 +286,10 @@ class GoalEngine:
         with Database() as db:
             goal_exists = db.fetchone("SELECT 1 FROM goals WHERE id = ?", (goal_id,))
             if not goal_exists:
-                raise GoalActivityValidationError(f"Meta {goal_id} nao encontrada")
+                raise GoalActivityValidationError(f"Meta {goal_id} não encontrada")
             activity_exists = db.fetchone("SELECT 1 FROM activities WHERE id = ?", (activity_id,))
             if not activity_exists:
-                raise GoalActivityValidationError(f"Atividade {activity_id} nao encontrada")
+                raise GoalActivityValidationError(f"Atividade {activity_id} não encontrada")
             db.execute("DELETE FROM goal_activities WHERE goal_id = ? AND activity_id = ?", (goal_id, activity_id))
             return db.execute("SELECT changes() AS c").fetchone()[0] > 0
 
@@ -311,9 +311,9 @@ class GoalEngine:
         try:
             goal_exists = db.fetchone("SELECT id, status FROM goals WHERE id = ?", (goal_id,))
             if not goal_exists:
-                raise ValueError("Meta nao encontrada")
+                raise ValueError("Meta não encontrada")
             if goal_exists["status"] == "concluida":
-                raise ValueError("Meta concluida nao pode receber etapas")
+                raise ValueError("Meta concluída não pode receber etapas")
 
             existing_rows = db.fetchall("SELECT id FROM goal_milestones WHERE goal_id = ?", (goal_id,))
             existing_ids = {row["id"] for row in existing_rows}
@@ -373,7 +373,7 @@ class GoalEngine:
             )
             updated = db.execute("SELECT changes() AS c").fetchone()[0] > 0
             if not updated:
-                raise ValueError("Etapa nao encontrada")
+                raise ValueError("Etapa não encontrada")
             row = db.fetchone("SELECT goal_id FROM goal_milestones WHERE id = ?", (milestone_id,))
             return row["goal_id"] if row else None
 

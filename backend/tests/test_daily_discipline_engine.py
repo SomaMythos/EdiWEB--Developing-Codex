@@ -134,8 +134,8 @@ def test_intercalate_frequency_waits_minimum_days_after_last_registration(monkey
         lambda _date: "work",
     )
 
-    result_before = DailyDisciplineEngine.build_today_activity_list("2026-04-07", 10)
-    result_after = DailyDisciplineEngine.build_today_activity_list("2026-04-08", 10)
+    result_before = DailyDisciplineEngine.build_today_activity_list("2026-04-08", 10)
+    result_after = DailyDisciplineEngine.build_today_activity_list("2026-04-09", 10)
 
     assert result_before == []
     assert [item["title"] for item in result_after] == ["Lavar Roupas"]
@@ -302,8 +302,10 @@ def test_due_intercalate_activity_is_reserved_before_optional_flex(monkeypatch, 
         lambda _date: "work",
     )
 
-    result = DailyDisciplineEngine.build_today_activity_list("2026-03-16", 30)
+    result_next_day = DailyDisciplineEngine.build_today_activity_list("2026-03-16", 30)
+    result = DailyDisciplineEngine.build_today_activity_list("2026-03-17", 30)
 
+    assert result_next_day == []
     titles = [item["title"] for item in result]
     assert titles == ["Brincar - Ravena"]
 

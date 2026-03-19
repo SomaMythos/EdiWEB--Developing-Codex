@@ -311,9 +311,9 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spin">...</div>
-        <p>Carregando...</p>
+      <div className="app-state-card app-state-card--centered page-shell">
+        <p className="app-state-card__title">Carregando configurações</p>
+        <p className="app-state-card__text">Buscando perfil, integrações e preferências do app.</p>
       </div>
     );
   }

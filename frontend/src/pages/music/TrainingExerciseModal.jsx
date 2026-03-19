@@ -3,6 +3,8 @@ import api from "../../services/api";
 
 const DEFAULT_TUNING = ["e", "B", "G", "D", "A", "E"];
 const DEFAULT_COLUMNS = 8;
+const DEFAULT_MEASURE_SIZE = 4;
+const TUNING_NOTE_OPTIONS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 const resizeCells = (cells, columns) =>
   Array.from({ length: 6 }, (_, rowIndex) => {
@@ -18,19 +20,24 @@ export default function TrainingExerciseModal({ training, onClose, onSaved }) {
   const [columns, setColumns] = useState(existingExercise?.columns || DEFAULT_COLUMNS);
   const [cells, setCells] = useState(resizeCells(existingExercise?.cells, existingExercise?.columns || DEFAULT_COLUMNS));
   const [notes, setNotes] = useState(existingExercise?.notes || "");
+  const [measureSize, setMeasureSize] = useState(existingExercise?.measure_size || DEFAULT_MEASURE_SIZE);
+  const [libraryGroup, setLibraryGroup] = useState(existingExercise?.library_group || "");
+  const [difficulty, setDifficulty] = useState(existingExercise?.difficulty || "");
+  const [tagsInput, setTagsInput] = useState(Array.isArray(existingExercise?.tags) ? existingExercise.tags.join(", ") : "");
   const [saving, setSaving] = useState(false);
 
-  const title = useMemo(() => (training ? "Editar exercício" : "Novo exercício"), [training]);
+  const normalizedMeasureSize = Math.max(2, Math.min(16, Number(measureSize) || DEFAULT_MEASURE_SIZE));
+  const title = useMemo(() => (training?.id ? "Editar exercício" : "Novo exercício"), [training]);
 
   const handleColumnsChange = (nextColumns) => {
-    const normalized = Math.max(4, Math.min(32, Number(nextColumns) || DEFAULT_COLUMNS));
+    const normalized = Math.max(4, Math.min(64, Number(nextColumns) || DEFAULT_COLUMNS));
     setColumns(normalized);
     setCells((previous) => resizeCells(previous, normalized));
   };
 
   const handleTuningChange = (index, value) => {
     setTuning((previous) =>
-      previous.map((item, itemIndex) => (itemIndex === index ? value.slice(0, 3) : item))
+      previous.map((item, itemIndex) => (itemIndex === index ? value : item))
     );
   };
 
@@ -57,6 +64,13 @@ export default function TrainingExerciseModal({ training, onClose, onSaved }) {
       columns,
       cells,
       notes: notes.trim() || null,
+      measure_size: normalizedMeasureSize,
+      library_group: libraryGroup.trim() || null,
+      difficulty: difficulty === "" ? null : Number(difficulty),
+      tags: tagsInput
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
     };
 
     try {
@@ -107,34 +121,80 @@ export default function TrainingExerciseModal({ training, onClose, onSaved }) {
               className="input"
               type="number"
               min="4"
-              max="32"
+              max="64"
               value={columns}
               onChange={(event) => handleColumnsChange(event.target.value)}
+              aria-label="Quantidade de passos"
             />
           </div>
+
+          <div className="training-exercise-metadata">
+            <input
+              className="input"
+              placeholder="Biblioteca ou grupo (ex.: Aquecimento)"
+              value={libraryGroup}
+              onChange={(event) => setLibraryGroup(event.target.value)}
+            />
+
+            <input
+              className="input"
+              type="number"
+              min="2"
+              max="16"
+              placeholder="Passos por compasso"
+              value={measureSize}
+              onChange={(event) => setMeasureSize(event.target.value)}
+            />
+
+            <select
+              className="input"
+              value={difficulty}
+              onChange={(event) => setDifficulty(event.target.value)}
+            >
+              <option value="">Dificuldade</option>
+              <option value="1">Nível 1</option>
+              <option value="2">Nível 2</option>
+              <option value="3">Nível 3</option>
+              <option value="4">Nível 4</option>
+              <option value="5">Nível 5</option>
+            </select>
+          </div>
+
+          <input
+            className="input"
+            placeholder="Tags separadas por vírgula (ex.: alternate picking, cromático)"
+            value={tagsInput}
+            onChange={(event) => setTagsInput(event.target.value)}
+          />
 
           <div className="training-exercise-panel">
             <div className="training-exercise-heading">
               <strong>Tablatura</strong>
-              <span>{columns} passos | compasso visual a cada 4</span>
+              <span>{columns} passos | compasso visual a cada {normalizedMeasureSize}</span>
             </div>
 
             <div className="training-exercise-grid-shell">
               <div className="training-exercise-grid" style={{ ["--exercise-columns"]: columns }}>
                 {cells.map((row, rowIndex) => (
                   <div key={`row-${rowIndex}`} className="training-exercise-row">
-                    <input
+                    <select
                       className="training-exercise-tuning"
                       value={tuning[rowIndex]}
                       onChange={(event) => handleTuningChange(rowIndex, event.target.value)}
                       aria-label={`Afinação da corda ${rowIndex + 1}`}
-                    />
+                    >
+                      {TUNING_NOTE_OPTIONS.map((note) => (
+                        <option key={`exercise-tuning-${rowIndex}-${note}`} value={note}>
+                          {note}
+                        </option>
+                      ))}
+                    </select>
 
                     <div className="training-exercise-line">
                       {row.map((cell, columnIndex) => (
                         <span
                           key={`cell-${rowIndex}-${columnIndex}`}
-                          className={`training-exercise-slot ${columnIndex % 4 === 0 ? "is-measure-start" : ""}`}
+                          className={`training-exercise-slot ${columnIndex % normalizedMeasureSize === 0 ? "is-measure-start" : ""}`}
                         >
                           <input
                             className="training-exercise-cell"
@@ -164,7 +224,7 @@ export default function TrainingExerciseModal({ training, onClose, onSaved }) {
               Cancelar
             </button>
             <button className="btn btn-primary" disabled={saving}>
-              {saving ? "Salvando..." : training ? "Salvar exercício" : "Criar exercício"}
+              {saving ? "Salvando..." : training?.id ? "Salvar exercício" : "Criar exercício"}
             </button>
           </div>
         </form>

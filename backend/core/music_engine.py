@@ -10,6 +10,10 @@ class MusicEngine:
         training["content_type"] = training.get("content_type") or "image"
         training["image_path"] = training.get("image_path") or None
         training["target_bpm"] = int(training.get("target_bpm") or 0) if training.get("target_bpm") else None
+        training["session_count"] = int(training.get("session_count") or 0)
+        training["best_bpm"] = int(training.get("best_bpm") or 0) if training.get("best_bpm") else None
+        training["average_bpm"] = float(training.get("average_bpm")) if training.get("average_bpm") is not None else None
+        training["last_practiced_at"] = training.get("last_practiced_at") or None
         tuning_raw = training.get("tuning")
         if isinstance(tuning_raw, str) and tuning_raw.strip():
             try:
@@ -27,6 +31,14 @@ class MusicEngine:
                 training["exercise_data"] = None
         else:
             training["exercise_data"] = None
+
+        if isinstance(training["exercise_data"], dict):
+            training["exercise_data"]["measure_size"] = int(training["exercise_data"].get("measure_size") or 4)
+            training["exercise_data"]["library_group"] = (training["exercise_data"].get("library_group") or "").strip() or None
+            difficulty = training["exercise_data"].get("difficulty")
+            training["exercise_data"]["difficulty"] = int(difficulty) if difficulty else None
+            tags = training["exercise_data"].get("tags")
+            training["exercise_data"]["tags"] = tags if isinstance(tags, list) else []
         return training
 
     # =============================
@@ -70,6 +82,18 @@ class MusicEngine:
             )
 
     @staticmethod
+    def delete_training(training_id):
+        with Database() as db:
+            cursor = db.execute(
+                """
+                DELETE FROM music_training_tabs
+                WHERE id = ?
+                """,
+                (training_id,),
+            )
+            return cursor.rowcount > 0
+
+    @staticmethod
     def get_training(training_id):
         with Database() as db:
             row = db.fetchone(
@@ -90,7 +114,29 @@ class MusicEngine:
                         WHERE s.training_id = t.id
                         ORDER BY s.created_at DESC
                         LIMIT 1
-                    ) as last_bpm
+                    ) as last_bpm,
+                    (
+                        SELECT COUNT(*)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as session_count,
+                    (
+                        SELECT MAX(bpm)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as best_bpm,
+                    (
+                        SELECT ROUND(AVG(bpm), 1)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as average_bpm,
+                    (
+                        SELECT created_at
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                        ORDER BY s.created_at DESC
+                        LIMIT 1
+                    ) as last_practiced_at
                 FROM music_training_tabs t
                 WHERE t.id = ?
                 """,
@@ -118,7 +164,29 @@ class MusicEngine:
                         WHERE s.training_id = t.id
                         ORDER BY s.created_at DESC
                         LIMIT 1
-                    ) as last_bpm
+                    ) as last_bpm,
+                    (
+                        SELECT COUNT(*)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as session_count,
+                    (
+                        SELECT MAX(bpm)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as best_bpm,
+                    (
+                        SELECT ROUND(AVG(bpm), 1)
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                    ) as average_bpm,
+                    (
+                        SELECT created_at
+                        FROM music_training_sessions s
+                        WHERE s.training_id = t.id
+                        ORDER BY s.created_at DESC
+                        LIMIT 1
+                    ) as last_practiced_at
                 FROM music_training_tabs t
                 ORDER BY t.created_at DESC
             """)

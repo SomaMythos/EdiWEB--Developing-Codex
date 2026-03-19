@@ -35,19 +35,19 @@ export function useActivities() {
     const usesNeutralCategory = usesNeutralActivityCategory(activity);
 
     if (!title) {
-      errors.title = "Titulo e obrigatorio.";
+      errors.title = "Título é obrigatório.";
     }
 
     if (activity.min_duration <= 0) {
-      errors.min_duration = "A duracao minima deve ser maior que zero.";
+      errors.min_duration = "A duração mínima deve ser maior que zero.";
     }
 
     if (activity.max_duration <= 0) {
-      errors.max_duration = "A duracao maxima deve ser maior que zero.";
+      errors.max_duration = "A duração máxima deve ser maior que zero.";
     }
 
     if (activity.max_duration < activity.min_duration) {
-      errors.max_duration = "A duracao maxima deve ser maior ou igual a minima.";
+      errors.max_duration = "A duração máxima deve ser maior ou igual à mínima.";
     }
 
     const hasFixedTime = Boolean(activity.fixed_time);
@@ -62,12 +62,12 @@ export function useActivities() {
         : Number(activity.intercalate_days);
 
     if (hasFixedTime !== hasFixedDuration) {
-      errors.fixed_time = "Defina horario e duracao fixos juntos, ou deixe ambos em branco.";
-      errors.fixed_duration = "Defina horario e duracao fixos juntos, ou deixe ambos em branco.";
+      errors.fixed_time = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
+      errors.fixed_duration = "Defina horário e duração fixos juntos, ou deixe ambos em branco.";
     }
 
     if (hasFixedDuration && fixedDurationValue <= 0) {
-      errors.fixed_duration = "A duracao fixa deve ser maior que zero.";
+      errors.fixed_duration = "A duração fixa deve ser maior que zero.";
     }
 
     if (!usesNeutralCategory && !activity.is_disc && !activity.is_fun) {
@@ -102,7 +102,7 @@ export function useActivities() {
       setState(createUiState("success"));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Nao foi possivel carregar as atividades."));
+      setState(createUiState("error", "Não foi possível carregar as atividades."));
     }
   };
 
@@ -149,7 +149,7 @@ export function useActivities() {
     } catch (error) {
       console.error(error);
       const detail = error?.response?.data?.detail;
-      setState(createUiState("error", detail || "Nao foi possivel salvar a atividade."));
+      setState(createUiState("error", detail || "Não foi possível salvar a atividade."));
     }
   };
 
@@ -161,7 +161,7 @@ export function useActivities() {
       setState(createUiState("success", null, "Status da atividade atualizado."));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Nao foi possivel alterar o status da atividade."));
+      setState(createUiState("error", "Não foi possível alterar o status da atividade."));
     }
   };
 
@@ -176,7 +176,7 @@ export function useActivities() {
       setState(createUiState("success", null, "Atividade excluida com sucesso."));
     } catch (error) {
       console.error(error);
-      setState(createUiState("error", "Nao foi possivel excluir a atividade."));
+      setState(createUiState("error", "Não foi possível excluir a atividade."));
     }
   };
 

@@ -4,7 +4,7 @@
 PRAGMA foreign_keys = ON;
 
 -- =========================
--- PERFIL DO USUÃRIO
+-- PERFIL DO USUÁRIO
 -- =========================
 CREATE TABLE IF NOT EXISTS user_profile (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS activities (
     frequency_type TEXT DEFAULT 'flex', -- flex, everyday, workday, offday, intercalate
     intercalate_days INTEGER,
 
-    fixed_time TEXT,       -- HH:MM se for horÃ¡rio fixo
-    fixed_duration INTEGER, -- duraÃ§Ã£o fixa em minutos
+    fixed_time TEXT,       -- HH:MM se for horário fixo
+    fixed_duration INTEGER, -- duração fixa em minutos
 
     is_disc INTEGER NOT NULL DEFAULT 1,
     is_fun INTEGER NOT NULL DEFAULT 0,
@@ -80,7 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_counters_completed_at
     ON activity_counters(completed_at);
 
 -- =========================
--- LOG DIÃRIO
+-- LOG DIÁRIO
 -- =========================
 CREATE TABLE IF NOT EXISTS daily_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -552,7 +552,7 @@ CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_dat
 CREATE INDEX IF NOT EXISTS idx_calendar_manual_logs_date ON calendar_manual_logs(log_date);
 
 -- =========================
--- NOTIFICAÃ‡Ã•ES
+-- NOTIFICAÇÕES
 -- =========================
 CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -634,7 +634,7 @@ CREATE TABLE IF NOT EXISTS finance_config (
 	reserve_extra REAL DEFAULT 0,
 	reserve_fgts REAL DEFAULT 0,
 
-	-- DepÃ³sito mensal FGTS
+	-- Depósito mensal FGTS
 	fgts REAL DEFAULT 0,	
 
     -- Fluxo mensal
@@ -646,9 +646,9 @@ CREATE TABLE IF NOT EXISTS finance_config (
     cdb_percent_cdi REAL DEFAULT 100,     -- Ex: 100 (% do CDI)
     extra_percent_cdi REAL DEFAULT 120,   -- Ex: 120 (% do CDI)
 
-    -- Juros especÃ­ficos
-    interest_rate_current REAL DEFAULT 0, -- % ao mÃªs
-    interest_rate_fgts REAL DEFAULT 3,    -- 3% ao ano padrÃ£o FGTS
+    -- Juros específicos
+    interest_rate_current REAL DEFAULT 0, -- % ao mês
+    interest_rate_fgts REAL DEFAULT 3,    -- 3% ao ano padrão FGTS
 
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );

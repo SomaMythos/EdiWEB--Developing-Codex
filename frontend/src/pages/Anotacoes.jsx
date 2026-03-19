@@ -283,7 +283,10 @@ const Anotacoes = () => {
   if (loading) {
     return (
       <section className="notes-page">
-        <div className="card notes-loading">Carregando...</div>
+        <div className="app-state-card app-state-card--centered page-shell">
+          <p className="app-state-card__title">Carregando anotações</p>
+          <p className="app-state-card__text">Preparando notas e diário semanal.</p>
+        </div>
       </section>
     );
   }

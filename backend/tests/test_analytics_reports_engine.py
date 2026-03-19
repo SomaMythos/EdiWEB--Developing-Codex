@@ -28,7 +28,7 @@ def test_reports_daily_methods(monkeypatch, tmp_path):
 
     today = date.today()
     yesterday = today - timedelta(days=1)
-    week_old = today - timedelta(days=8)
+    previous_month_older = today - timedelta(days=max(today.day, 8))
 
     with Database(path=db_path) as db:
         db.execute("INSERT INTO daily_logs (date) VALUES (?)", (today.isoformat(),))
@@ -55,7 +55,7 @@ def test_reports_daily_methods(monkeypatch, tmp_path):
                 today.isoformat(),
                 (today - timedelta(days=1)).isoformat(),
                 today.isoformat(),
-                week_old.isoformat(),
+                previous_month_older.isoformat(),
             ),
         )
 

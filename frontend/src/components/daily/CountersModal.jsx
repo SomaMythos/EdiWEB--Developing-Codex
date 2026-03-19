@@ -150,12 +150,12 @@ export default function CountersModal({
                   <article key={`${item.title}-${item.last_completed_at}`} className="counters-average-card">
                     <strong>{item.title}</strong>
                     <span>{formatAverageLabel(item.average_elapsed_days)}</span>
-                    <small>{item.completed_cycles} ciclo(s) concluidos</small>
+                    <small>{item.completed_cycles} ciclo(s) concluídos</small>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className="counters-empty">As medias vao aparecer aqui depois dos primeiros ciclos concluidos.</p>
+              <p className="counters-empty">As médias vão aparecer aqui depois dos primeiros ciclos concluídos.</p>
             )}
           </div>
         </section>
@@ -201,14 +201,14 @@ export default function CountersModal({
                     </div>
 
                     <div className="counter-item__meta">
-                      <span>Inicio {formatDateLabel(counter.started_at)}</span>
+                        <span>Início {formatDateLabel(counter.started_at)}</span>
                       {counter.is_completed ? (
-                        <span>Conclusao {formatDateLabel(counter.completed_at)}</span>
+                          <span>Conclusão {formatDateLabel(counter.completed_at)}</span>
                       ) : (
                         <span>{formatElapsedLabel(counter.days_since_start) || "Registrado hoje"}</span>
                       )}
                       {counter.completed_cycles > 0 ? (
-                        <span>Media {formatAverageLabel(counter.average_elapsed_days)}</span>
+                        <span>Média {formatAverageLabel(counter.average_elapsed_days)}</span>
                       ) : null}
                     </div>
                   </div>
@@ -228,7 +228,7 @@ export default function CountersModal({
               <p className="counters-empty">
                 {activeTab === "open"
                   ? "Nenhum contador em aberto no momento."
-                  : "Nenhum ciclo concluido ainda."}
+                  : "Nenhum ciclo concluído ainda."}
               </p>
             )}
           </div>

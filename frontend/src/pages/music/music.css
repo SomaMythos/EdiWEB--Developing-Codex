@@ -107,6 +107,18 @@
   font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
 }
 
+.training-tab-preview--empty {
+  place-items: center;
+  min-height: 168px;
+  text-align: center;
+}
+
+.training-tab-preview--empty p {
+  margin: 0;
+  color: var(--glass-text-muted);
+  font-family: inherit;
+}
+
 .training-tab-row {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
@@ -125,9 +137,9 @@
 .training-tab-line {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(var(--tab-columns, 8), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--tab-columns, 8), minmax(30px, 1fr));
   gap: 0;
-  min-height: 24px;
+  min-height: 28px;
 }
 
 .training-tab-line::before {
@@ -143,7 +155,7 @@
 
 .training-tab-cell {
   position: relative;
-  min-height: 24px;
+  min-height: 28px;
   display: grid;
   place-items: center;
 }
@@ -161,13 +173,18 @@
 .training-tab-fret {
   position: relative;
   z-index: 1;
-  padding: 0 4px;
-  min-width: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  min-width: 24px;
+  min-height: 20px;
   text-align: center;
   color: transparent;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .training-tab-fret.has-value {
@@ -179,6 +196,112 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.training-card--exercise {
+  display: grid;
+  gap: 14px;
+}
+
+.training-card-body {
+  display: grid;
+  gap: 12px;
+}
+
+.training-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.training-card-subtitle {
+  margin: 6px 0 0;
+  color: var(--glass-text-secondary);
+  font-size: 0.88rem;
+}
+
+.training-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.training-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 242, 220, 0.18);
+  background: rgba(248, 242, 220, 0.08);
+  color: var(--glass-text-primary);
+  font-size: 0.78rem;
+}
+
+.training-chip--soft {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.training-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.training-stats-grid div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 4px;
+}
+
+.training-stats-grid span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--glass-text-muted);
+}
+
+.training-stats-grid strong {
+  font-size: 0.92rem;
+  color: var(--glass-text-primary);
+}
+
+.training-library-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.training-library-panel + .training-library-panel {
+  margin-top: 18px;
+}
+
+.training-library-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.training-library-panel__header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.training-library-panel__header p {
+  margin: 6px 0 0;
+  color: var(--glass-text-secondary);
+}
+
+.training-library-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.training-grid--library {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .training-type-pill {
@@ -249,7 +372,7 @@
 .training-exercise-line {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(var(--exercise-columns, 8), 42px);
+  grid-template-columns: repeat(var(--exercise-columns, 8), 54px);
   align-items: center;
 }
 
@@ -266,7 +389,7 @@
 
 .training-exercise-slot {
   position: relative;
-  height: 42px;
+  height: 46px;
   display: grid;
   place-items: center;
 }
@@ -300,14 +423,15 @@
 .training-exercise-cell {
   position: relative;
   z-index: 1;
-  width: 32px;
-  height: 28px;
+  width: 44px;
+  height: 30px;
   border: none;
   border-radius: 6px;
   background: rgba(8, 11, 19, 0.96);
   font-weight: 600;
-  font-size: 0.96rem;
+  font-size: 0.95rem;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .training-exercise-cell:focus {
@@ -321,9 +445,307 @@
   min-height: 110px;
 }
 
+.training-exercise-metadata {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(140px, 0.6fr));
+  gap: 12px;
+}
+
+.training-practice-modal {
+  width: min(1180px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.training-practice-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.training-practice-header h3 {
+  margin: 0;
+}
+
+.training-practice-header p {
+  margin: 8px 0 0;
+  color: var(--glass-text-secondary);
+}
+
+.training-practice-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 180px)) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.training-practice-control {
+  display: grid;
+  gap: 6px;
+}
+
+.training-practice-control span {
+  font-size: 0.8rem;
+  color: var(--glass-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.training-practice-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.training-practice-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.training-practice-status span {
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--glass-text-secondary);
+  font-size: 0.82rem;
+}
+
+.training-practice-tuning-bar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(88px, 1fr));
+  gap: 10px;
+}
+
+.training-practice-tuning-control {
+  display: grid;
+  gap: 6px;
+}
+
+.training-practice-tuning-control span {
+  font-size: 0.76rem;
+  color: var(--glass-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.training-practice-tuning-input {
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.training-practice-grid-shell {
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-behavior: smooth;
+}
+
+.training-practice-grid {
+  display: grid;
+  gap: 12px;
+  min-width: max-content;
+  font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
+}
+
+.training-practice-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.training-practice-string {
+  display: grid;
+  place-items: center;
+  color: rgba(241, 232, 210, 0.84);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.training-practice-line {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--practice-columns, 8), 66px);
+  align-items: center;
+}
+
+.training-practice-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(241, 232, 210, 0.5);
+  transform: translateY(-50%);
+}
+
+.training-practice-slot {
+  position: relative;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.training-practice-slot.is-measure-start::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: rgba(241, 232, 210, 0.34);
+}
+
+.training-practice-slot.is-loop-edge::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  right: 0;
+  width: 1px;
+  background: rgba(29, 185, 84, 0.55);
+}
+
+.training-practice-slot.is-active {
+  background: rgba(29, 185, 84, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(29, 185, 84, 0.24);
+}
+
+.training-practice-fret {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 22px;
+  padding: 0 7px;
+  text-align: center;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: transparent;
+  background: rgba(8, 11, 19, 0.96);
+  white-space: nowrap;
+}
+
+.training-practice-fret.has-value {
+  color: rgba(247, 243, 229, 0.98);
+}
+
+.training-practice-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.training-practice-note {
+  margin: 0;
+  color: var(--glass-text-secondary);
+}
+
+.training-practice-feedback {
+  color: #9be8b4;
+  font-size: 0.9rem;
+}
+
+.training-history-modal {
+  width: min(960px, calc(100vw - 40px));
+  display: grid;
+  gap: 18px;
+}
+
+.training-history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.training-history-header h3 {
+  margin: 0;
+}
+
+.training-history-header p {
+  margin: 8px 0 0;
+  color: var(--glass-text-secondary);
+}
+
+.training-history-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.training-history-stat {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 6px;
+}
+
+.training-history-stat span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--glass-text-muted);
+}
+
+.training-history-stat strong {
+  color: var(--glass-text-primary);
+  line-height: 1.4;
+}
+
+.training-history-log {
+  display: grid;
+  gap: 10px;
+}
+
+.training-history-log-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--glass-text-secondary);
+}
+
 @media (max-width: 900px) {
   .training-exercise-topbar {
     grid-template-columns: 1fr;
+  }
+
+  .training-exercise-metadata,
+  .training-library-filters,
+  .training-practice-toolbar,
+  .training-history-summary,
+  .training-practice-tuning-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .training-card-header,
+  .training-practice-header,
+  .training-history-header,
+  .training-library-panel__header,
+  .training-history-log-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .training-practice-actions {
+    justify-content: stretch;
   }
 }
 

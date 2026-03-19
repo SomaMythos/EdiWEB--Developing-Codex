@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_edi_storage_dir() -> Path:
-    """Retorna o diretÃ³rio persistente do cliente para dados do EDI."""
+    """Retorna o diretório persistente do cliente para dados do EDI."""
     custom_storage = os.getenv("EDI_STORAGE_DIR")
     if custom_storage:
         return Path(custom_storage).expanduser().resolve()
@@ -52,7 +52,7 @@ def _legacy_database_paths() -> List[Path]:
 
 
 def _migrate_legacy_database_file(target_path: Path) -> None:
-    """Move DB antiga do diretÃ³rio do backend para storage persistente, se existir."""
+    """Move DB antiga do diretório do backend para storage persistente, se existir."""
     if target_path.exists():
         return
 
@@ -116,7 +116,7 @@ def read_migration_sql(filename: str) -> str:
 
 
 def apply_migrations(db):
-    """Aplica migraÃ§Ãµes idempotentes e aditivas para bancos existentes."""
+    """Aplica migrações idempotentes e aditivas para bancos existentes."""
     migration_log: List[Dict[str, str]] = []
 
     def run_migration(name: str, condition: Callable[[], bool], sql: str):
@@ -129,7 +129,7 @@ def apply_migrations(db):
         logger.info("[migrations] APPLIED %s", name)
         migration_log.append({"name": name, "status": "applied"})
 
-    # Tabelas adicionadas/portadas ao domÃ­nio principal
+    # Tabelas adicionadas/portadas ao domínio principal
     run_migration(
         "create_notifications_table",
         lambda: table_exists(db, "notifications"),
@@ -583,7 +583,7 @@ def apply_migrations(db):
         """,
     )
 
-    # ExpansÃµes de colunas (migraÃ§Ã£o aditiva, sem remoÃ§Ãµes)
+    # Expansões de colunas (migração aditiva, sem remoções)
     run_migration(
         "add_goals_difficulty",
         lambda: column_exists(db, "goals", "difficulty"),
@@ -1001,7 +1001,7 @@ class Database:
         try:
             self.conn = sqlite3.connect(self.path)
             self.conn.row_factory = sqlite3.Row
-            logger.info(f"ConexÃ£o com banco de dados estabelecida: {self.path}")
+            logger.info(f"Conexão com banco de dados estabelecida: {self.path}")
         except Exception as e:
             logger.error(f"Erro ao conectar ao banco de dados: {e}")
             raise
@@ -1011,16 +1011,16 @@ class Database:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Fecha conexÃ£o e faz commit automÃ¡tico se nÃ£o houver erros"""
+        """Fecha conexão e faz commit automático se não houver erros"""
         if exc_type is None:
             try:
                 self.commit()
             except Exception as e:
                 logger.error(f"Erro ao fazer commit: {e}")
         else:
-            logger.error(f"Erro durante transaÃ§Ã£o: {exc_val}")
+            logger.error(f"Erro durante transação: {exc_val}")
         self.close()
-        return False  # NÃ£o suprime exceÃ§Ãµes
+        return False  # Não suprime exceções
 
     def execute(self, query, params=()):
         try:
@@ -1034,7 +1034,7 @@ class Database:
 
     @property
     def lastrowid(self):
-        """Retorna o ID da Ãºltima linha inserida"""
+        """Retorna o ID da última linha inserida"""
         return self.conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     def fetchall(self, query, params=()):
@@ -1064,13 +1064,13 @@ class Database:
     def close(self):
         try:
             self.conn.close()
-            logger.debug("ConexÃ£o fechada")
+            logger.debug("Conexão fechada")
         except Exception as e:
-            logger.error(f"Erro ao fechar conexÃ£o: {e}")
+            logger.error(f"Erro ao fechar conexão: {e}")
 
 
 # -------------------------
-# InicializaÃ§Ã£o do banco
+# Inicialização do banco
 # -------------------------
 
 def initialize_database():

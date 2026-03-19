@@ -43,6 +43,7 @@ from core.daily_config_engine import DailyConfigEngine
 from core.time_overlap import add_minutes, intervals_overlap
 from core.auth_engine import verify_password, update_password, password_config_exists, password_config_location
 from core.system_integration_engine import SystemIntegrationEngine
+from core.cloudflare_tunnel_engine import CloudflareTunnelEngine
 from core.note_engine import NoteEngine
 from data.database import Database, initialize_database, reset_database
 
@@ -306,7 +307,7 @@ async def authentication_middleware(request: Request, call_next):
         auth_token = auth_header[7:].strip()
 
     if not auth_token or auth_token not in ACTIVE_AUTH_TOKENS:
-        return JSONResponse(status_code=401, content={"detail": "AutenticaÃ§Ã£o necessÃ¡ria"})
+        return JSONResponse(status_code=401, content={"detail": "Autenticação necessária"})
 
     return await call_next(request)
 
@@ -341,9 +342,13 @@ class MusicTrainingExercisePayload(BaseModel):
     instrument: str = "guitar"
     target_bpm: Optional[int] = None
     tuning: List[str]
-    columns: conint(ge=4, le=32) = 8
+    columns: conint(ge=4, le=64) = 8
     cells: List[List[str]]
     notes: Optional[str] = None
+    measure_size: conint(ge=2, le=16) = 4
+    library_group: Optional[str] = None
+    difficulty: Optional[conint(ge=1, le=5)] = None
+    tags: List[str] = []
 
     @field_validator("tuning")
     @classmethod
@@ -352,6 +357,30 @@ class MusicTrainingExercisePayload(BaseModel):
         if len(cleaned) != 6:
             raise ValueError("A afinação precisa ter 6 cordas.")
         return cleaned
+
+    @field_validator("library_group")
+    @classmethod
+    def validate_library_group(cls, value: Optional[str]):
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, value: List[str]):
+        seen = set()
+        cleaned = []
+        for item in value or []:
+            normalized = str(item or "").strip()
+            if not normalized:
+                continue
+            lowered = normalized.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            cleaned.append(normalized[:40])
+        return cleaned[:8]
 
     @field_validator("cells")
     @classmethod
@@ -560,7 +589,7 @@ async def auth_status():
 @app.post("/api/auth/login")
 async def auth_login(payload: LoginRequest):
     if not verify_password(payload.password):
-        raise HTTPException(status_code=401, detail="Senha invÃ¡lida")
+        raise HTTPException(status_code=401, detail="Senha inválida")
 
     token = secrets.token_urlsafe(48)
     ACTIVE_AUTH_TOKENS.add(token)
@@ -571,7 +600,7 @@ async def auth_login(payload: LoginRequest):
 async def auth_change_password(payload: PasswordUpdateRequest):
     changed = update_password(payload.current_password, payload.new_password)
     if not changed:
-        raise HTTPException(status_code=401, detail="Senha atual invÃ¡lida")
+        raise HTTPException(status_code=401, detail="Senha atual inválida")
 
     ACTIVE_AUTH_TOKENS.clear()
     return {"success": True}
@@ -580,7 +609,37 @@ async def auth_change_password(payload: PasswordUpdateRequest):
 @app.get("/api/system/integration")
 async def get_system_integration_status():
     try:
-        return {"success": True, "data": SystemIntegrationEngine.get_status()}
+        return {
+            "success": True,
+            "data": {
+                **SystemIntegrationEngine.get_status(),
+                "cloudflare_tunnel": CloudflareTunnelEngine.get_status(),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/system/cloudflare-tunnel")
+async def get_system_cloudflare_tunnel_status():
+    try:
+        return {"success": True, "data": CloudflareTunnelEngine.get_status()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/cloudflare-tunnel/start")
+async def start_system_cloudflare_tunnel():
+    try:
+        return {"success": True, "data": CloudflareTunnelEngine.start()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/cloudflare-tunnel/stop")
+async def stop_system_cloudflare_tunnel():
+    try:
+        return {"success": True, "data": CloudflareTunnelEngine.stop()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -667,7 +726,7 @@ async def create_activity(activity: ActivityCreate):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
                         f"intersecta a janela de sono ({config['sleep_start']}-{config['sleep_end']})."
                     ),
                 )
@@ -681,8 +740,8 @@ async def create_activity(activity: ActivityCreate):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
-                        f"intersecta o horÃ¡rio de trabalho ({config['work_start']}-{config['work_end']})."
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta o horário de trabalho ({config['work_start']}-{config['work_end']})."
                     ),
                 )
 
@@ -706,7 +765,7 @@ async def create_activity(activity: ActivityCreate):
                     raise HTTPException(
                         status_code=400,
                         detail=(
-                            f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                            f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
                             f"intersecta bloco de rotina '{row['name']}' "
                             f"({row['day_type']}: {row['start_time']}-{row['end_time']})."
                         ),
@@ -719,7 +778,7 @@ async def create_activity(activity: ActivityCreate):
         intercalate_days = activity.intercalate_days
 
         if not title:
-            raise HTTPException(status_code=400, detail="title Ã© obrigatÃ³rio")
+            raise HTTPException(status_code=400, detail="title é obrigatório")
 
         if activity.min_duration <= 0:
             raise HTTPException(status_code=400, detail="min_duration deve ser maior que zero")
@@ -731,11 +790,11 @@ async def create_activity(activity: ActivityCreate):
             raise HTTPException(status_code=400, detail="max_duration deve ser maior ou igual a min_duration")
 
         if frequency not in allowed_frequencies:
-            raise HTTPException(status_code=400, detail="frequency_type invÃ¡lido")
+            raise HTTPException(status_code=400, detail="frequency_type inválido")
 
         if frequency == "intercalate":
             if intercalate_days is None:
-                raise HTTPException(status_code=400, detail="intercalate_days Ã© obrigatÃ³rio para frequÃªncia intercalada")
+                raise HTTPException(status_code=400, detail="intercalate_days é obrigatório para frequência intercalada")
             if intercalate_days <= 0:
                 raise HTTPException(status_code=400, detail="intercalate_days deve ser maior que zero")
         else:
@@ -819,7 +878,7 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
                         f"intersecta a janela de sono ({config['sleep_start']}-{config['sleep_end']})."
                     ),
                 )
@@ -833,8 +892,8 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
-                        f"intersecta o horÃ¡rio de trabalho ({config['work_start']}-{config['work_end']})."
+                        f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
+                        f"intersecta o horário de trabalho ({config['work_start']}-{config['work_end']})."
                     ),
                 )
 
@@ -858,7 +917,7 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
                     raise HTTPException(
                         status_code=400,
                         detail=(
-                            f"Conflito de horÃ¡rio: atividade fixa {payload.fixed_time}-{fixed_end} "
+                            f"Conflito de horário: atividade fixa {payload.fixed_time}-{fixed_end} "
                             f"intersecta bloco de rotina '{row['name']}' "
                             f"({row['day_type']}: {row['start_time']}-{row['end_time']})."
                         ),
@@ -871,7 +930,7 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
         intercalate_days = activity.intercalate_days
 
         if not title:
-            raise HTTPException(status_code=400, detail="title Ã© obrigatÃ³rio")
+            raise HTTPException(status_code=400, detail="title é obrigatório")
 
         if activity.min_duration <= 0:
             raise HTTPException(status_code=400, detail="min_duration deve ser maior que zero")
@@ -883,11 +942,11 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
             raise HTTPException(status_code=400, detail="max_duration deve ser maior ou igual a min_duration")
 
         if frequency not in allowed_frequencies:
-            raise HTTPException(status_code=400, detail="frequency_type invÃ¡lido")
+            raise HTTPException(status_code=400, detail="frequency_type inválido")
 
         if frequency == "intercalate":
             if intercalate_days is None:
-                raise HTTPException(status_code=400, detail="intercalate_days Ã© obrigatÃ³rio para frequÃªncia intercalada")
+                raise HTTPException(status_code=400, detail="intercalate_days é obrigatório para frequência intercalada")
             if intercalate_days <= 0:
                 raise HTTPException(status_code=400, detail="intercalate_days deve ser maior que zero")
         else:
@@ -935,7 +994,7 @@ async def update_activity(activity_id: int, activity: ActivityCreate):
         )
 
         if not updated:
-            raise HTTPException(status_code=404, detail="Atividade nÃ£o encontrada")
+            raise HTTPException(status_code=404, detail="Atividade não encontrada")
 
         return {"success": True, "message": "Activity updated"}
 
@@ -1126,7 +1185,7 @@ async def update_goal(goal_id: int, goal: GoalUpdate):
             milestones=[item.model_dump() for item in goal.milestones],
         )
         if not updated:
-            raise HTTPException(status_code=400, detail="Meta concluÃ­da nÃ£o pode ser editada")
+            raise HTTPException(status_code=400, detail="Meta concluída não pode ser editada")
         return {"success": True, "message": "Goal updated"}
     except HTTPException:
         raise
@@ -1164,7 +1223,7 @@ async def update_goal_multipart(
             goal_mode=goal_mode,
         )
         if not updated:
-            raise HTTPException(status_code=400, detail="Meta concluÃ­da nÃ£o pode ser editada")
+            raise HTTPException(status_code=400, detail="Meta concluída não pode ser editada")
 
         return {
             "success": True,
@@ -1183,7 +1242,7 @@ async def delete_goal(goal_id: int):
     try:
         deleted = GoalEngine.delete_goal(goal_id)
         if not deleted:
-            raise HTTPException(status_code=404, detail="Meta nÃ£o encontrada")
+            raise HTTPException(status_code=404, detail="Meta não encontrada")
         return {"success": True, "message": "Goal deleted"}
     except HTTPException:
         raise
@@ -1207,7 +1266,7 @@ async def link_goal_activity(link: GoalActivityLink):
     try:
         linked = GoalEngine.link_activity(link.goal_id, link.activity_id)
         if not linked:
-            raise HTTPException(status_code=409, detail="Atividade jÃ¡ vinculada Ã  meta")
+            raise HTTPException(status_code=409, detail="Atividade já vinculada à meta")
         return {"success": True, "message": "Activity linked to goal"}
     except GoalActivityValidationError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1223,7 +1282,7 @@ async def unlink_goal_activity(goal_id: int, activity_id: int):
     try:
         unlinked = GoalEngine.unlink_activity(goal_id, activity_id)
         if not unlinked:
-            raise HTTPException(status_code=404, detail="VÃ­nculo entre meta e atividade nÃ£o encontrado")
+            raise HTTPException(status_code=404, detail="Vínculo entre meta e atividade não encontrado")
         return {"success": True, "message": "Activity unlinked from goal"}
     except GoalActivityValidationError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1283,7 +1342,7 @@ async def update_goal_status(goal_id: int, status: str):
                 status_code=404,
                 detail={
                     "code": "GOAL_NOT_FOUND",
-                    "message": "Meta nÃ£o encontrada para atualizaÃ§Ã£o de status.",
+                    "message": "Meta não encontrada para atualização de status.",
                 },
             )
         return {"success": True, "message": "Goal status updated"}
@@ -1292,7 +1351,7 @@ async def update_goal_status(goal_id: int, status: str):
             status_code=400,
             detail={
                 "code": "INVALID_GOAL_STATUS",
-                "message": "Status invÃ¡lido. Use: ativa, concluida ou cancelada.",
+                "message": "Status inválido. Use: ativa, concluida ou cancelada.",
             },
         )
     except HTTPException:
@@ -1331,12 +1390,12 @@ async def update_goal_category(category_id: int, payload: GoalCategoryUpdate):
             icon=payload.icon
         )
         if not updated:
-            raise HTTPException(status_code=404, detail="Categoria nÃ£o encontrada")
+            raise HTTPException(status_code=404, detail="Categoria não encontrada")
 
         return {"success": True, "message": "Category updated"}
     except Exception as e:
         if "UNIQUE constraint failed" in str(e):
-            raise HTTPException(status_code=400, detail="JÃ¡ existe uma categoria com esse nome")
+            raise HTTPException(status_code=400, detail="Já existe uma categoria com esse nome")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1346,7 +1405,7 @@ async def delete_goal_category(category_id: int):
     try:
         deleted = GoalEngine.delete_category(category_id)
         if not deleted:
-            raise HTTPException(status_code=404, detail="Categoria nÃ£o encontrada")
+            raise HTTPException(status_code=404, detail="Categoria não encontrada")
 
         return {"success": True, "message": "Category deleted"}
     except Exception as e:
@@ -1382,7 +1441,7 @@ async def create_goal_category(payload: GoalCategoryCreate):
         return {"success": True, "message": "Category created"}
     except Exception as e:
         if "UNIQUE constraint failed" in str(e):
-            raise HTTPException(status_code=400, detail="JÃ¡ existe uma categoria com esse nome")
+            raise HTTPException(status_code=400, detail="Já existe uma categoria com esse nome")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1573,6 +1632,10 @@ async def create_training_exercise(payload: MusicTrainingExercisePayload):
         "columns": expected_columns,
         "cells": normalized_cells,
         "notes": (payload.notes or "").strip() or None,
+        "measure_size": payload.measure_size,
+        "library_group": payload.library_group,
+        "difficulty": payload.difficulty,
+        "tags": payload.tags,
     }
     tid = MusicEngine.create_training(
         payload.name,
@@ -1609,6 +1672,10 @@ async def update_training_exercise(training_id: int, payload: MusicTrainingExerc
         "columns": expected_columns,
         "cells": normalized_cells,
         "notes": (payload.notes or "").strip() or None,
+        "measure_size": payload.measure_size,
+        "library_group": payload.library_group,
+        "difficulty": payload.difficulty,
+        "tags": payload.tags,
     }
     MusicEngine.update_training_exercise(
         training_id,
@@ -1619,6 +1686,14 @@ async def update_training_exercise(training_id: int, payload: MusicTrainingExerc
         tuning=payload.tuning,
     )
     return {"success": True, "data": MusicEngine.get_training(training_id)}
+
+
+@app.delete("/api/music/training/{training_id}")
+async def delete_music_training(training_id: int):
+    deleted = MusicEngine.delete_training(training_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Treino não encontrado.")
+    return {"success": True}
 
 
 @app.post("/api/music/training/{training_id}/session")
@@ -2021,7 +2096,7 @@ async def update_routine_block(block_id: int, block: RoutineBlockUpdate):
             auto_fill_allowed=block.auto_fill_allowed
         )
         if not updated:
-            raise HTTPException(status_code=404, detail="Bloco nÃ£o encontrado")
+            raise HTTPException(status_code=404, detail="Bloco não encontrado")
         return {"success": True, "message": "Block updated"}
     except HTTPException:
         raise
@@ -2035,7 +2110,7 @@ async def delete_routine_block(block_id: int):
     try:
         deleted = RoutineEngine.delete_block(block_id)
         if not deleted:
-            raise HTTPException(status_code=404, detail="Bloco nÃ£o encontrado")
+            raise HTTPException(status_code=404, detail="Bloco não encontrado")
         return {"success": True, "message": "Block deleted"}
     except HTTPException:
         raise
@@ -2049,7 +2124,7 @@ async def complete_routine_block(block_id: int, payload: RoutineBlockComplete):
     try:
         updated = RoutineEngine.complete_block(block_id, payload.completed)
         if not updated:
-            raise HTTPException(status_code=404, detail="Bloco nÃ£o encontrado")
+            raise HTTPException(status_code=404, detail="Bloco não encontrado")
         return {"success": True, "message": "Block status updated"}
     except HTTPException:
         raise
@@ -2140,7 +2215,7 @@ async def reports_daily_activity(activity_id: int):
     try:
         data = AnalyticsEngine.activity_detail(activity_id)
         if not data:
-            raise HTTPException(status_code=404, detail="Atividade nÃ£o encontrada")
+            raise HTTPException(status_code=404, detail="Atividade não encontrada")
         return {"success": True, "data": data}
     except HTTPException:
         raise
@@ -2166,7 +2241,7 @@ async def reports_hobbies_log(
     to_date: Optional[str] = Query(None, alias="to"),
     module: Optional[List[str]] = None,
 ):
-    """Get unified hobbies log (Leitura, Artes, Assistir, MÃºsica)."""
+    """Get unified hobbies log (Leitura, Artes, Assistir, Música)."""
     try:
         data = AnalyticsEngine.hobbies_log(
             limit=max(1, min(limit, 500)),
@@ -2200,7 +2275,7 @@ class FinanceConfigPayload(BaseModel):
     cdb_percent_cdi: float = 100
     extra_percent_cdi: float = 100
 
-    # Conta corrente (taxa prÃ³pria opcional)
+    # Conta corrente (taxa própria opcional)
     interest_rate_current: float = 0
     interest_rate_fgts: float = 3
 
@@ -2347,7 +2422,7 @@ class CustomNotificationPayload(BaseModel):
     def validate_title(cls, value):
         normalized = (value or "").strip()
         if not normalized:
-            raise ValueError("title Ã© obrigatÃ³rio")
+            raise ValueError("title é obrigatório")
         return normalized
 
     @field_validator("message")
@@ -2369,7 +2444,7 @@ class CustomNotificationPayload(BaseModel):
         try:
             datetime.fromisoformat(normalized.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise ValueError("scheduled_for deve ser uma data/hora vÃ¡lida (ISO-8601)") from exc
+            raise ValueError("scheduled_for deve ser uma data/hora válida (ISO-8601)") from exc
         return normalized
 
 
@@ -3028,7 +3103,7 @@ async def books_types_list():
 async def books_types_create(payload: BookTypePayload):
     type_id = BookEngine.create_book_type(payload.name)
     if not type_id:
-        raise HTTPException(status_code=400, detail="Nome do tipo Ã© obrigatÃ³rio")
+        raise HTTPException(status_code=400, detail="Nome do tipo é obrigatório")
     return {"success": True, "data": {"id": type_id}}
 
 
@@ -3063,7 +3138,7 @@ async def books_stats():
 async def books_delete(book_id: int):
     deleted = BookEngine.delete_book(book_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Livro nÃ£o encontrado")
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
     return {"success": True}
 
 
@@ -3111,7 +3186,7 @@ async def artworks_create(
     if visual_category in required_reference_categories and not reference_image:
         raise HTTPException(
             status_code=400,
-            detail="A imagem de referÃªncia Ã© obrigatÃ³ria para pintura, pintura digital e desenho tradicional.",
+            detail="A imagem de referência é obrigatória para pintura, pintura digital e desenho tradicional.",
         )
 
     reference_image_path = None
@@ -3142,7 +3217,7 @@ async def artworks_create(
 async def artworks_delete(painting_id: int):
     deleted = PaintingEngine.delete_artwork(painting_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Obra nÃ£o encontrada")
+        raise HTTPException(status_code=404, detail="Obra não encontrada")
     return {"success": True}
 
 
@@ -3227,7 +3302,7 @@ async def media_items_create(
     folders = [dict(item) for item in PaintingEngine.list_media_folders()]
     folder = next((item for item in folders if item.get("id") == folder_id), None)
     if not folder:
-        raise HTTPException(status_code=404, detail="Pasta nÃ£o encontrada")
+        raise HTTPException(status_code=404, detail="Pasta não encontrada")
 
     section_type = folder.get("section_type") or "outros"
     file_path = _save_upload_file(photo, VISUAL_ARTS_UPLOADS_DIR / "folders" / section_type)
@@ -3523,7 +3598,7 @@ async def calendar_update_event(event_id: int, payload: CalendarEventPayload):
 @app.delete("/api/calendar/events/{event_id}")
 async def calendar_delete_event(event_id: int):
     if not CalendarEngine.delete_event(event_id):
-        raise HTTPException(status_code=404, detail="Evento nÃ£o encontrado")
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
     return {"success": True}
 
 
@@ -3559,7 +3634,7 @@ async def calendar_update_manual_log(log_id: int, payload: CalendarManualLogPayl
 @app.delete("/api/calendar/logs/{log_id}")
 async def calendar_delete_manual_log(log_id: int):
     if not CalendarEngine.delete_manual_log(log_id):
-        raise HTTPException(status_code=404, detail="Registro manual nÃ£o encontrado")
+        raise HTTPException(status_code=404, detail="Registro manual não encontrado")
     return {"success": True}
 
 
@@ -3720,7 +3795,7 @@ async def add_daily_routine_block(payload: DailyRoutineBlockCreate):
 
     block_name = (payload.name or "").strip()
     if not block_name:
-        raise HTTPException(status_code=400, detail="Nome do bloco Ã© obrigatÃ³rio")
+        raise HTTPException(status_code=400, detail="Nome do bloco é obrigatório")
 
     if not time_pattern.match(payload.start_time):
         raise HTTPException(status_code=400, detail="start_time deve estar no formato HH:MM")
@@ -3746,7 +3821,7 @@ async def add_daily_routine_block(payload: DailyRoutineBlockCreate):
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "Conflito de horÃ¡rio com bloco existente "
+                        "Conflito de horário com bloco existente "
                         f"'{block['name']}' ({block['start_time']}-{block['end_time']})"
                     ),
                 )

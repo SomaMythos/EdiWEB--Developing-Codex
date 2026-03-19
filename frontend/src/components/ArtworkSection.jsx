@@ -112,7 +112,12 @@ const ArtworkSection = ({ category, title }) => {
       </form>
 
       {!!feedback && <p style={{ marginBottom: 12, opacity: 0.9 }}>{feedback}</p>}
-      {isLoading && <p style={{ marginBottom: 12, opacity: 0.7 }}>Carregando...</p>}
+      {isLoading ? (
+        <div className="app-state-card app-state-card--inline" style={{ marginBottom: 12 }}>
+          <p className="app-state-card__title">Carregando obras</p>
+          <p className="app-state-card__text">Buscando itens desta categoria visual.</p>
+        </div>
+      ) : null}
 
       <div style={{ display: 'grid', gap: 12 }}>
         {artworks.map((artwork) => {
@@ -165,7 +170,12 @@ const ArtworkSection = ({ category, title }) => {
           );
         })}
 
-        {!artworks.length && !isLoading && <p style={{ opacity: 0.7 }}>Nenhuma obra cadastrada para esta categoria.</p>}
+        {!artworks.length && !isLoading ? (
+          <div className="app-state-card app-state-card--inline">
+            <p className="app-state-card__title">Nenhuma obra cadastrada</p>
+            <p className="app-state-card__text">Crie a primeira obra para começar esta categoria.</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

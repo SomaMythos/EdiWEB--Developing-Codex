@@ -332,7 +332,12 @@ const Consumiveis = () => {
 
         <article className="card span-2">
           <h3>Itens consumíveis</h3>
-          {isLoadingBase ? <p className="muted">Carregando itens...</p> : null}
+          {isLoadingBase ? (
+            <div className="app-state-card app-state-card--inline">
+              <p className="app-state-card__title">Carregando consumíveis</p>
+              <p className="app-state-card__text">Buscando categorias, estoque e previsões.</p>
+            </div>
+          ) : null}
           <div className="items-by-category">
             {groupedItems.map((group) => (
               <section key={group.categoryId} className="category-group">
@@ -368,7 +373,12 @@ const Consumiveis = () => {
 
                         {isTooltipOpen ? (
                           <div className="stats-tooltip" role="dialog" aria-label={`Estatísticas de ${item.name}`}>
-                            {isLoadingDetailId === item.id ? <p className="muted">Carregando...</p> : null}
+                            {isLoadingDetailId === item.id ? (
+                              <div className="app-state-card app-state-card--inline">
+                                <p className="app-state-card__title">Carregando estatísticas</p>
+                                <p className="app-state-card__text">Calculando médias e previsão deste item.</p>
+                              </div>
+                            ) : null}
                             {isLoadingDetailId !== item.id ? (
                               <>
                                 <div><span>Total de compras</span><strong>{itemStats.total_purchases ?? 0}</strong></div>
@@ -388,7 +398,12 @@ const Consumiveis = () => {
               </section>
             ))}
           </div>
-          {!isLoadingBase && filteredItems.length === 0 ? <p className="muted">Nenhum item para o filtro atual.</p> : null}
+          {!isLoadingBase && filteredItems.length === 0 ? (
+            <div className="app-state-card app-state-card--inline">
+              <p className="app-state-card__title">Nada neste filtro</p>
+              <p className="app-state-card__text">Tente outra categoria ou cadastre um novo item consumível.</p>
+            </div>
+          ) : null}
         </article>
 
         {openPanelItemId ? (
@@ -398,7 +413,12 @@ const Consumiveis = () => {
                 <h3>Painel do item</h3>
                 <button type="button" className="btn btn-secondary" onClick={() => setOpenPanelItemId(null)}>Fechar</button>
               </div>
-              {isLoadingDetailId === openPanelItemId ? <p className="muted">Carregando detalhe...</p> : null}
+              {isLoadingDetailId === openPanelItemId ? (
+                <div className="app-state-card app-state-card--inline">
+                  <p className="app-state-card__title">Carregando painel do item</p>
+                  <p className="app-state-card__text">Montando histórico, estoque e previsão detalhada.</p>
+                </div>
+              ) : null}
 
               {isLoadingDetailId !== openPanelItemId && panelDetail ? (
                 <>

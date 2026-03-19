@@ -50,7 +50,7 @@ const getActivityTags = activity => {
 
   if (!usesNeutralCategory) {
     if (activity?.is_disc) tags.push("Disciplina");
-    if (activity?.is_fun) tags.push("Diversao");
+    if (activity?.is_fun) tags.push("Diversão");
   }
 
   return tags;
@@ -321,7 +321,7 @@ export default function ActivitiesModal({
               <div className="activities-group">
                 <span className="activities-group__label">Categoria</span>
                 <p className="activities-helper">
-                  Atividades todo dia, intercaladas e com horario fixo ficam fora do calculo de pesos e nao usam Disciplina ou Diversao.
+                  Atividades todo dia, intercaladas e com horário fixo ficam fora do cálculo de pesos e não usam Disciplina ou Diversão.
                 </p>
               </div>
             ) : (
@@ -341,7 +341,7 @@ export default function ActivitiesModal({
                       className={`activities-flag ${newActivity.is_fun ? "active" : ""}`}
                       onClick={() => setNewActivity({ ...newActivity, is_fun: !newActivity.is_fun })}
                     >
-                      Diversao
+                      Diversão
                     </button>
                   </div>
                 </div>

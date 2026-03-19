@@ -1,71 +1,100 @@
-from datetime import date
+from datetime import date, datetime
+
 from data.database import Database
 
 
 class DailyLogEngine:
 
     @staticmethod
-    def get_today_log_id():
+    def get_today_log_id(log_date=None):
         db = Database()
-        today = date.today().isoformat()
+        selected_date = log_date or date.today().isoformat()
 
-        row = db.fetchone("""
+        row = db.fetchone(
+            """
             SELECT id FROM daily_logs
             WHERE date = ?
-        """, (today,))
+            """,
+            (selected_date,),
+        )
 
         if row:
             log_id = row["id"]
         else:
-            db.execute("""
+            db.execute(
+                """
                 INSERT INTO daily_logs (date)
                 VALUES (?)
-            """, (today,))
+                """,
+                (selected_date,),
+            )
             db.commit()
             log_id = db.lastrowid
 
         db.close()
         return log_id
 
-    # 🔹 Método esperado pela HomeScreen
     @staticmethod
-    def list_day():
-        db = Database()
-        today = date.today().isoformat()
+    def _normalize_timestamp(timestamp, fallback_date):
+        if not timestamp:
+            now = datetime.now()
+            return fallback_date, now.strftime("%H:%M:%S")
 
-        rows = db.fetchall("""
-SELECT
-    dal.id,
-    a.title,
-    a.is_disc,
-    a.is_fun,
-    dal.duration,
-    dal.completed,
-    dal.timestamp as start,
-    CASE
-        WHEN dal.duration IS NOT NULL
-        THEN time(dal.timestamp, '+' || dal.duration || ' minutes')
-        ELSE dal.timestamp
-    END as end
-FROM daily_activity_logs dal
-JOIN daily_logs dl ON dl.id = dal.daily_log_id
-JOIN activities a ON a.id = dal.activity_id
-WHERE dl.date = ?
-ORDER BY dal.timestamp
-        """, (today,))
+        if "T" in timestamp or " " in timestamp:
+            normalized_value = timestamp.replace("Z", "+00:00")
+            parsed_datetime = datetime.fromisoformat(normalized_value)
+            return parsed_datetime.date().isoformat(), parsed_datetime.strftime("%H:%M:%S")
+
+        for fmt in ("%H:%M:%S", "%H:%M"):
+            try:
+                parsed_time = datetime.strptime(timestamp, fmt)
+                return fallback_date, parsed_time.strftime("%H:%M:%S")
+            except ValueError:
+                continue
+
+        raise ValueError("Timestamp inválido para registro diário.")
+
+    @staticmethod
+    def list_day(log_date=None):
+        db = Database()
+        selected_date = log_date or date.today().isoformat()
+
+        rows = db.fetchall(
+            """
+            SELECT
+                dal.id,
+                a.title,
+                a.is_disc,
+                a.is_fun,
+                dal.duration,
+                dal.completed,
+                dal.timestamp as start,
+                CASE
+                    WHEN dal.duration IS NOT NULL
+                    THEN time(dal.timestamp, '+' || dal.duration || ' minutes')
+                    ELSE dal.timestamp
+                END as end
+            FROM daily_activity_logs dal
+            JOIN daily_logs dl ON dl.id = dal.daily_log_id
+            JOIN activities a ON a.id = dal.activity_id
+            WHERE dl.date = ?
+            ORDER BY dal.timestamp
+            """,
+            (selected_date,),
+        )
 
         db.close()
         return rows
 
     @staticmethod
-    def register_activity(activity_id, duration=0, completed=0):
-        from datetime import datetime
+    def register_activity(activity_id, duration=0, completed=0, timestamp=None, log_date=None):
         db = Database()
-        log_id = DailyLogEngine.get_today_log_id()
+        fallback_date = log_date or date.today().isoformat()
+        resolved_date, resolved_timestamp = DailyLogEngine._normalize_timestamp(timestamp, fallback_date)
+        log_id = DailyLogEngine.get_today_log_id(resolved_date)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
-
-        db.execute("""
+        db.execute(
+            """
             INSERT INTO daily_activity_logs (
                 daily_log_id,
                 activity_id,
@@ -73,7 +102,9 @@ ORDER BY dal.timestamp
                 completed,
                 timestamp
             ) VALUES (?, ?, ?, ?, ?)
-        """, (log_id, activity_id, duration, completed, timestamp))
+            """,
+            (log_id, activity_id, duration, completed, resolved_timestamp),
+        )
 
         db.commit()
         db.close()

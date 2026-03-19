@@ -32,7 +32,7 @@ class FinanceEngine:
     @staticmethod
     def get_config():
         """
-        Retorna a configuraÃ§Ã£o como um dicionÃ¡rio puro.
+        Retorna a configuração como um dicionário puro.
         Converte sqlite3.Row (ou outros formatos) para dict para permitir .get().
         """
         db = Database()
@@ -40,27 +40,27 @@ class FinanceEngine:
         db.close()
         if not row:
             return {}
-        # sqlite3.Row -> dict(row) funciona; se falhar, constrÃ³i manualmente
+        # sqlite3.Row -> dict(row) funciona; se falhar, constrói manualmente
         try:
             return dict(row)
         except Exception:
             # fallback: construir dict a partir dos campos conhecidos (mais seguro)
-            # Se row for indexÃ¡vel por col name, isso tentarÃ¡ extrair.
+            # Se row for indexável por col name, isso tentará extrair.
             config = {}
             try:
                 for k in row.keys():
                     config[k] = row[k]
                 return config
             except Exception:
-                # por seguranÃ§a, retorna row como estÃ¡ (mas preferimos dict)
+                # por segurança, retorna row como está (mas preferimos dict)
                 return row
 
     @staticmethod
     def save_config(data: dict):
         """
-        Salva / atualiza a configuraÃ§Ã£o financeira.
-        Inclui reserve_fgts (saldo atual FGTS) e fgts (depÃ³sito mensal FGTS).
-        Faz UPDATE com WHERE id= quando jÃ¡ existe registro.
+        Salva / atualiza a configuração financeira.
+        Inclui reserve_fgts (saldo atual FGTS) e fgts (depósito mensal FGTS).
+        Faz UPDATE com WHERE id= quando já existe registro.
         """
         db = Database()
 
@@ -74,7 +74,7 @@ class FinanceEngine:
             data.get("reserve_cdb", 0),
             data.get("reserve_extra", 0),
             data.get("reserve_fgts", 0),     # Saldo atual FGTS
-            data.get("fgts", 0),             # DepÃ³sito mensal FGTS
+            data.get("fgts", 0),             # Depósito mensal FGTS
             data.get("monthly_contribution", 0),
             data.get("thirteenth", 0),
             data.get("cdi_rate_annual", 0),
@@ -384,7 +384,7 @@ class FinanceEngine:
     @staticmethod
     def get_summary():
         """
-        Retorna resumo com valores principais e tambÃ©m os saldos por conta:
+        Retorna resumo com valores principais e também os saldos por conta:
         - patrimonio_total, saldo_disponivel, percentual_economia, total_gastos_fixos, health_indicator
         - current, cdb, extra, fgts (para os cards do frontend)
         """
@@ -400,11 +400,11 @@ class FinanceEngine:
         total_fixed = float(total_fixed_row["total"]) if total_fixed_row and total_fixed_row["total"] is not None else 0.0
         db.close()
 
-        # agora config Ã© dict -> usar config.get Ã© seguro
+        # agora config é dict -> usar config.get é seguro
         salary = float(config.get("salary_monthly", 0) or 0)
         contribution = float(config.get("monthly_contribution", 0) or 0)
 
-        # patrimÃ´nio total considera reserve_fgts (saldo atual) tambÃ©m
+        # patrimônio total considera reserve_fgts (saldo atual) também
         patrimonio_total = (
             float(config.get("reserve_current", 0) or 0) +
             float(config.get("reserve_cdb", 0) or 0) +
@@ -445,10 +445,10 @@ class FinanceEngine:
         if not config:
             return []
 
-        # helper para ler o config com seguranÃ§a e converter para float
+        # helper para ler o config com segurança e converter para float
         def cfg(name):
             try:
-                # config Ã© dict graÃ§as a get_config()
+                # config é dict graças a get_config()
                 v = config.get(name, 0)
             except Exception:
                 v = 0
@@ -471,7 +471,7 @@ class FinanceEngine:
         salary = cfg("salary_monthly")
         contribution = cfg("monthly_contribution")
         thirteenth = cfg("thirteenth")
-        fgts_monthly_deposit = cfg("fgts")  # fgts no config = depÃ³sito mensal
+        fgts_monthly_deposit = cfg("fgts")  # fgts no config = depósito mensal
 
         # ============================
         # CDI - CAPITALIZAÇÃO EXPONENCIAL
@@ -482,11 +482,11 @@ class FinanceEngine:
         cdb_rate = cdi_monthly * (cfg("cdb_percent_cdi") / 100.0)
         extra_rate = cdi_monthly * (cfg("extra_percent_cdi") / 100.0)
 
-        # Conta corrente (taxa anual prÃ³pria)
+        # Conta corrente (taxa anual própria)
         current_annual = cfg("interest_rate_current") / 100.0
         current_rate = (1 + current_annual) ** (1.0 / 12.0) - 1.0
 
-        # FGTS: taxa anual configurÃ¡vel (default 3%)
+        # FGTS: taxa anual configurável (default 3%)
         fgts_annual = cfg("interest_rate_fgts") / 100.0
         fgts_rate = (1 + fgts_annual) ** (1.0 / 12.0) - 1.0
 
@@ -510,14 +510,14 @@ class FinanceEngine:
             extra = extra * (1.0 + extra_rate)
             fgts_balance = fgts_balance * (1.0 + fgts_rate)
 
-            # 2. movimentaÃ§Ã£o mensal
+            # 2. movimentação mensal
             monthly_leftover = salary - total_fixed - contribution
             current += monthly_leftover
 
             cdb += contribution
             fgts_balance += fgts_monthly_deposit
 
-            # 13Âº salÃ¡rio no mÃªs 12,24...
+            # 13º salário no mês 12,24...
             if (m % 12) == 0 and thirteenth > 0:
                 current += thirteenth
 
@@ -533,5 +533,4 @@ class FinanceEngine:
             })
 
         return projection
-
 

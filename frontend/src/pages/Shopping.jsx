@@ -199,14 +199,22 @@ const Shopping = () => {
 
       {feedback.message ? <div className={`upload-feedback ${feedback.type}`}>{feedback.message}</div> : null}
 
-      {isLoading ? <p className="muted">Carregando itens...</p> : null}
+      {isLoading ? (
+        <div className="app-state-card app-state-card--inline">
+          <p className="app-state-card__title">Carregando wishlist</p>
+          <p className="app-state-card__text">Organizando os itens cadastrados por categoria.</p>
+        </div>
+      ) : null}
 
       <div className="shopping-sections">
         {Object.keys(itemTypeLabels).map((key) => (
           <section className="card shopping-list-card" key={key}>
             <h3>{itemTypeLabels[key]}</h3>
             {(groupedItems[key] || []).length === 0 ? (
-              <p className="muted">Nenhum item nesta categoria.</p>
+              <div className="app-state-card app-state-card--inline">
+                <p className="app-state-card__title">Sem itens nesta categoria</p>
+                <p className="app-state-card__text">Adicione um novo item para começar esta lista.</p>
+              </div>
             ) : (
               <div className="shopping-list">
                 {groupedItems[key].map((item) => (

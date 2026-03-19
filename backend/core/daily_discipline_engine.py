@@ -206,7 +206,9 @@ class DailyDisciplineEngine:
                     last_registered_dt = datetime.strptime(last_registered_date, "%Y-%m-%d").date()
                     days_since_last = (target_dt - last_registered_dt).days
 
-                    if days_since_last >= minimum_days:
+                    # "intercalate_days" representa dias completos de espera
+                    # entre uma execução e a próxima aparição na daily.
+                    if days_since_last > minimum_days:
                         filtered_activities.append(normalized_activity)
 
             if not filtered_activities:

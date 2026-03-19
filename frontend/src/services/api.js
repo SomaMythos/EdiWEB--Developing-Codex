@@ -222,6 +222,9 @@ export const studyApi = {
 // System Integration
 export const systemIntegrationApi = {
   getStatus: () => api.get('/system/integration'),
+  getCloudflareTunnelStatus: () => api.get('/system/cloudflare-tunnel'),
+  startCloudflareTunnel: () => api.post('/system/cloudflare-tunnel/start'),
+  stopCloudflareTunnel: () => api.post('/system/cloudflare-tunnel/stop'),
   createDesktopShortcut: () => api.post('/system/desktop-shortcut'),
   setWindowsStartup: (enabled) => api.put('/system/windows-startup', { enabled }),
   resetDatabase: (confirmationText) => api.post('/system/reset-database', { confirmation_text: confirmationText }),

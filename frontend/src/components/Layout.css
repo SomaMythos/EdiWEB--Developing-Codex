@@ -59,6 +59,11 @@
   100% { transform: translateX(120%); }
 }
 
+@keyframes sidebarTunnelSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ======================================================
    SIDEBAR BASE – DEEP GLASS WITH FEATHERED LIGHT
 ====================================================== */
@@ -351,6 +356,99 @@
   font-variant-numeric: tabular-nums;
   color: rgba(255,255,255,0.56);
   text-shadow: none;
+}
+
+.sidebar-tunnel {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
+
+.sidebar-tunnel__button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.72rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.82);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    opacity var(--motion-fast);
+}
+
+.sidebar-tunnel__button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+}
+
+.sidebar-tunnel__button.is-online {
+  border-color: rgba(62, 198, 116, 0.34);
+  background: linear-gradient(180deg, rgba(38, 168, 91, 0.24), rgba(23, 71, 42, 0.24));
+  color: rgba(236,255,242,0.96);
+}
+
+.sidebar-tunnel__button.is-starting {
+  border-color: rgba(215,196,173,0.28);
+  background: rgba(215,196,173,0.1);
+  color: rgba(255,245,231,0.9);
+}
+
+.sidebar-tunnel__button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-tunnel__icon {
+  flex-shrink: 0;
+}
+
+.sidebar-tunnel__icon--spin {
+  animation: sidebarTunnelSpin 0.9s linear infinite;
+}
+
+.sidebar-tunnel__copy {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.48);
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: underline;
+  text-decoration-color: rgba(255,255,255,0.14);
+  text-underline-offset: 0.18em;
+  padding: 2px 0 0;
+  transition:
+    color var(--motion-fast),
+    text-decoration-color var(--motion-fast),
+    opacity var(--motion-fast);
+}
+
+.sidebar-tunnel__copy:hover:not(:disabled) {
+  color: rgba(255,255,255,0.7);
+  text-decoration-color: rgba(255,255,255,0.36);
+}
+
+.sidebar-tunnel__copy.is-disabled,
+.sidebar-tunnel__copy:disabled {
+  opacity: 0.45;
+  text-decoration-color: transparent;
+  cursor: default;
 }
 
 /* ======================================================

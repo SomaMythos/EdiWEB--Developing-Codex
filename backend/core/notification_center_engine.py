@@ -849,25 +849,87 @@ class NotificationCenterEngine:
     @staticmethod
     def _store_daily_summary():
         try:
-            entries = DailyLogEngine.list_day()
+            entries = [dict(entry) for entry in DailyLogEngine.list_day()]
             total_activities = len(entries)
+            summary_date = date.today().isoformat()
+            summary_unique_key = f"daily_summary:{summary_date}"
+
+            if total_activities <= 0:
+                with Database() as db:
+                    db.execute(
+                        """
+                        UPDATE notifications
+                        SET status = 'canceled',
+                            read_at = CURRENT_TIMESTAMP
+                        WHERE unique_key = ?
+                          AND status = 'unread'
+                        """,
+                        (summary_unique_key,),
+                    )
+                return
+
             completed_activities = sum(1 for entry in entries if entry.get("completed"))
             completion_rate = (completed_activities / total_activities * 100) if total_activities else 0
+            scheduled_for = datetime.now().astimezone().replace(
+                hour=23,
+                minute=59,
+                second=0,
+                microsecond=0,
+            ).isoformat(timespec="minutes")
             payload = {
                 "notification_type": "daily_summary",
                 "source_feature": "daily",
                 "title": "Resumo diário",
                 "message": f"Hoje você completou {completed_activities} de {total_activities} atividades",
                 "severity": "info",
+                "scheduled_for": scheduled_for,
                 "meta": {
-                    "date": date.today().isoformat(),
+                    "date": summary_date,
                     "total_activities": total_activities,
                     "completed_activities": completed_activities,
                     "completion_rate": completion_rate,
                 },
                 "color_token": "success",
             }
-            NotificationCenterEngine._insert_notification(payload)
+            meta_payload = json.dumps(payload["meta"], ensure_ascii=False)
+
+            with Database() as db:
+                existing = db.fetchone(
+                    """
+                    SELECT id
+                    FROM notifications
+                    WHERE unique_key = ?
+                    LIMIT 1
+                    """,
+                    (summary_unique_key,),
+                )
+
+                if existing:
+                    db.execute(
+                        """
+                        UPDATE notifications
+                        SET title = ?,
+                            message = ?,
+                            severity = ?,
+                            scheduled_for = ?,
+                            meta = ?,
+                            sound_key = ?,
+                            color_token = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            payload.get("title"),
+                            payload.get("message"),
+                            payload.get("severity") or "info",
+                            payload.get("scheduled_for"),
+                            meta_payload,
+                            payload.get("sound_key"),
+                            payload.get("color_token"),
+                            existing["id"],
+                        ),
+                    )
+                else:
+                    NotificationCenterEngine._insert_notification(payload, unique_key=summary_unique_key)
         except Exception as exc:
             logger.error("Erro ao gerar resumo diário: %s", exc)
 
@@ -1109,8 +1171,6 @@ class NotificationCenterEngine:
             for reminder in NotificationCenterEngine.reminder_adapter_list(status="pendente")
             if reminder.get("due_date") and reminder["due_date"] <= limit_date
         ]
-
-
 
 
 
