@@ -482,6 +482,13 @@
   align-items: end;
 }
 
+.training-practice-loopbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 220px));
+  gap: 12px;
+  align-items: end;
+}
+
 .training-practice-control {
   display: grid;
   gap: 6px;
@@ -514,6 +521,28 @@
   background: rgba(255, 255, 255, 0.03);
   color: var(--glass-text-secondary);
   font-size: 0.82rem;
+}
+
+.training-practice-current-loop-box {
+  display: grid;
+  gap: 6px;
+  width: fit-content;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border-default);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.training-practice-current-loop-box span {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--glass-text-muted);
+}
+
+.training-practice-current-loop-box strong {
+  color: var(--glass-text-primary);
+  font-size: 1rem;
 }
 
 .training-practice-tuning-bar {
@@ -730,6 +759,7 @@
   .training-exercise-metadata,
   .training-library-filters,
   .training-practice-toolbar,
+  .training-practice-loopbar,
   .training-history-summary,
   .training-practice-tuning-bar {
     grid-template-columns: 1fr;
